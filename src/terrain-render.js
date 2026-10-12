@@ -29,14 +29,16 @@ export class TerrainRenderer {
     const size = CAMERA_CONFIG.tileSize;
     const a = this.camera.screenToWorld(0, 0);
     const b = this.camera.screenToWorld(this.camera.width, this.camera.height);
-    const spacing = this.camera.zoom < 1.25 ? 2 : 1;
-    const left = Math.floor(a.x / size / spacing) * spacing;
-    const top = Math.floor(a.y / size / spacing) * spacing;
+    // Always sample the same logical tiles at every zoom level.
+    // Skipping every other tile while zoomed out made deposits appear to
+    // jump/disappear independently from the camera gesture.
+    const left = Math.floor(a.x / size);
+    const top = Math.floor(a.y / size);
     const right = Math.ceil(b.x / size) + 1;
     const bottom = Math.ceil(b.y / size) + 1;
     let count = 0;
-    outer: for (let y = top; y <= bottom; y += spacing) {
-      for (let x = left; x <= right; x += spacing) {
+    outer: for (let y = top; y <= bottom; y++) {
+      for (let x = left; x <= right; x++) {
         const ore = this.terrain.oreAt(x, y);
         if (!ore || !RESOURCES[ore]) continue;
         if (count >= 450) break outer;
