@@ -242,6 +242,15 @@ export class BuildingRenderer {
         status.setAttribute('cx','0');
         status.setAttribute('cy','0');
         node.appendChild(status);
+        if (['drill','leadCollector','poweredDrill','generator','smelter','siliconPlant','superconductorPlant'].includes(structure.type)) {
+          const rotor = document.createElementNS(NS,'path');
+          rotor.setAttribute('class','machine-rotor');
+          rotor.setAttribute('d','M0 -6V-2 M0 2V6 M-6 0H-2 M2 0H6');
+          rotor.setAttribute('stroke','#c3d1d0');
+          rotor.setAttribute('stroke-width','2');
+          rotor.setAttribute('stroke-linecap','round');
+          node.appendChild(rotor);
+        }
         const insignia = document.createElementNS(NS, 'g');
         insignia.setAttribute('class', 'insignia');
         insignia.setAttribute('visibility', 'hidden');
@@ -262,6 +271,11 @@ export class BuildingRenderer {
       status?.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
       status?.setAttribute('transform', 'translate(' + (STRUCTURES[structure.type].width*48-8)*camera.zoom + ' ' + 8*camera.zoom + ') scale(' + camera.zoom + ')');
       node.classList.toggle('machine-operating', operating);
+      const rotor = node.querySelector('.machine-rotor');
+      if (rotor) {
+        rotor.setAttribute('transform', 'translate(' + STRUCTURES[structure.type].width * 24 * camera.zoom + ' ' + STRUCTURES[structure.type].height * 24 * camera.zoom + ') scale(' + camera.zoom + ')');
+        rotor.setAttribute('visibility', operating && camera.zoom >= .7 ? 'visible' : 'hidden');
+      }
       const motion = node.querySelector('.belt-motion');
       if (motion) motion.setAttribute('visibility', structure.itemCount > 0 && structure.enabled ? 'visible' : 'hidden');
       node.classList.toggle('machine-blocked',blocked);
