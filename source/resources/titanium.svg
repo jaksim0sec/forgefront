@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="티타늄 자원 아이콘"><title>티타늄</title><g stroke-linejoin="round"><!-- ilmenite-like splintered blades rather than gemstones -->
+<path d="m14 74 8-26 15-10 13 21-5 23-20 1Z" fill="#68747D"/>
+<path d="m22 48 15-10 13 21-15-5Z" fill="#909CA2"/>
+<path d="m14 74 21-20 10 28-20 1Z" fill="#47545D"/>
+<!-- long main shard -->
+<path d="m33 74 15-58 11-8 16 28-8 40-14 10Z" fill="#63717B"/>
+<path d="m48 16 11-8 16 28-18 9Z" fill="#A0A9AD"/>
+<path d="m57 45 18-9-8 40-14 10Z" fill="#364650"/>
+<path d="m48 16 9 29-4 41-20-12Z" fill="#73818A"/>
+<!-- small side splinter -->
+<path d="m67 70 11-36 11 21-3 21-13 8Z" fill="#495963"/>
+<path d="m78 34 11 21-13 8Z" fill="#8B979C"/>
+<path d="m67 70 9-7 10 13-13 8Z" fill="#5B6872"/>
+<path d="m50 29 3-13" stroke="#CAD0CF" stroke-width="1.5" opacity=".5"/></g></svg>
