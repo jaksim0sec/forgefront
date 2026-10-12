@@ -333,3 +333,7 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
   #toolbox-panel.panel-collapsed .tool-list .tool-label { font-size:9px; }
 }
 @media (prefers-reduced-motion:reduce) { .cargo-overlay.belt-cargo { animation:none; } }
+
+.machine-operating .machine-rotor { transform-box:fill-box; transform-origin:center; animation:machine-spin 2s linear infinite; }
+@keyframes machine-spin { to { rotate:360deg; } }
+@media(prefers-reduced-motion:reduce) { .machine-rotor { animation:none !important; } }
