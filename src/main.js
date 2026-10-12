@@ -129,6 +129,16 @@ function render() {
   const hoverTile = hoverPoint ? (STRUCTURES[tool] && tool !== 'conveyor' ? snappedTile(hitTile(hoverPoint)) : hitTile(hoverPoint)) : null;
   terrainVisual.draw();
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
+  const area = byId('erase-preview');
+  if (paint?.kind === 'erase') {
+    const a = paint.route[0], b = paint.route.at(-1);
+    const minX = Math.min(a.x,b.x), minY = Math.min(a.y,b.y);
+    const maxX = Math.max(a.x,b.x)+1, maxY = Math.max(a.y,b.y)+1;
+    const p = camera.worldToScreen(minX * CAMERA_CONFIG.tileSize,minY * CAMERA_CONFIG.tileSize);
+    const q = camera.worldToScreen(maxX * CAMERA_CONFIG.tileSize,maxY * CAMERA_CONFIG.tileSize);
+    for (const [key,value] of Object.entries({x:p.x,y:p.y,width:q.x-p.x,height:q.y-p.y})) area.setAttribute(key,value);
+    area.setAttribute('visibility','visible');
+  } else area.setAttribute('visibility','hidden');
   const oreAtHover = hoverTile ? world.terrain.oreAt(hoverTile.x, hoverTile.y) : null;
   ui.tile.textContent = hoverTile ?
     `[${hoverTile.x}, ${hoverTile.y}]${oreAtHover ? ' · ' + RESOURCES[oreAtHover].label : ''}` : '—';
@@ -276,7 +286,7 @@ function actionAt(point, alternate = false) {
 }
 function startStroke(pointerId, point, isTouch) {
   paint = { pointerId, route: [{ ...hitTile(point) }], isTouch, kind: tool, lastAnchor: null };
-  if (tool !== 'conveyor') paintStructure(point);
+  if (tool !== 'conveyor' && tool !== 'erase') paintStructure(point);
   invalidate();
 }
 function paintStructure(point) {
@@ -303,6 +313,7 @@ function paintStructure(point) {
 }
 function extendStroke(point) {
   if (!paint) return;
+  if (paint.kind === 'erase') { paint.route[1] = hitTile(point); invalidate(); return; }
   if (paint.kind !== 'conveyor') { paintStructure(point); invalidate(); return; }
   const tile = hitTile(point), last = paint.route.at(-1);
   if (last?.x === tile.x && last?.y === tile.y) return;
@@ -311,6 +322,17 @@ function extendStroke(point) {
 }
 function finishStroke(commit) {
   if (!paint) return;
+  if (commit && paint.kind === 'erase') {
+    const a = paint.route[0], b = paint.route.at(-1);
+    const x0 = Math.min(a.x,b.x), x1 = Math.max(a.x,b.x);
+    const y0 = Math.min(a.y,b.y), y1 = Math.max(a.y,b.y);
+    const victims = new Set();
+    for (let y = y0; y <= y1 && victims.size < 10000; y++) {
+      for (let x = x0; x <= x1; x++) { const entity = world.getAt(x,y); if (entity) victims.add(entity.id); }
+    }
+    world.batch(() => { for (const id of victims) world.remove(id); });
+    if (victims.has(selectedId)) selectedId = null;
+  }
   if (commit && paint.kind === 'conveyor') {
     notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation), activeOwner), 'conveyor');
   }
@@ -351,7 +373,7 @@ svg.addEventListener('pointerdown', event => {
     svg.setPointerCapture(event.pointerId);
     taps.set(event.pointerId, { start: point, cancelled: touches.size > 1 });
     resetGesture();
-    if (touches.size === 1 && STRUCTURES[tool]) {
+    if (touches.size === 1 && (STRUCTURES[tool] || tool === 'erase')) {
       const pointerId = event.pointerId;
       const timer = setTimeout(() => {
         if (pendingHold?.pointerId !== pointerId || touches.size !== 1 || !taps.has(pointerId)) return;
@@ -367,7 +389,7 @@ svg.addEventListener('pointerdown', event => {
     hoverPoint = null;
   } else if (event.button === 0) {
     svg.setPointerCapture(event.pointerId);
-    if (STRUCTURES[tool]) startStroke(event.pointerId, point, false);
+    if (STRUCTURES[tool] || tool === 'erase') startStroke(event.pointerId, point, false);
     else taps.set(event.pointerId, { start: point, cancelled: false });
   } else if (event.button === 2) {
     svg.setPointerCapture(event.pointerId);
