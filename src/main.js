@@ -25,7 +25,7 @@ const ui = {
   resourcePicker: byId('resource-picker'),
 };
 let tool = 'select', rotation = 0, selectedId = null;
-let activeOwner = null, hoverPoint = null, showLinks = true, touchDraw = false;
+let activeOwner = null, hoverPoint = null, showLinks = true;
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 
 const ownerSwatches = byId('owner-swatches');
@@ -192,11 +192,17 @@ function finishStroke(commit) {
   invalidate();
 }
 
-// Gesture ownership: 1-finger pan is the default even while a building tool
-// is active. Touch drawing requires explicit opt-in; pinch always overrides it.
+// Touch: tap to place, drag to pan, hold 350ms to begin drawing.
+// A second finger cancels the stroke and switches to pinch.
 const touches = new Map();
 const taps = new Map();
 let gesture = null;
+const HOLD_MS = 350, HOLD_SLOP = 9;
+let pendingHold = null;
+function cancelHold() {
+  if (pendingHold) clearTimeout(pendingHold.timer);
+  pendingHold = null;
+}
 function pinchState() {
   const [a,b] = [...touches.values()];
   return { x:(a.x+b.x)/2, y:(a.y+b.y)/2, distance:Math.hypot(a.x-b.x,a.y-b.y), type:'pinch' };
@@ -212,13 +218,26 @@ svg.addEventListener('pointerdown', event => {
     if (touches.size >= 2) return;
     if (touches.size === 1) {
       for (const tap of taps.values()) tap.cancelled = true;
+      cancelHold();
       if (paint?.isTouch) finishStroke(false);
     }
     touches.set(event.pointerId, point);
     svg.setPointerCapture(event.pointerId);
     taps.set(event.pointerId, { start: point, cancelled: touches.size > 1 });
     resetGesture();
-    if (touches.size === 1 && touchDraw && STRUCTURES[tool]) startStroke(event.pointerId, point, true);
+    if (touches.size === 1 && STRUCTURES[tool]) {
+      const pointerId = event.pointerId;
+      const timer = setTimeout(() => {
+        if (pendingHold?.pointerId !== pointerId || touches.size !== 1 || !taps.has(pointerId)) return;
+        const current = touches.get(pointerId);
+        if (Math.hypot(current.x - point.x, current.y - point.y) > HOLD_SLOP) return;
+        taps.get(pointerId).cancelled = true;
+        pendingHold = null;
+        gesture = { ...current, type: 'draw' };
+        startStroke(pointerId, current, true);
+      }, HOLD_MS);
+      pendingHold = { pointerId, timer };
+    }
     hoverPoint = null;
   } else if (event.button === 0) {
     svg.setPointerCapture(event.pointerId);
@@ -233,7 +252,10 @@ svg.addEventListener('pointerdown', event => {
 svg.addEventListener('pointermove', event => {
   const point = localPoint(event);
   const candidate = taps.get(event.pointerId);
-  if (candidate && Math.hypot(point.x-candidate.start.x,point.y-candidate.start.y) > 9) candidate.cancelled = true;
+  if (candidate && Math.hypot(point.x-candidate.start.x,point.y-candidate.start.y) > HOLD_SLOP) {
+    candidate.cancelled = true;
+    if (pendingHold?.pointerId === event.pointerId) cancelHold();
+  }
   if (event.pointerType !== 'touch') {
     const previous = hoverPoint ? hitTile(hoverPoint) : null;
     hoverPoint = point;
@@ -261,6 +283,7 @@ svg.addEventListener('pointermove', event => {
   invalidate();
 });
 function release(event, commit) {
+  if (pendingHold?.pointerId === event.pointerId) cancelHold();
   const point = localPoint(event);
   const candidate = taps.get(event.pointerId);
   if (paint?.pointerId === event.pointerId) {
@@ -275,13 +298,14 @@ function release(event, commit) {
 svg.addEventListener('pointerup', event => release(event, true));
 svg.addEventListener('pointercancel', event => release(event, false));
 svg.addEventListener('lostpointercapture', event => {
+  if (pendingHold?.pointerId === event.pointerId) cancelHold();
   if (paint?.pointerId === event.pointerId) finishStroke(false);
   taps.delete(event.pointerId);
   if (touches.delete(event.pointerId)) resetGesture();
 });
 svg.addEventListener('pointerleave', event => { if (event.pointerType !== 'touch' && !paint) { hoverPoint = null; invalidate(); } });
 svg.addEventListener('contextmenu', event => event.preventDefault());
-window.addEventListener('blur', () => { touches.clear(); taps.clear(); gesture = null; finishStroke(false); });
+window.addEventListener('blur', () => { cancelHold(); touches.clear(); taps.clear(); gesture = null; finishStroke(false); });
 
 svg.addEventListener('wheel', event => {
   event.preventDefault();
@@ -349,13 +373,6 @@ byId('show-links').addEventListener('click',event => {
   showLinks = !showLinks;
   event.currentTarget.setAttribute('aria-pressed',String(showLinks));
   event.currentTarget.textContent = `↗ 자원 연결 ${showLinks ? 'ON' : 'OFF'}`;
-  invalidate();
-});
-byId('touch-draw').addEventListener('click',event => {
-  touchDraw = !touchDraw;
-  finishStroke(false);
-  event.currentTarget.setAttribute('aria-pressed',String(touchDraw));
-  event.currentTarget.textContent = `✎ 터치 경로 건설 ${touchDraw ? 'ON' : 'OFF'}`;
   invalidate();
 });
 byId('example').addEventListener('click', () => {
