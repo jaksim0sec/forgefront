@@ -53,7 +53,7 @@ export function planConveyorRoute(world, route, fallbackRotation = 0) {
     if (endpoint) { cells.push({ ...point, action: 'endpoint', id: entity.id }); continue; }
     let side;
     if (i + 1 < route.length) side = directionBetween(point, route[i + 1]);
-    else side = bestTerminalDirection(world, point, route[i - 1], entity ? (entity.rotation + 2) % 4 : (fallbackRotation + 2) % 4);
+    else side = entity ? (entity.rotation + 2) % 4 : (route.length > 1 && route[i - 1] ? directionBetween(route[i - 1], point) : bestTerminalDirection(world, point, null, (fallbackRotation + 2) % 4));
 
     if (side === null) return { ok: false, reason: 'disconnected', cells, blocked: point };
     const rotation = (side + 2) % 4;
