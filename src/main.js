@@ -25,6 +25,7 @@ const buildings = new BuildingRenderer(svg, world, camera, connections);
 const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
 
 const byId = id => document.getElementById(id);
+// The main toolbox retains its three essential tools while collapsed.
 for (const [id, title] of [['toolbox-panel','건설 도구'],['build-inspector','건설 정보'],['selected-detail','건물 정보'],['game-hud','상태 표시']]) {
   const panel = byId(id);
   if (!panel) continue;
@@ -35,14 +36,26 @@ for (const [id, title] of [['toolbox-panel','건설 도구'],['build-inspector',
   button.setAttribute('aria-label', title + ' 접기');
   button.setAttribute('aria-expanded', 'true');
   button.textContent = '−';
-  button.addEventListener('click', () => {
-    const collapsed = panel.classList.toggle('panel-collapsed');
-    button.textContent = collapsed ? '+' : '−';
-    button.setAttribute('aria-expanded', String(!collapsed));
-    button.setAttribute('aria-label', title + (collapsed ? ' 펼치기' : ' 접기'));
-  });
+  button.addEventListener('click', () => setPanelCollapsed(panel, !panel.classList.contains('panel-collapsed')));
   panel.prepend(button);
 }
+function setPanelCollapsed(panel, collapsed) {
+  if (!panel) return;
+  panel.classList.toggle('panel-collapsed', collapsed);
+  const button = panel.querySelector('.panel-fold-toggle');
+  if (button) {
+    button.textContent = collapsed ? '+' : '−';
+    button.setAttribute('aria-expanded', String(!collapsed));
+    button.setAttribute('aria-label', (panel.getAttribute('aria-label') ?? '창') + (collapsed ? ' 펼치기' : ' 접기'));
+  }
+}
+function dismissAuxiliaryPanels() {
+  for (const id of ['build-inspector', 'selected-detail', 'game-hud']) setPanelCollapsed(byId(id), true);
+}
+document.addEventListener('pointerdown', event => {
+  if (event.target.closest('.foldable-panel') || event.target.closest('button, select, input')) return;
+  dismissAuxiliaryPanels();
+}, {capture:true});
 const ui = {
   tile: byId('tile-coords'), count: byId('structure-count'),
   chunks: byId('chunk-count'), selected: byId('selected-info'),
@@ -240,6 +253,7 @@ function showBuildInfo(type) {
   if (!STRUCTURES[type]) { panel.hidden = true; return; }
   const def = STRUCTURES[type], cost = BUILD_COSTS[type] ?? {};
   panel.hidden = false;
+  setPanelCollapsed(panel, false);
   byId('build-preview-sprite').setAttribute('href', '#s-' + type);
   byId('build-preview-name').textContent = def.label;
   byId('build-preview-description').textContent = BUILD_DESCRIPTIONS[type] ?? '산업용 구조물';
@@ -326,7 +340,9 @@ function actionAt(point, alternate = false) {
     const created = world.build(tool, anchor.x, anchor.y, rotation, activeOwner);
     notifyBuild(created, tool);
     if (created.ok) selectedId = created.entity.id;
-  } else selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
+  } else { selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
+    if (selectedId !== null) setPanelCollapsed(byId('selected-detail'), false);
+  }
   invalidate();
 }
 function startStroke(pointerId, point, isTouch) {
