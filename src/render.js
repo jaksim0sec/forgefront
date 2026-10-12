@@ -247,7 +247,7 @@ export class BuildingRenderer {
       status?.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
       status?.setAttribute('transform', 'translate(' + (STRUCTURES[structure.type].width*48-8)*camera.zoom + ' ' + 8*camera.zoom + ') scale(' + camera.zoom + ')');
       node.classList.toggle('machine-operating', operating);
-      node.querySelector('use')?.setAttribute('data-active', operating ? 'true' : 'false');
+      node.style.setProperty('--blade-play', operating ? 'running' : 'paused');
 
       node.classList.toggle('machine-blocked',blocked);
       node.style.setProperty('--nation-color', nationColor(structure.ownerId));
