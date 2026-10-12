@@ -25,6 +25,24 @@ const buildings = new BuildingRenderer(svg, world, camera, connections);
 const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
 
 const byId = id => document.getElementById(id);
+for (const [id, title] of [['toolbox-panel','건설 도구'],['build-inspector','건설 정보'],['selected-detail','건물 정보'],['game-hud','상태 표시']]) {
+  const panel = byId(id);
+  if (!panel) continue;
+  panel.classList.add('foldable-panel');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'panel-fold-toggle';
+  button.setAttribute('aria-label', title + ' 접기');
+  button.setAttribute('aria-expanded', 'true');
+  button.textContent = '−';
+  button.addEventListener('click', () => {
+    const collapsed = panel.classList.toggle('panel-collapsed');
+    button.textContent = collapsed ? '+' : '−';
+    button.setAttribute('aria-expanded', String(!collapsed));
+    button.setAttribute('aria-label', title + (collapsed ? ' 펼치기' : ' 접기'));
+  });
+  panel.prepend(button);
+}
 const ui = {
   tile: byId('tile-coords'), count: byId('structure-count'),
   chunks: byId('chunk-count'), selected: byId('selected-info'),
