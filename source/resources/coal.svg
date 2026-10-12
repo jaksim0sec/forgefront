@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="석탄 자원 아이콘"><title>석탄</title><g stroke-linejoin="round"><!-- rough granular coal cluster, squat silhouette -->
+<path d="m10 70 10-22 19-9 13 12-5 29-23 5Z" fill="#30363A"/>
+<path d="m20 48 19-9 13 12-23 8Z" fill="#596064"/>
+<path d="m10 70 19-11 18 21-23 5Z" fill="#454B4F"/>
+<path d="m36 72 8-39 15-18 16 11 7 28-13 27Z" fill="#32393E"/>
+<path d="m44 33 15-18 16 11-13 14Z" fill="#60666A"/>
+<path d="m62 40 13-14 7 28-13 27-20-11Z" fill="#252C31"/>
+<path d="m44 33 18 7-13 30-13 2Z" fill="#484E53"/>
+<path d="m65 66 16-13 10 17-12 12-17 2Z" fill="#41474A"/>
+<path d="m81 53 10 17-17 1-9-5Z" fill="#616668"/>
+<!-- angular cleavage marks -->
+<path d="m21 70 8-11 8-2M56 50 62 40" fill="none" stroke="#777C7E" stroke-width="1.5" opacity=".55"/></g></svg>
