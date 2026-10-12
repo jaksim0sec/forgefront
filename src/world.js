@@ -157,14 +157,14 @@ export class World {
     return { ok: true, ...area };
   }
 
-  place(type, x, y, rotation = 0, ownerId = null) {
+  place(type, x, y, rotation = 0, ownerId = null, inputSide = null) {
     const check = this.canPlace(type, x, y, rotation);
     if (!check.ok) return check;
     if (this.nextId > 0xffffffff) return { ok: false, reason: 'id-exhausted' };
     const entity = {
       id: this.nextId++, type, x, y, width: check.width, height: check.height,
       rotation: check.rotation, ownerId,
-      inputSide: null,
+      inputSide: type === 'conveyor' ? inputSide : null,
       maxHealth: STRUCTURES[type].maxHealth,
       health: STRUCTURES[type].maxHealth,
       enabled: true,
