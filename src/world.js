@@ -68,12 +68,13 @@ export class World {
     }
   }
 
-  rotateConveyor(id, rotation) {
+  rotateConveyor(id, rotation, inputSide = null) {
     const entity = this.structures.get(id);
     if (!entity || entity.type !== 'conveyor' || !Number.isInteger(rotation)) return false;
     const next = ((rotation % 4) + 4) % 4;
-    if (next === entity.rotation) return true;
+    if (next === entity.rotation && entity.inputSide === inputSide) return true;
     entity.rotation = next;
+    entity.inputSide = inputSide;
     this.changed('rotate', entity);
     return true;
   }
@@ -163,6 +164,7 @@ export class World {
     const entity = {
       id: this.nextId++, type, x, y, width: check.width, height: check.height,
       rotation: check.rotation, ownerId,
+      inputSide: null,
       maxHealth: STRUCTURES[type].maxHealth,
       health: STRUCTURES[type].maxHealth,
       enabled: true,
