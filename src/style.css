@@ -370,3 +370,7 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
   pointer-events:none; display:block;
 }
 .structure-lod-canvas[hidden] { display:none !important; }
+
+/* Terrain chunks are baked into single passive SVG image nodes. */
+#terrain-layer, #ore-layer { pointer-events:none; }
+#terrain-layer image, #ore-layer image { image-rendering:auto; }

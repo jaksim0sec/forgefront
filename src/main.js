@@ -182,8 +182,10 @@ function render() {
     area.setAttribute('visibility','visible');
   } else area.setAttribute('visibility','hidden');
   const oreAtHover = hoverTile ? world.terrain.oreAt(hoverTile.x, hoverTile.y) : null;
+  const groundAtHover = hoverTile ? world.terrain.groundAt(hoverTile.x, hoverTile.y) : null;
+  const terrainLabels = { plain: '평원', scrub: '초지', basin: '저지대', rock: '암반', ridge: '산지' };
   ui.tile.textContent = hoverTile ?
-    `[${hoverTile.x}, ${hoverTile.y}]${oreAtHover ? ' · ' + RESOURCES[oreAtHover].label : ''}` : '—';
+    `[${hoverTile.x}, ${hoverTile.y}] · ${terrainLabels[groundAtHover.biome]} ${Math.round(groundAtHover.height * 100)}${oreAtHover ? ' · ' + RESOURCES[oreAtHover].label : ''}` : '—';
   ui.count.textContent = world.structures.size;
   ui.chunks.textContent = world.chunks.size;
   ui.links.textContent = connections.linkCount;
@@ -321,6 +323,7 @@ function notifyBuild(result, type) {
   if (result?.ok) { ui.message.textContent = ''; return; }
   const reasons = {
     ore: '해당 자원 광맥 위에 설치해야 해',
+    terrain: '경사가 가파르거나 너무 높은 지형이라 건설할 수 없어',
     bounds: '맵 범위 밖이야',
     occupied: '건물이 이미 점유한 공간이야',
     restricted: '전기 타워는 점령으로만 확보할 수 있어',

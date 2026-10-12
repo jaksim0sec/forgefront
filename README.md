@@ -4,7 +4,7 @@ Browser-based industrial territory strategy game. **Current stage: M05 industria
 
 ## Implemented
 
-- **Map foundation:** 2048 × 2048 logical tile coordinates; sparse 32×32 allocation for occupied chunks, ID-indexed structures.
+- **Map foundation:** 2048 × 2048 logical tile coordinates; sparse 32×32 allocation for occupied chunks, ID-indexed structures. The deterministic terrain now supplies elevation, slope and muted landcover biomes without allocating a tile array.
 - **Camera:** arrow keys / wheel, one-finger pan / two-finger pinch, clamped 40–300% zoom.
 - **Industrial editor:** multi-tile footprints, placement, removal, rotation, canvas culling.
 - **Conveyor route drawing:** click and drag on desktop; tile gap filling, corner turns, preview, auto-selected conveyor orientation, reorientation of existing route tiles. Placement validated before commit and connections rebuilt around changed neighbors rather than globally.
@@ -29,7 +29,7 @@ The **actual M05 build mode uses `World.build()`**, which checks national stockp
 6. **Silicon:** a factory costing **titanium + metal parts** processes **iron + coal → silicon** using electricity.
 7. **Superconductors:** the final factory costs **titanium + silicon**, then processes **iron + coal + silicon → superconductor**, drawing substantial electricity.
 
-Ore pockets are determined from coordinates with a deterministic seed rather than millions of stored tile objects. The world renderer samples only the visible terrain; camera-independent simulation tracks only active facilities and occupied conveyors.
+Ore veins and ground elevation are generated from coordinates with a deterministic seed rather than millions of stored tile objects. Starter iron, coal and titanium veins remain reachable at their original locations, now with irregular natural edges. Normal factories cannot be built on high mountain ridges or excessively uneven footprints; free conveyors and junctions keep their prior routing rules. The renderer samples only the visible terrain; camera-independent simulation tracks only active facilities and occupied conveyors.
 
 **Supply matters:** resources must be delivered through port-connected infrastructure into a nation's tower before the stockpile can spend them on construction. The temporary power model uses tower/generator local coverage and bounded power budgets; wire networks and capture-driven tower power will come later. Initial generator and refinery rates/costs are prototype balancing values, not finalized game design.
 
@@ -79,11 +79,16 @@ Optional focused checks: `npm test` (Node.js). No external dependencies.
 - Distant LOD retains rotations, simplified factory-state lights, team ownership marks, conveyor turns, selection/health cues and screen-space culling. It falls back to the previous SVG path automatically if Canvas2D isn't available.
 - This is Canvas2D **batching, not yet GPU instancing**; large-scale FPS on mobile browsers has not been measured.
 - The Service Worker includes both renderer modules for offline PWA use.
+- **M05 terrain rasterization:** independent 16×16 terrain chunks now bake ground texture and ore decals into at most two SVG `<image>` elements per visible chunk. The Canvas2D raster surface is only used as scratch space; the DOM still owns selection/gestures and the normal SVG drawing order.
+- The ground palette, shallow rock textures, contour edges, biome classification, ore composition and starter veins all derive from the same seeded `Terrain` queries. No terrain images are created every frame: the camera moves two SVG parent layers.
+- Existing resource SVG art is drawn into the ore chunk when it loads; a small drawn mineral-shard fallback covers image load delays or environments without a usable Canvas2D surface. No WebGL/GPU requirement and no per-tile canvas/DOM attachment.
+- `World.canBuild()` respects impassable ridge height and footprint unevenness for stationary factories. `World.place()` stays an unrestricted fixture/editor primitive, and conveyor routes keep their existing semantics.
+
 
 ### Next milestones
 
 - M05: first economy, recipe and local-power vertical slice implemented; refine network topology and balance.
-- M06: faction towers, ownership/territory bounds, capture and territory-dependent power activation.
+- M06: faction towers, ownership/territory bounds, capture and territory-dependent power activation. Reuse the new seeded elevation for defensible high ground without coupling terrain rendering to the territory state.
 - M07: defense lines, attack units and real projectile simulation; spatial indexing for moving entities.
 - M08: persistent world/save snapshots, bulk-logistics optimizations and profile-guided rendering upgrades.
 
