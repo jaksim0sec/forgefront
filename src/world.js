@@ -5,6 +5,7 @@ import { RESOURCES } from './resources.js';
 export const WORLD_CONFIG = Object.freeze({ width: 2048, height: 2048, chunkSize: 32 });
 export const STRUCTURES = Object.freeze({
   conveyor: Object.freeze({ label: '컨베이어', width: 1, height: 1, maxHealth: 55, itemCapacity: 3, itemsPerSecond: 5 }),
+  junction: Object.freeze({ label: '교차기', width: 1, height: 1, maxHealth: 75, itemCapacity: 3, itemsPerSecond: 5 }),
   drill: Object.freeze({ label: '채굴기', width: 2, height: 2, maxHealth: 180, itemCapacity: 12, itemsPerSecond: 1 }),
   smelter: Object.freeze({ label: '제련소', width: 3, height: 2, maxHealth: 300, itemCapacity: 24, powerUse: 12 }),
   generator: Object.freeze({ label: '발전기', width: 2, height: 2, maxHealth: 220, itemCapacity: 16, powerOutput: 20 }),
@@ -173,7 +174,7 @@ export class World {
       moveProgress: 0,
       itemId: null, // one-item-type fast lane for conveyor
       itemCount: 0,
-      inventory: type === 'conveyor' ? null : Object.create(null),
+      inventory: type === 'conveyor' || type === 'junction' ? null : Object.create(null),
       resourceId: type === 'drill' ? 'iron' : null,
     };
     this.structures.set(entity.id, entity);
