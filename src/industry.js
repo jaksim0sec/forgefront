@@ -23,14 +23,14 @@ export class Industry {
   dispose() { this.unsubscribe(); }
   track(entity) {
     if (entity.type === 'drill') this.producers.add(entity.id);
-    if (entity.type === 'conveyor' && entity.itemCount > 0) this.movers.add(entity.id);
+    if ((entity.type === 'conveyor' || entity.type === 'junction') && entity.itemCount > 0) this.movers.add(entity.id);
   }
   stockCount(entity, id) {
-    return entity.type === 'conveyor' ? (entity.itemId === id ? entity.itemCount : 0) :
+    return (entity.type === 'conveyor' || entity.type === 'junction') ? (entity.itemId === id ? entity.itemCount : 0) :
       (entity.inventory?.[id] ?? 0);
   }
   totalStock(entity) {
-    return entity.type === 'conveyor' ? entity.itemCount :
+    return (entity.type === 'conveyor' || entity.type === 'junction') ? entity.itemCount :
       Object.values(entity.inventory ?? {}).reduce((a,b) => a + b, 0);
   }
   canReceive(entity, itemId) {
@@ -40,14 +40,14 @@ export class Industry {
     return entity.type !== 'conveyor' || entity.itemCount === 0 || entity.itemId === itemId;
   }
   insert(entity, id, amount=1) {
-    if (entity.type === 'conveyor') {
+    if ((entity.type === 'conveyor' || entity.type === 'junction')) {
       entity.itemId = id; entity.itemCount += amount;
       this.movers.add(entity.id);
     } else entity.inventory[id] = (entity.inventory[id] ?? 0) + amount;
     this.dirty = true;
   }
   take(entity, id) {
-    if (entity.type === 'conveyor') {
+    if ((entity.type === 'conveyor' || entity.type === 'junction')) {
       entity.itemCount--;
       if (!entity.itemCount) { entity.itemId = null; this.movers.delete(entity.id); }
     } else {
@@ -83,17 +83,25 @@ export class Industry {
       if (!itemsPerSecond) continue;
       from.moveProgress = Math.min(1, from.moveProgress + itemsPerSecond * dt);
       if (from.moveProgress < 1) continue;
-      const itemId = from.type === 'conveyor' ? from.itemId : Object.keys(from.inventory).find(r=>from.inventory[r] > 0);
+      const itemId = (from.type === 'conveyor' || from.type === 'junction') ? from.itemId : Object.keys(from.inventory).find(r=>from.inventory[r] > 0);
       if (!itemId) continue;
       let delivered = false;
-      for (const targetId of this.connections.outputs(id).keys()) {
+      const targets = [...this.connections.outputs(id).keys()];
+      if (from.type === 'junction' && targets.length) {
+        const offset = (from.routeCursor ?? 0) % targets.length;
+        targets.push(...targets.splice(0, offset));
+      }
+      for (const targetId of targets) {
+        if (from.type === 'junction' && targets.length > 1 && targetId === from.lastSourceId) continue;
         const to = this.world.structures.get(targetId);
         if (!to || !this.canReceive(to, itemId)) continue;
         this.take(from, itemId);
         this.insert(to, itemId);
+        if (to.type === 'junction') to.lastSourceId = id;
+        if (from.type === 'junction') from.routeCursor = (from.routeCursor ?? 0) + 1;
         from.moveProgress = 0;
         from.activity = 'transporting';
-        to.activity = to.type === 'conveyor' ? 'transporting' : 'receiving';
+        to.activity = (to.type === 'conveyor' || to.type === 'junction') ? 'transporting' : 'receiving';
         delivered = true;
         break;
       }
