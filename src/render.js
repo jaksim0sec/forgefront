@@ -3,6 +3,7 @@ import { STRUCTURES, tileToWorld, worldToTile } from './world.js';
 import { nationColor, nationSigil } from './nations.js';
 import { RESOURCES } from './resources.js';
 import { DIRECTIONS } from './ports.js';
+import { DistantStructureRenderer } from './structure-lod.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const templates = {
@@ -135,6 +136,8 @@ export class BuildingRenderer {
     this.lastLinkSelected = null;
     this.lastLinkShow = null;
     this.lastLinkVisible = new Set();
+    this.distant = new DistantStructureRenderer(svg, world, camera, connections, templates);
+    this.distantMode = false;
   }
 
   drawLinks(visible, selectedId, showLinks) {
@@ -212,6 +215,22 @@ export class BuildingRenderer {
 
   draw(tool, hoverTile, rotation, selectedId, showLinks = true, preview = null, ownerId = null) {
     const { camera, world } = this;
+    const distant = this.distant.draw(selectedId);
+    if (distant !== this.distantMode) {
+      this.layer.setAttribute('visibility', distant ? 'hidden' : 'visible');
+      this.linksLayer.setAttribute('visibility', distant ? 'hidden' : 'visible');
+      if (distant) {
+        // Release SVG nodes rather than merely hiding thousands of them.
+        for (const element of this.elements.values()) element.remove();
+        for (const element of this.linkElements.values()) element.remove();
+        this.elements.clear();
+        this.linkElements.clear();
+        this.lastLinkVisible.clear();
+        this.lastLinkRevision = -1;
+      }
+      this.distantMode = distant;
+    }
+    if (!distant) {
     const a = camera.screenToWorld(0, 0);
     const b = camera.screenToWorld(camera.width, camera.height);
     const lo = worldToTile(a.x, a.y);
@@ -327,6 +346,7 @@ export class BuildingRenderer {
     }
 
     this.drawLinks(active, selectedId, showLinks);
+    }
     this.drawRoute(preview);
     if (!hoverTile) {
       this.hover.setAttribute('visibility', 'hidden');

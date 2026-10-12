@@ -1,5 +1,5 @@
 // Offline-first availability, network-first freshness. Static assets only.
-const CACHE_NAME = 'forgefront-offline-v2';
+const CACHE_NAME = 'forgefront-offline-v3';
 const CACHE_PREFIX = 'forgefront-offline-';
 const CORE_ASSETS = [
   "./",
@@ -16,6 +16,7 @@ const CORE_ASSETS = [
   "./src/power.js",
   "./src/progression.js",
   "./src/render.js",
+  "./src/structure-lod.js",
   "./src/resources.js",
   "./src/routes.js",
   "./src/terrain-render.js",

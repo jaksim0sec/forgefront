@@ -75,7 +75,10 @@ Optional focused checks: `npm test` (Node.js). No external dependencies.
 - The renderer keeps per-structure SVG references and avoids rewriting unchanged placement, activity, ownership, health and cargo attributes. Connection paths are recalculated only when connection revision, camera-visible IDs, link visibility or selection changes.
 - Real resource transfer events are animated on **one transparent Canvas2D layer** (maximum 48 concurrent sprites), tracking the camera during movement. If Canvas2D is unavailable, the old SVG animation remains available.
 - Camera input, building selection, world simulation and industrial logic are unchanged. This is not yet WebGL instancing, and large-scale performance still needs browser profiling before promising a unit count.
-- The Service Worker includes the renderer module for offline PWA use.
+- At zoom levels below 58%, machine artwork is rasterized from the **existing SVG definitions** into one Canvas2D layer. Visible buildings and belts are drawn in one pass without adding an SVG node per structure; near zoom retains full SVG details and interactions.
+- Distant LOD retains rotations, simplified factory-state lights, team ownership marks, conveyor turns, selection/health cues and screen-space culling. It falls back to the previous SVG path automatically if Canvas2D isn't available.
+- This is Canvas2D **batching, not yet GPU instancing**; large-scale FPS on mobile browsers has not been measured.
+- The Service Worker includes both renderer modules for offline PWA use.
 
 ### Next milestones
 

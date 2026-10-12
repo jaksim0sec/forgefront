@@ -26,7 +26,13 @@ export class CargoRenderer {
       this.context = null;
     }
     if (this.context) {
-      svg.insertAdjacentElement('afterend', this.canvas);
+      // Keep moving resources above the distant-machine canvas.
+      const lodLayer = svg.nextElementSibling;
+      if (lodLayer?.classList?.contains('structure-lod-canvas')) {
+        lodLayer.insertAdjacentElement('afterend', this.canvas);
+      } else {
+        svg.insertAdjacentElement('afterend', this.canvas);
+      }
       this.animate = this.animate.bind(this);
     }
   }
