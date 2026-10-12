@@ -1,5 +1,5 @@
 import { Camera, CAMERA_CONFIG } from './camera.js';
-import { World, STRUCTURES, worldToTile } from './world.js';
+import { World, STRUCTURES, worldToTile, rotatedSize } from './world.js';
 import { BuildingRenderer, installSprites } from './render.js';
 import { ItemConnections } from './connections.js';
 import { Industry } from './industry.js';
@@ -67,8 +67,12 @@ function localPoint(event) {
   const bounds = svg.getBoundingClientRect();
   return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
 }
+function snappedTile(tile, kind = tool) {
+  const size = rotatedSize(STRUCTURES[kind], rotation);
+  return { x: Math.floor(tile.x / size.width) * size.width, y: Math.floor(tile.y / size.height) * size.height };
+}
 function previewForStroke(stroke) {
-  return stroke ? { route: stroke.route, plan: planConveyorRoute(world, stroke.route, rotation) } : null;
+  return stroke?.kind === 'conveyor' ? { route: stroke.route, plan: planConveyorRoute(world, stroke.route, rotation) } : null;
 }
 
 let paint = null, renderPending = false;
@@ -99,7 +103,7 @@ function render() {
   byId('cam-x').textContent = (camera.x / CAMERA_CONFIG.tileSize).toFixed(1);
   byId('cam-y').textContent = (camera.y / CAMERA_CONFIG.tileSize).toFixed(1);
   byId('zoom').textContent = Math.round(camera.zoom * 100) + '%';
-  const hoverTile = hoverPoint ? hitTile(hoverPoint) : null;
+  const hoverTile = hoverPoint ? (STRUCTURES[tool] && tool !== 'conveyor' ? snappedTile(hitTile(hoverPoint)) : hitTile(hoverPoint)) : null;
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint));
   ui.tile.textContent = hoverTile ? `[${hoverTile.x}, ${hoverTile.y}]` : '—';
   ui.count.textContent = world.structures.size;
@@ -141,17 +145,29 @@ function actionAt(point, alternate = false) {
   } else if (tool === 'conveyor') {
     commitConveyorRoute(world, planConveyorRoute(world, [tile], rotation), activeOwner);
   } else if (STRUCTURES[tool]) {
-    const created = world.place(tool, tile.x, tile.y, rotation, activeOwner);
+    const anchor = snappedTile(tile);
+    const created = world.place(tool, anchor.x, anchor.y, rotation, activeOwner);
     if (created.ok) selectedId = created.entity.id;
   } else selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
   invalidate();
 }
 function startStroke(pointerId, point, isTouch) {
-  paint = { pointerId, route: [{ ...hitTile(point) }], isTouch };
+  paint = { pointerId, route: [{ ...hitTile(point) }], isTouch, kind: tool, lastAnchor: null };
+  if (tool !== 'conveyor') paintStructure(point);
   invalidate();
+}
+function paintStructure(point) {
+  if (!paint || paint.kind === 'conveyor') return;
+  const anchor = snappedTile(hitTile(point), paint.kind);
+  const key = `${anchor.x},${anchor.y}`;
+  if (paint.lastAnchor === key) return;
+  paint.lastAnchor = key;
+  const placed = world.place(paint.kind, anchor.x, anchor.y, rotation, activeOwner);
+  if (placed.ok) selectedId = placed.entity.id;
 }
 function extendStroke(point) {
   if (!paint) return;
+  if (paint.kind !== 'conveyor') { paintStructure(point); invalidate(); return; }
   const tile = hitTile(point), last = paint.route.at(-1);
   if (last?.x === tile.x && last?.y === tile.y) return;
   extendRoute(paint.route, tile);
@@ -159,7 +175,7 @@ function extendStroke(point) {
 }
 function finishStroke(commit) {
   if (!paint) return;
-  if (commit) commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation), activeOwner);
+  if (commit && paint.kind === 'conveyor') commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation), activeOwner);
   paint = null;
   invalidate();
 }
@@ -190,11 +206,11 @@ svg.addEventListener('pointerdown', event => {
     svg.setPointerCapture(event.pointerId);
     taps.set(event.pointerId, { start: point, cancelled: touches.size > 1 });
     resetGesture();
-    if (touches.size === 1 && touchDraw && tool === 'conveyor') startStroke(event.pointerId, point, true);
+    if (touches.size === 1 && touchDraw && STRUCTURES[tool]) startStroke(event.pointerId, point, true);
     hoverPoint = null;
   } else if (event.button === 0) {
     svg.setPointerCapture(event.pointerId);
-    if (tool === 'conveyor') startStroke(event.pointerId, point, false);
+    if (STRUCTURES[tool]) startStroke(event.pointerId, point, false);
     else taps.set(event.pointerId, { start: point, cancelled: false });
   } else if (event.button === 2) {
     svg.setPointerCapture(event.pointerId);
