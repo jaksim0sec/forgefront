@@ -6,10 +6,10 @@ import { DIRECTIONS } from './ports.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const templates = {
-  conveyor: `<symbol id="s-conveyor" viewBox="0 0 48 48"><rect x="2" y="2" width="44" height="44" rx="5" fill="#28343d" stroke="#64727b" stroke-width="3"/><rect x="9" y="4" width="30" height="40" rx="2" fill="#151f26"/><g fill="#56626a" stroke="#82909a" stroke-width="1.2"><rect x="12" y="8" width="24" height="6" rx="1"/><rect x="12" y="21" width="24" height="6" rx="1"/><rect x="12" y="34" width="24" height="6" rx="1"/></g><path d="M5 9V39M43 9V39" stroke="#8c9aa4" stroke-width="2" stroke-dasharray="4 4"/><path d="M21 15L24 18L27 15" fill="none" stroke="#b3c0c6" stroke-width="1.7"/></symbol>`,
-  drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#303d45" stroke="#8ca6b2" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-dasharray="13 7"/><circle cx="48" cy="48" r="29" fill="#4c626c" stroke="#a1bac2" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
-  smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#353c43" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#404f59" stroke="#86969f" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#758992"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#98a4aa" stroke-width="3" stroke-dasharray="5 5"/></symbol>`,
-  generator: `<symbol id="s-generator" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#2e4041" stroke="#8c9da5" stroke-width="4"/><rect x="10" y="10" width="76" height="76" rx="5" fill="#1c2b31" stroke="#536d70" stroke-width="2"/><circle cx="48" cy="48" r="31" fill="#364f50" stroke="#97a7ad" stroke-width="3"/><circle cx="48" cy="48" r="24" fill="#1a3033"/><path d="M48 28L55 40L68 48L54 55L48 69L40 54L28 48L42 40Z" fill="#94a7af"/><circle cx="48" cy="48" r="9" fill="#c4d0d3" stroke="#657b85" stroke-width="3"/><path d="M17 17H31M65 17H79M17 79H31M65 79H79" stroke="#bdc8b8" stroke-width="3"/></symbol>`,
+  conveyor: `<symbol id="s-conveyor" viewBox="0 0 48 48"><rect x="2" y="2" width="44" height="44" rx="5" fill="#323b41" stroke="#66737b" stroke-width="3"/><rect x="9" y="4" width="30" height="40" rx="2" fill="#1e272c"/><g fill="#5b666b" stroke="#858f91" stroke-width="1.2"><rect x="12" y="8" width="24" height="6" rx="1"/><rect x="12" y="21" width="24" height="6" rx="1"/><rect x="12" y="34" width="24" height="6" rx="1"/></g><path d="M5 9V39M43 9V39" stroke="#838f91" stroke-width="1.5"/><path d="M21 15L24 18L27 15" fill="none" stroke="#b3c0c6" stroke-width="1.7"/></symbol>`,
+  drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#48413c" stroke="#9f8b78" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-dasharray="13 7"/><circle cx="48" cy="48" r="29" fill="#6c5c4f" stroke="#b29c85" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
+  smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#3d4247" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#404f59" stroke="#86969f" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#758992"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#98a4aa" stroke-width="3" stroke-dasharray="5 5"/></symbol>`,
+  generator: `<symbol id="s-generator" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#374442" stroke="#8c9da5" stroke-width="4"/><rect x="10" y="10" width="76" height="76" rx="5" fill="#1c2b31" stroke="#536d70" stroke-width="2"/><circle cx="48" cy="48" r="31" fill="#364f50" stroke="#97a7ad" stroke-width="3"/><circle cx="48" cy="48" r="24" fill="#1a3033"/><path d="M48 28L55 40L68 48L54 55L48 69L40 54L28 48L42 40Z" fill="#94a7af"/><circle cx="48" cy="48" r="9" fill="#c4d0d3" stroke="#657b85" stroke-width="3"/><path d="M17 17H31M65 17H79M17 79H31M65 79H79" stroke="#bdc8b8" stroke-width="3"/></symbol>`,
 };
 
 export function installSprites(svg) {
@@ -32,6 +32,15 @@ function moveSprite(element, structure, camera) {
   const use = element.firstElementChild;
   use.setAttribute('width', w);
   use.setAttribute('height', h);
+  const bend = element.querySelector('.conveyor-bend');
+  if (bend) {
+    const input = structure.inputSide;
+    const local = input == null ? 0 : (input - structure.rotation + 4) % 4;
+    const turns = { 1: 'M44 24H24V44', 3: 'M4 24H24V44' };
+    bend.setAttribute('visibility', turns[local] ? 'visible' : 'hidden');
+    bend.setAttribute('d', turns[local] || '');
+    bend.setAttribute('transform', 'scale(' + camera.zoom + ')');
+  }
   element.querySelector('.insignia')?.setAttribute('transform', `translate(${5 * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
   element.querySelector('.cargo-overlay')?.setAttribute('transform',
     `translate(${(def.width * 48 - 25) * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
@@ -134,6 +143,16 @@ export class BuildingRenderer {
         const use = document.createElementNS(NS, 'use');
         use.setAttribute('href', `#s-${structure.type}`);
         node.appendChild(use);
+        if (structure.type === 'conveyor') {
+          const bend = document.createElementNS(NS, 'path');
+          bend.setAttribute('class', 'conveyor-bend');
+          bend.setAttribute('fill', 'none');
+          bend.setAttribute('stroke', '#b0a38f');
+          bend.setAttribute('stroke-width', '12');
+          bend.setAttribute('stroke-linejoin', 'round');
+          bend.setAttribute('visibility', 'hidden');
+          node.appendChild(bend);
+        }
         const cargo = document.createElementNS(NS, 'g');
         cargo.setAttribute('class', 'cargo-overlay');
         cargo.setAttribute('visibility', 'hidden');
