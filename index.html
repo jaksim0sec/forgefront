@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#10161c">
+  <meta name="application-name" content="FORGEFRONT">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <title>FORGEFRONT — World Foundation</title>
   <link rel="stylesheet" href="./src/style.css">
 </head>
@@ -119,5 +125,14 @@
     </footer>
   </main>
   <script type="module" src="./src/main.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(error => {
+          console.warn('FORGEFRONT offline cache unavailable:', error);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
