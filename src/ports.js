@@ -32,7 +32,9 @@ export function rotateCell(x, y, width, height, rotation) {
 export function itemPorts(structure, definitions) {
   const definition = definitions[structure.type];
   if (!definition) return [];
-  const rules = ITEM_PORTS[structure.type] ?? [];
+  const rules = structure.type === 'conveyor' && structure.inputSide != null
+    ? [port((structure.inputSide - structure.rotation + 4) % 4, 'in'), port(2, 'out')]
+    : ITEM_PORTS[structure.type] ?? [];
   const result = [];
   for (const { side, mode } of rules) {
     const horizontal = side === 0 || side === 2;
