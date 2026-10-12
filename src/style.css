@@ -305,3 +305,31 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 .belt-motion { animation:belt-flow .55s linear infinite; pointer-events:none; opacity:.7; }
 @keyframes belt-flow { to { stroke-dashoffset:-10; } }
 @media(prefers-reduced-motion:reduce) { .belt-motion { animation:none; } }
+
+/* Compact build bar remains functional when the drawer is folded. */
+#toolbox-panel.panel-collapsed {
+  width:185px !important; height:auto; max-height:none; padding:7px !important;
+  overflow:visible;
+}
+#toolbox-panel.panel-collapsed .tool-list { display:flex !important; gap:4px; clear:both; padding-top:5px; }
+#toolbox-panel.panel-collapsed .tool-list button { display:none !important; }
+#toolbox-panel.panel-collapsed .tool-list [data-tool="select"],
+#toolbox-panel.panel-collapsed .tool-list [data-tool="conveyor"],
+#toolbox-panel.panel-collapsed .tool-list [data-tool="erase"] {
+  display:flex !important; flex:1; min-width:0; padding:5px 2px; flex-direction:column; gap:3px;
+}
+#toolbox-panel.panel-collapsed .tool-list .tool-label { font-size:10px; }
+#toolbox-panel.panel-collapsed .tool-list kbd { display:none; }
+#toolbox-panel.panel-collapsed .tool-list .build-mini { width:28px; height:28px; }
+#toolbox-panel.panel-collapsed .panel-fold-toggle { float:right; margin:0; }
+#toolbox-panel.panel-collapsed > .tool-list { display:flex !important; }
+#toolbox-panel.panel-collapsed > .toolbox-heading { display:none !important; }
+.cargo-overlay.belt-cargo { animation: cargo-roll .45s linear infinite; }
+.cargo-overlay.belt-cargo image { image-rendering:auto; filter:drop-shadow(0 1px 1px #000b); }
+@keyframes cargo-roll { 0% { opacity:.85; } 50% { opacity:1; } 100% { opacity:.85; } }
+.machine-operating use { filter:brightness(1.065); }
+@media (max-width:730px) {
+  #toolbox-panel.panel-collapsed { width:150px !important; }
+  #toolbox-panel.panel-collapsed .tool-list .tool-label { font-size:9px; }
+}
+@media (prefers-reduced-motion:reduce) { .cargo-overlay.belt-cargo { animation:none; } }
