@@ -2,68 +2,85 @@ import { CAMERA_CONFIG } from './camera.js';
 import { RESOURCES } from './resources.js';
 
 const NS = 'http://www.w3.org/2000/svg';
+const CHUNK_TILES = 16;
+const TILE = CAMERA_CONFIG.tileSize;
 
-/** Reused SVG nodes, bounded to the visible viewport. There is no static
- * 4-million-tile art cache and no terrain DOM outside the viewport.
+/** Ore geometry stays in WORLD coordinates. The camera changes only one SVG
+ * transform per frame; chunk contents are generated only on first visibility.
+ * Unlike the previous implementation, there is no per-frame tile scan, icon
+ * repositioning, or zoom threshold that makes resources disappear.
  */
 export class TerrainRenderer {
   constructor(svg, terrain, camera) {
     this.layer = svg.querySelector('#ore-layer');
     this.terrain = terrain;
     this.camera = camera;
-    this.pool = [];
-    this.lastPose = null;
+    this.chunks = new Map();
+    this.lastViewport = '';
+  }
+
+  makeChunk(cx, cy) {
+    const group = document.createElementNS(NS, 'g');
+    group.setAttribute('data-ore-chunk', `${cx},${cy}`);
+    for (let y = cy * CHUNK_TILES; y < (cy + 1) * CHUNK_TILES; y++) {
+      for (let x = cx * CHUNK_TILES; x < (cx + 1) * CHUNK_TILES; x++) {
+        const ore = this.terrain.oreAt(x, y);
+        if (!ore || !RESOURCES[ore]) continue;
+        const icon = document.createElementNS(NS, 'image');
+        icon.setAttribute('class', 'ore-visual');
+        icon.setAttribute('href', RESOURCES[ore].icon);
+        icon.setAttribute('opacity', '.46');
+        icon.setAttribute('x', (x + .21) * TILE);
+        icon.setAttribute('y', (y + .21) * TILE);
+        icon.setAttribute('width', TILE * .58);
+        icon.setAttribute('height', TILE * .58);
+        group.appendChild(icon);
+      }
+    }
+    return group;
   }
 
   draw() {
-    // Factory inventory updates must not cause geology to be redrawn.
-    const pose = [this.camera.x, this.camera.y, this.camera.zoom,
-      this.camera.width, this.camera.height].join(':');
-    if (pose === this.lastPose) return;
-    this.lastPose = pose;
-    if (this.camera.zoom < 0.6) {
-      this.layer.setAttribute('visibility', 'hidden');
-      return;
-    }
-    this.layer.setAttribute('visibility', 'visible');
-    const size = CAMERA_CONFIG.tileSize;
-    const a = this.camera.screenToWorld(0, 0);
-    const b = this.camera.screenToWorld(this.camera.width, this.camera.height);
-    // Always sample the same logical tiles at every zoom level.
-    // Skipping every other tile while zoomed out made deposits appear to
-    // jump/disappear independently from the camera gesture.
-    const left = Math.floor(a.x / size);
-    const top = Math.floor(a.y / size);
-    const right = Math.ceil(b.x / size) + 1;
-    const bottom = Math.ceil(b.y / size) + 1;
-    let count = 0;
-    outer: for (let y = top; y <= bottom; y++) {
-      for (let x = left; x <= right; x++) {
-        const ore = this.terrain.oreAt(x, y);
-        if (!ore || !RESOURCES[ore]) continue;
-        if (count >= 450) break outer;
-        let icon = this.pool[count];
-        if (!icon) {
-          icon = document.createElementNS(NS, 'image');
-          icon.setAttribute('class', 'ore-visual');
-          icon.setAttribute('opacity', '.46');
-          this.layer.appendChild(icon);
-          this.pool.push(icon);
+    const c = this.camera;
+    // World->screen translation is identical to camera.worldToScreen().
+    // No zoom-specific sampling means panning/pinching stays pixel-perfect.
+    this.layer.setAttribute(
+      'transform',
+      `translate(${c.width / 2 - c.x * c.zoom} ${c.height / 2 - c.y * c.zoom}) scale(${c.zoom})`
+    );
+
+    const halfW = c.width / (2 * c.zoom * TILE);
+    const halfH = c.height / (2 * c.zoom * TILE);
+    const x = c.x / TILE;
+    const y = c.y / TILE;
+    const minCX = Math.floor((x - halfW) / CHUNK_TILES);
+    const maxCX = Math.floor((x + halfW) / CHUNK_TILES);
+    const minCY = Math.floor((y - halfH) / CHUNK_TILES);
+    const maxCY = Math.floor((y + halfH) / CHUNK_TILES);
+    const viewport = `${minCX},${minCY},${maxCX},${maxCY}`;
+    if (viewport === this.lastViewport) return;
+    this.lastViewport = viewport;
+
+    const visible = new Set();
+    for (let cy = minCY; cy <= maxCY; cy++) {
+      for (let cx = minCX; cx <= maxCX; cx++) {
+        const key = `${cx},${cy}`;
+        visible.add(key);
+        let chunk = this.chunks.get(key);
+        if (!chunk) {
+          chunk = this.makeChunk(cx, cy);
+          this.chunks.set(key, chunk);
         }
-        if (icon.dataset.ore !== ore) {
-          icon.dataset.ore = ore;
-          icon.setAttribute('href', RESOURCES[ore].icon);
-        }
-        const screen = this.camera.worldToScreen((x + .21) * size, (y + .21) * size);
-        const diameter = size * this.camera.zoom * .58;
-        icon.setAttribute('x', screen.x);
-        icon.setAttribute('y', screen.y);
-        icon.setAttribute('width', diameter);
-        icon.setAttribute('height', diameter);
-        icon.setAttribute('visibility', 'visible');
-        count++;
+        if (chunk.parentNode !== this.layer) this.layer.appendChild(chunk);
       }
     }
-    for (let i = count; i < this.pool.length; i++) this.pool[i].setAttribute('visibility', 'hidden');
+
+    // Retain only visible chunks. No unbounded DOM/cache growth while roaming.
+    for (const [key, chunk] of this.chunks) {
+      if (!visible.has(key)) {
+        chunk.remove();
+        this.chunks.delete(key);
+      }
+    }
   }
 }
