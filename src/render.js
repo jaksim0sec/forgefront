@@ -203,6 +203,14 @@ export class BuildingRenderer {
           bend.setAttribute('stroke-linejoin', 'round');
           bend.setAttribute('visibility', 'hidden');
           node.appendChild(bend);
+          const motion = document.createElementNS(NS,'path');
+          motion.setAttribute('class','belt-motion');
+          motion.setAttribute('d','M24 38V10');
+          motion.setAttribute('stroke','#b7aca0');
+          motion.setAttribute('stroke-width','2');
+          motion.setAttribute('stroke-dasharray','3 7');
+          motion.setAttribute('fill','none');
+          node.appendChild(motion);
         }
         const cargo = document.createElementNS(NS, 'g');
         cargo.setAttribute('class', 'cargo-overlay');
@@ -246,6 +254,8 @@ export class BuildingRenderer {
       status?.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
       status?.setAttribute('transform', 'translate(' + (STRUCTURES[structure.type].width*48-8)*camera.zoom + ' ' + 8*camera.zoom + ') scale(' + camera.zoom + ')');
       node.classList.toggle('machine-operating', operating);
+      const motion = node.querySelector('.belt-motion');
+      if (motion) motion.setAttribute('visibility', structure.itemCount > 0 && structure.enabled ? 'visible' : 'hidden');
       node.classList.toggle('machine-blocked',blocked);
       node.style.setProperty('--nation-color', nationColor(structure.ownerId));
       const sigil = nationSigil(structure.ownerId);
