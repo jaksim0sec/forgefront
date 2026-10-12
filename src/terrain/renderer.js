@@ -13,8 +13,8 @@ export class TerrainRenderer {
     this.layer.setAttribute('id', 'terrain-layer');
     this.layer.setAttribute('pointer-events', 'none');
     // Insert just after the background, under grid and every game object.
-    const sectorGrid = svg.querySelector('#tile-grid');
-    svg.insertBefore(this.layer, sectorGrid ?? svg.firstElementChild?.nextSibling ?? null);
+    const gridRect = svg.querySelector('rect[fill="url(#tile-grid)"]');
+    svg.insertBefore(this.layer, gridRect ?? svg.querySelector('#structures-layer') ?? null);
     this.nodes = new Map();
   }
   buildChunk(cx, cy) {
