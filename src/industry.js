@@ -64,6 +64,12 @@ export class Industry {
     if (entity.type === 'drill' || entity.type === 'leadCollector') return false;
     const filter = ACCEPTS[entity.type];
     if (filter && !filter.has(itemId)) return false;
+    const recipe = RECIPES[entity.type];
+    if (recipe) {
+      const needed = recipe.inputs[itemId];
+      // Keep enough room for every ingredient and the produced output.
+      if (!needed || this.stockCount(entity, itemId) >= needed * 3) return false;
+    }
     const capacity = STRUCTURES[entity.type]?.itemCapacity ?? 0;
     if (this.totalStock(entity) >= capacity) return false;
     return !BELTS.has(entity.type) || !entity.itemCount || entity.itemId === itemId;
