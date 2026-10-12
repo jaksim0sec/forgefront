@@ -69,8 +69,8 @@ export function commitConveyorRoute(world, plan, ownerId = null) {
   world.batch(() => {
     for (const cell of plan.cells) {
       if (cell.action === 'place') {
-        const result = world.place('conveyor', cell.x, cell.y, cell.rotation, ownerId);
-        if (result.ok) { result.entity.inputSide = cell.inputSide; count++; }
+        const result = world.place('conveyor', cell.x, cell.y, cell.rotation, ownerId, cell.inputSide);
+        if (result.ok) count++;
       } else if (cell.action === 'rotate' && world.rotateConveyor(cell.id, cell.rotation, cell.inputSide)) count++;
     }
   });
