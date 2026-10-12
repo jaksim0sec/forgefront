@@ -24,12 +24,20 @@ Object.assign(templates, {
     <path d="M37 13V37" stroke="#b5a17e" stroke-width="2"/>
   </symbol>`,
   tower: `<symbol id="s-tower" viewBox="0 0 96 96">
-    <rect x="2" y="2" width="92" height="92" rx="11" fill="#333f49" stroke="#8295a3" stroke-width="4"/>
-    <path d="M9 33H87M9 63H87M33 9V87M63 9V87" stroke="#4e6776" stroke-width="5"/>
-    <path d="M23 18H73L82 30V66L72 78H24L14 66V30Z" fill="#22333d" stroke="#9babaf" stroke-width="3"/>
-    <circle cx="48" cy="48" r="23" fill="#36505d" stroke="#6f909c" stroke-width="4"/>
-    <path d="M43 27 58 27 49 44 61 44 39 70 45 50 35 50Z" fill="#bacbd1" stroke="#7b989e" stroke-width="1"/>
-    <g fill="#aab7bd"><circle cx="12" cy="12" r="3"/><circle cx="84" cy="12" r="3"/><circle cx="12" cy="84" r="3"/><circle cx="84" cy="84" r="3"/></g>
+    <rect x="2" y="2" width="92" height="92" rx="9" fill="#303e48" stroke="#8299a6" stroke-width="3"/>
+    <rect x="9" y="9" width="78" height="78" rx="7" fill="#1a2c36" stroke="#57717e" stroke-width="2"/>
+    <g fill="#526774" stroke="#a5b8c0" stroke-width="2">
+      <path d="M11 11h22v22H11zM63 11h22v22H63zM11 63h22v22H11zM63 63h22v22H63z"/>
+    </g>
+    <g stroke="#b2c2c6" stroke-width="2.5"><path d="M16 20h12M68 20h12M16 76h12M68 76h12"/></g>
+    <path d="M48 6V20M48 76V90M6 48H20M76 48H90" stroke="#bb9a65" stroke-width="5" stroke-linecap="round"/>
+    <path d="M48 15 76 28 83 48 76 68 48 81 20 68 13 48 20 28Z" fill="#344c5a" stroke="#a6b7bb" stroke-width="3"/>
+    <path d="M48 23 70 34 74 48 70 62 48 73 26 62 22 48 26 34Z" fill="#14262f" stroke="#627e89" stroke-width="2"/>
+    <circle cx="48" cy="48" r="21" fill="#486473" stroke="#a3b9bf" stroke-width="3"/>
+    <circle cx="48" cy="48" r="15" fill="#152e38" stroke="#a98b5e" stroke-width="4"/>
+    <path d="M48 34 59 44 55 57 41 60 35 48Z" fill="#c2c7bd" stroke="#6c8b92" stroke-width="2"/>
+    <path d="M48 36V56M39 46H57" stroke="#253941" stroke-width="3" stroke-linecap="round"/>
+    <g fill="#d5b684"><circle cx="48" cy="15" r="3"/><circle cx="81" cy="48" r="3"/><circle cx="48" cy="81" r="3"/><circle cx="15" cy="48" r="3"/></g>
   </symbol>`,
   poweredDrill: `<symbol id="s-poweredDrill" viewBox="0 0 96 96">
     <rect x="2" y="2" width="92" height="92" rx="8" fill="#3e505c" stroke="#b4c1c7" stroke-width="4"/>

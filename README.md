@@ -1,6 +1,6 @@
 # FORGEFRONT
 
-Browser-based industrial territory strategy game. **Current stage: M05 industrial progression prototype.** Static app with no server-side gameplay code or runtime dependencies.
+Browser-based industrial territory strategy game. **Current stage: M06 territory groundwork (industrial progression remains playable).** Static app with no server-side gameplay code or runtime dependencies.
 
 ## Implemented
 
@@ -37,6 +37,15 @@ The first M05 bootstrapped scene consists of a northern tower and adjacent free 
 
 The new `src/progression.js` owns the recipes/build costs, `src/terrain.js` generates mineral patches, `src/power.js` allocates scarce electricity, and `src/terrain-render.js` handles the visible ore visuals. An SVG for the intermediate metal parts lives in `source/resources/parts.svg`. Conveyor item SVGs are 23px wide at normal zoom, up from 17px.
 
+## M06 — Command towers, cliffs and territory (first slice)
+
+- Existing `tower` is now explicitly the **2×2 central command tower** (700 HP, tower stockpile, 3 starter power), with a purpose-built fortified SVG instead of the generic lightning-bolt icon. The structure type, item ports, health and power behavior stay compatible with the M05 economy.
+- The starter map has a northern command tower at its existing location and a southern rival tower beyond the starting camera. Each owned tower claims territory within **22 tiles**, and overlapping influence is assigned to the nearest tower deterministically. Neutral towers claim nothing.
+- `src/territory.js` owns the claim model and coarse spatial index, with targeted invalidation for tower placement, removal, damage and change of ownership. Ownership can currently be edited in the existing inspector; **unit-based combat and capture progress are not implemented yet**.
+- `src/territory-render.js` bakes nation colors and border-only outlines into at most one image per visible 16×16 chunk; repaint happens only when tower ownership changes or new chunks become visible. The UI includes a territory visibility toggle and selected structure's territory status.
+- Build-blocking highlands now share the public `CLIFF_HEIGHT = 0.78` constant with the terrain art. The ground layer paints actual impassable cells as clear basalt cliff faces with bright upper edges, dark strata and relief shadows; the hover HUD identifies them as **절벽**. Existing construction rules and free routing behavior are unchanged.
+- This is a **territory influence foundation**, not full conquest gameplay. Tower logistics still work, and the map is designed to accommodate future front lines and units without changing the industry tick.
+
 ## Controls
 
 | Input | Result |
@@ -67,7 +76,7 @@ Optional focused checks: `npm test` (Node.js). No external dependencies.
 
 ## Architecture
 
-`src/world.js` is the single owner of structures, nation stockpiles and sparse occupancy; `src/routes.js` computes tentative conveyor paths; `src/ports.js` and `src/connections.js` calculate directed contacts; `src/industry.js` advances only active producers and occupied belts; `src/entities.js` manages units/projectiles separately; `src/resources.js` resolves SVG metadata; `src/render.js` handles only visible SVG elements; `src/main.js` contains the gesture and editor state machine. Nation insignia and metadata live in `src/nations.js`.
+`src/territory.js` is the derived territory index, with `src/territory-render.js` rendering visible borders; `src/world.js` is the single owner of structures, nation stockpiles and sparse occupancy; `src/routes.js` computes tentative conveyor paths; `src/ports.js` and `src/connections.js` calculate directed contacts; `src/industry.js` advances only active producers and occupied belts; `src/entities.js` manages units/projectiles separately; `src/resources.js` resolves SVG metadata; `src/render.js` handles only visible SVG elements; `src/main.js` contains the gesture and editor state machine. Nation insignia and metadata live in `src/nations.js`.
 
 ### Rendering scalability (incremental)
 
@@ -88,8 +97,8 @@ Optional focused checks: `npm test` (Node.js). No external dependencies.
 ### Next milestones
 
 - M05: first economy, recipe and local-power vertical slice implemented; refine network topology and balance.
-- M06: faction towers, ownership/territory bounds, capture and territory-dependent power activation. Reuse the new seeded elevation for defensible high ground without coupling terrain rendering to the territory state.
+- M06: basic faction influence and drawn boundaries are in place; next add capture conditions, neutral strongholds and territory-dependent power/production activation (without blocking early industrial progression).
 - M07: defense lines, attack units and real projectile simulation; spatial indexing for moving entities.
 - M08: persistent world/save snapshots, bulk-logistics optimizations and profile-guided rendering upgrades.
 
-Not implemented: multiplayer, proper physical power cables, territorial capture, advanced full-factory recipes/balancing, pathfinding or automated combat. SVG assets and game logic are separate to keep them editable and cheap to render.
+Not implemented: multiplayer, proper physical power cables, unit-based territorial capture, advanced full-factory recipes/balancing, pathfinding or automated combat. SVG assets and game logic are separate to keep them editable and cheap to render.

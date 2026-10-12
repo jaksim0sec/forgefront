@@ -3,7 +3,8 @@
  * derive from integer world coordinates and one seed.
  * Starter veins retain the existing economy's iron / coal / titanium locations.
  */
-const TAU = Math.PI * 2;
+// Building eligibility and the visible cliff decal use exactly this cutoff.
+export const CLIFF_HEIGHT = 0.78;
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const smooth = v => v * v * (3 - 2 * v);
 
@@ -59,16 +60,18 @@ export class Terrain {
     const south = this.heightAt(x, y + 1);
     const slope = Math.max(Math.abs(east - height), Math.abs(south - height));
     const moisture = this.noise(x / 42, y / 42, 121);
-    const biome = height >= 0.77 ? 'ridge' : height >= 0.64 ? 'rock' :
+    const biome = height >= CLIFF_HEIGHT ? 'cliff' : height >= 0.72 ? 'ridge' : height >= 0.64 ? 'rock' :
       moisture >= 0.60 ? 'scrub' : height < 0.32 ? 'basin' : 'plain';
     return { height, slope, moisture, biome };
   }
+
+  isCliffAt(x, y) { return this.heightAt(x, y) >= CLIFF_HEIGHT; }
 
   canBuildFootprint(x, y, width, height) {
     let low = 1, high = 0;
     for (let dy = 0; dy < height; dy++) for (let dx = 0; dx < width; dx++) {
       const h = this.heightAt(x + dx, y + dy);
-      if (h >= 0.78) return false;
+      if (h >= CLIFF_HEIGHT) return false;
       low = Math.min(low, h);
       high = Math.max(high, h);
     }

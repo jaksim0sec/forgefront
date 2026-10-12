@@ -9,7 +9,7 @@ export const STRUCTURES = Object.freeze({
   junction: Object.freeze({ label: '분배기', width: 1, height: 1, maxHealth: 75, itemCapacity: 3, itemsPerSecond: 5 }),
   drill: Object.freeze({ label: '기본 채굴기', width: 2, height: 2, maxHealth: 180, itemCapacity: 12, itemsPerSecond: 1 }),
   leadCollector: Object.freeze({ label: '납 채집기', width: 1, height: 1, maxHealth: 100, itemCapacity: 10, itemsPerSecond: 0.9 }),
-  tower: Object.freeze({ label: '전기 타워', width: 2, height: 2, maxHealth: 700, itemCapacity: Infinity, powerOutput: 3 }),
+  tower: Object.freeze({ label: '중앙 타워', width: 2, height: 2, maxHealth: 700, itemCapacity: Infinity, powerOutput: 3 }),
   poweredDrill: Object.freeze({ label: '전동 티타늄 드릴', width: 2, height: 2, maxHealth: 300, itemCapacity: 12, itemsPerSecond: 0.7, powerUse: 8 }),
   siliconPlant: Object.freeze({ label: '실리콘 공장', width: 3, height: 2, maxHealth: 370, itemCapacity: 28, powerUse: 10 }),
   superconductorPlant: Object.freeze({ label: '초전도체 공장', width: 3, height: 3, maxHealth: 510, itemCapacity: 36, powerUse: 17 }),

@@ -30,6 +30,7 @@
       </defs>
       <rect width="100%" height="100%" fill="url(#ambient)"/>
       <g id="terrain-layer" pointer-events="none"></g>
+      <g id="territory-layer" pointer-events="none"></g>
       <rect width="100%" height="100%" fill="url(#tile-grid)"/>
       <rect width="100%" height="100%" fill="url(#sector-grid)"/>
       <g id="ore-layer" pointer-events="none"></g>
@@ -48,8 +49,8 @@
       <rect id="tile-highlight" visibility="hidden" fill-opacity=".18" stroke-width="2" pointer-events="none"/>
     </svg>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 05</span></div>
-      <div class="phase">INDUSTRIAL PROGRESSION <span class="live-dot"></span> ACTIVE</div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 06</span></div>
+      <div class="phase">TERRITORY SYSTEM <span class="live-dot"></span> ACTIVE</div>
     </header>
     <div class="side-label" aria-hidden="true">INDUSTRIAL TERRITORY / FOUNDATION</div>
     <div class="center-crosshair" aria-hidden="true"></div>
@@ -75,6 +76,7 @@
       </div>
       <div class="toolbox-actions">
         <button id="show-links" type="button" aria-pressed="true">↗ 자원 연결 ON</button>
+        <button id="show-territory" type="button" aria-pressed="true">◇ 영토 경계 ON</button>
         <button id="touch-draw" type="button" aria-pressed="false">✎ 터치 경로 건설 OFF</button>
         <button id="example" type="button">＋ 철 채굴라인 예시</button>
       </div>
@@ -100,6 +102,7 @@
       <div class="inspector-row"><span>내구도</span><output id="selected-health">—</output></div>
       <div class="inspector-row"><span>가동 상태</span><output id="selected-status">—</output></div>
       <div class="inspector-row"><span>전력</span><output id="selected-power">—</output></div>
+      <div class="inspector-row"><span>영토 영향력</span><output id="selected-territory">—</output></div>
       <div class="inspector-row"><span>광맥/생산</span><output id="selected-production">—</output></div>
       <div class="inspector-row"><span>재고</span><output id="selected-stock">—</output></div>
       <label class="inspector-row" id="resource-picker" hidden>채굴 자원 <select id="drill-resource" aria-label="채굴 자원 선택"></select></label>

@@ -8,6 +8,8 @@ import { NATIONS, nationLabel, nationColor } from './nations.js';
 import { RESOURCES } from './resources.js';
 import { Terrain } from './terrain.js';
 import { TerrainRenderer } from './terrain-render.js';
+import { Territory } from './territory.js';
+import { TerritoryRenderer } from './territory-render.js';
 import { CargoRenderer } from './cargo-renderer.js';
 import { RECIPES, BUILD_COSTS } from './progression.js';
 
@@ -17,6 +19,8 @@ const world = new World();
 world.terrain = new Terrain();
 // Starting faction core offers only minimal power.
 world.place('tower', 0, -1, 0, 'north');
+// Rival command tower lays out a visible front line; AI combat is not active yet.
+world.place('tower', 31, -12, 0, 'south');
 world.place('leadCollector', -1, 0, 0, 'north');
 world.survival = true;
 const connections = new ItemConnections(world);
@@ -24,6 +28,8 @@ const industry = new Industry(world, connections);
 installSprites(svg);
 const buildings = new BuildingRenderer(svg, world, camera, connections);
 const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
+const territory = new Territory(world);
+const territoryVisual = new TerritoryRenderer(svg, territory, camera);
 // Cargo visuals use one transparent Canvas, with the original SVG fallback.
 const cargoRenderer = new CargoRenderer(svg, camera, RESOURCES);
 world.subscribe(change => cargoRenderer.transfer(change, world));
@@ -71,6 +77,7 @@ const ui = {
   status: byId('selected-status'), drillResource: byId('drill-resource'),
   resourcePicker: byId('resource-picker'),
   power: byId('power-summary'), powerDetail: byId('selected-power'),
+  territoryDetail: byId('selected-territory'),
   production: byId('selected-production'), message: byId('build-message'),
 };
 let tool = 'select', rotation = 0, selectedId = null;
@@ -170,6 +177,7 @@ function render() {
   byId('zoom').textContent = Math.round(camera.zoom * 100) + '%';
   const hoverTile = hoverPoint ? (STRUCTURES[tool] && tool !== 'conveyor' ? snappedTile(hitTile(hoverPoint)) : hitTile(hoverPoint)) : null;
   terrainVisual.draw();
+  territoryVisual.draw();
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
   const area = byId('erase-preview');
   if (paint?.kind === 'erase') {
@@ -183,9 +191,10 @@ function render() {
   } else area.setAttribute('visibility','hidden');
   const oreAtHover = hoverTile ? world.terrain.oreAt(hoverTile.x, hoverTile.y) : null;
   const groundAtHover = hoverTile ? world.terrain.groundAt(hoverTile.x, hoverTile.y) : null;
-  const terrainLabels = { plain: '평원', scrub: '초지', basin: '저지대', rock: '암반', ridge: '산지' };
+  const terrainLabels = { plain: '평원', scrub: '초지', basin: '저지대', rock: '암반', ridge: '산지', cliff: '⛔ 절벽' };
+  const territoryAtHover = hoverTile ? territory.ownerAt(hoverTile.x, hoverTile.y) : null;
   ui.tile.textContent = hoverTile ?
-    `[${hoverTile.x}, ${hoverTile.y}] · ${terrainLabels[groundAtHover.biome]} ${Math.round(groundAtHover.height * 100)}${oreAtHover ? ' · ' + RESOURCES[oreAtHover].label : ''}` : '—';
+    `[${hoverTile.x}, ${hoverTile.y}] · ${terrainLabels[groundAtHover.biome]} ${Math.round(groundAtHover.height * 100)} · ${territoryAtHover ? nationLabel(territoryAtHover) + ' 영토' : '무주지'}${oreAtHover ? ' · ' + RESOURCES[oreAtHover].label : ''}` : '—';
   ui.count.textContent = world.structures.size;
   ui.chunks.textContent = world.chunks.size;
   ui.links.textContent = connections.linkCount;
@@ -242,6 +251,11 @@ function render() {
     Object.entries(selected?.type === 'tower' ? world.walletFor(selected.ownerId) :
       selected?.inventory ?? {}).filter(([k,v]) => v > 0);
   ui.stock.textContent = stocked.length ? stocked.map(([k,v])=>`${RESOURCES[k]?.label ?? k} ${v}`).join(' · ') : '재고 없음';
+  const occupying = selected && territory.ownerAt(
+    Math.floor(selected.x + selected.width / 2), Math.floor(selected.y + selected.height / 2));
+  ui.territoryDetail.textContent = selected?.type === 'tower'
+    ? `${nationLabel(selected.ownerId)} · 영향 반경 22칸`
+    : selected ? (occupying ? nationLabel(occupying) + ' 영토' : '무주지') : '—';
   ui.resourcePicker.hidden = selected?.type !== 'drill';
   if (selected?.type === 'drill') ui.drillResource.value = selected.resourceId;
   byId('selected-detail').hidden = !selected || selectionDismissed;
@@ -594,6 +608,13 @@ ownerButtons.forEach(button => button.addEventListener('click', () => {
   byId('nation-status').style.setProperty('--nation-color', nationColor(activeOwner));
   invalidate();
 }));
+byId('show-territory').addEventListener('click', event => {
+  const visible = event.currentTarget.getAttribute('aria-pressed') !== 'true';
+  event.currentTarget.setAttribute('aria-pressed', String(visible));
+  event.currentTarget.textContent = `◇ 영토 경계 ${visible ? 'ON' : 'OFF'}`;
+  territoryVisual.layer.setAttribute('visibility', visible ? 'visible' : 'hidden');
+  invalidate();
+});
 byId('show-links').addEventListener('click',event => {
   showLinks = !showLinks;
   event.currentTarget.setAttribute('aria-pressed',String(showLinks));
