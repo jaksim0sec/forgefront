@@ -1,6 +1,8 @@
 import { Camera, CAMERA_CONFIG } from './camera.js';
 import { World, STRUCTURES, worldToTile } from './world.js';
 import { BuildingRenderer, installSprites } from './render.js';
+import { ItemConnections } from './connections.js';
+import { NATIONS, nationLabel } from './nations.js';
 
 const svg = document.getElementById('world');
 const tilePattern = document.getElementById('tile-grid');
@@ -10,23 +12,39 @@ const sectorPath = document.getElementById('sector-grid-path');
 const origin = document.getElementById('world-origin');
 const camera = new Camera();
 const world = new World();
+const connections = new ItemConnections(world);
 installSprites(svg);
-const buildings = new BuildingRenderer(svg, world, camera);
+const buildings = new BuildingRenderer(svg, world, camera, connections);
 const ui = {
   tile: document.getElementById('tile-coords'),
   count: document.getElementById('structure-count'),
   chunks: document.getElementById('chunk-count'),
   selected: document.getElementById('selected-info'),
   rotation: document.getElementById('rotation'),
+  links: document.getElementById('link-count'),
 };
 let tool = 'select';
 let rotation = 0;
 let selectedId = null;
 let hoverPoint = null;
+let activeOwner = null;
+let showLinks = true;
 const toolboxButtons = [...document.querySelectorAll('[data-tool]')];
+const ownerSwatches = document.getElementById('owner-swatches');
+for (const nation of Object.values(NATIONS)) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'owner-swatch';
+  button.dataset.owner = nation.id;
+  button.style.setProperty('--nation-color', nation.color);
+  button.setAttribute('aria-pressed', 'false');
+  button.textContent = nation.label;
+  ownerSwatches.appendChild(button);
+}
+const ownerButtons = [...ownerSwatches.querySelectorAll('[data-owner]')];
 function selectedDescription() {
   const structure = world.structures.get(selectedId);
-  if (structure) return STRUCTURES[structure.type].label + ' #' + structure.id + ' · [' + structure.x + ', ' + structure.y + ']';
+  if (structure) return `${STRUCTURES[structure.type].label} #${structure.id} · ${nationLabel(structure.ownerId)} · IN ${connections.inputs(structure.id).size} / OUT ${connections.outputs(structure.id).size}`;
   return tool === 'select' ? '타일 또는 건물을 선택해 봐' :
     tool === 'erase' ? '선택한 건물 철거' : STRUCTURES[tool].label + ' 설치 모드';
 }
@@ -54,7 +72,7 @@ function act(point, alternate = false) {
       if (selectedId === existing.id) selectedId = null;
     }
   } else if (STRUCTURES[tool]) {
-    const result = world.place(tool, tile.x, tile.y, rotation);
+    const result = world.place(tool, tile.x, tile.y, rotation, activeOwner);
     if (result.ok) selectedId = result.entity.id;
   } else {
     selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
@@ -88,10 +106,11 @@ function render() {
   document.getElementById('cam-y').textContent = (camera.y / CAMERA_CONFIG.tileSize).toFixed(1);
   document.getElementById('zoom').textContent = Math.round(camera.zoom * 100) + '%';
   const hoverTile = hoverPoint ? hitTile(hoverPoint) : null;
-  buildings.draw(tool, hoverTile, rotation, selectedId);
+  buildings.draw(tool, hoverTile, rotation, selectedId, showLinks);
   ui.tile.textContent = hoverTile ? '[' + hoverTile.x + ', ' + hoverTile.y + ']' : '—';
   ui.count.textContent = String(world.structures.size);
   ui.chunks.textContent = String(world.chunks.size);
+  ui.links.textContent = String(connections.linkCount);
   ui.selected.textContent = selectedDescription();
   ui.rotation.textContent = rotation * 90 + '°';
 }
@@ -250,6 +269,38 @@ window.addEventListener('keyup', event => {
 window.addEventListener('blur', () => { pressed.clear(); previousFrame = 0; });
 
 toolboxButtons.forEach(button => button.addEventListener('click', () => setTool(button.dataset.tool)));
+ownerButtons.forEach(button => button.addEventListener('click', () => {
+  const next = button.dataset.owner === 'neutral' ? null : button.dataset.owner;
+  if (next && !NATIONS[next]) return;
+  activeOwner = next;
+  if (selectedId !== null) world.setOwner(selectedId, next);
+  for (const ownerButton of ownerButtons) {
+    const active = ownerButton.dataset.owner === (activeOwner ?? 'neutral');
+    ownerButton.classList.toggle('active', active);
+    ownerButton.setAttribute('aria-pressed', String(active));
+  }
+  invalidate();
+}));
+document.getElementById('show-links').addEventListener('click', event => {
+  showLinks = !showLinks;
+  event.currentTarget.setAttribute('aria-pressed', String(showLinks));
+  event.currentTarget.textContent = `↗ 자원 연결 표시 ${showLinks ? 'ON' : 'OFF'}`;
+  invalidate();
+});
+document.getElementById('example').addEventListener('click', () => {
+  // Opt-in illustrative chain. Never erase the user's existing structures.
+  const sample = [
+    ['drill', -4, -1, 0], ['conveyor', -2, 0, 3],
+    ['conveyor', -1, 0, 3], ['smelter', 0, 0, 0], ['generator', 3, 0, 0],
+  ];
+  let placed = 0;
+  for (const [type, x, y, direction] of sample) {
+    if (world.place(type, x, y, direction, activeOwner).ok) placed++;
+  }
+  camera.reset();
+  if (placed) setTool('select');
+  invalidate();
+});
 document.getElementById('rotate').addEventListener('click', () => { rotation = (rotation + 1) % 4; invalidate(); });
 document.getElementById('reset').addEventListener('click', () => {
   camera.reset();

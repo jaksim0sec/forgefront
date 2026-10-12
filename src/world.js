@@ -2,10 +2,10 @@ import { CAMERA_CONFIG } from './camera.js';
 
 export const WORLD_CONFIG = Object.freeze({ width: 2048, height: 2048, chunkSize: 32 });
 export const STRUCTURES = Object.freeze({
-  conveyor: Object.freeze({ label: '컨베이어', width: 1, height: 1, accent: '#d6a45d' }),
-  drill: Object.freeze({ label: '채굴기', width: 2, height: 2, accent: '#86adc1' }),
-  smelter: Object.freeze({ label: '제련소', width: 3, height: 2, accent: '#d89056' }),
-  generator: Object.freeze({ label: '발전기', width: 2, height: 2, accent: '#8cbaad' }),
+  conveyor: Object.freeze({ label: '컨베이어', width: 1, height: 1 }),
+  drill: Object.freeze({ label: '채굴기', width: 2, height: 2 }),
+  smelter: Object.freeze({ label: '제련소', width: 3, height: 2 }),
+  generator: Object.freeze({ label: '발전기', width: 2, height: 2 }),
 });
 export function worldToTile(worldX, worldY) {
   return { x: Math.floor(worldX / CAMERA_CONFIG.tileSize), y: Math.floor(worldY / CAMERA_CONFIG.tileSize) };
@@ -34,6 +34,26 @@ export class World {
     this.structures = new Map();
     this.nextId = 1; // 0 = empty cell
     this.revision = 0;
+    this.listeners = new Set();
+  }
+
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  changed(type, entity) {
+    this.revision++;
+    for (const listener of this.listeners) listener({ type, entity });
+  }
+
+  setOwner(id, ownerId) {
+    const entity = this.structures.get(id);
+    if (!entity) return false;
+    if (entity.ownerId === ownerId) return true;
+    entity.ownerId = ownerId;
+    this.changed('owner', entity);
+    return true;
   }
 
   inBounds(x, y) {
@@ -101,7 +121,7 @@ export class World {
         chunk.count++;
       }
     }
-    this.revision++;
+    this.changed('place', entity);
     return { ok: true, entity };
   }
 
@@ -124,7 +144,7 @@ export class World {
       if (chunk.count === 0) this.chunks.delete(key);
     }
     this.structures.delete(id);
-    this.revision++;
+    this.changed('remove', entity);
     return true;
   }
 

@@ -31,11 +31,12 @@
         <circle r="3" fill="#f4ac54"/>
       </g>
       <g id="structures-layer" pointer-events="none"></g>
+      <g id="connections-layer" pointer-events="none"></g>
       <rect id="tile-highlight" visibility="hidden" fill-opacity=".18" stroke-width="2" pointer-events="none"/>
     </svg>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 02</span></div>
-      <div class="phase">SPARSE WORLD <span class="live-dot"></span> ACTIVE</div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 03</span></div>
+      <div class="phase">ITEM CONNECTIONS <span class="live-dot"></span> ACTIVE</div>
     </header>
     <div class="side-label" aria-hidden="true">INDUSTRIAL TERRITORY / FOUNDATION</div>
     <div class="center-crosshair" aria-hidden="true"></div>
@@ -50,6 +51,14 @@
         <button type="button" data-tool="erase" aria-pressed="false"><span class="tool-icon">×</span><span>철거</span><kbd>X</kbd></button>
       </div>
       <button type="button" id="rotate" class="rotate">↻ 회전 <output id="rotation">0°</output></button>
+      <div class="owner-heading">국가 표시 / OWNER</div>
+      <div class="owner-swatches" id="owner-swatches" role="group" aria-label="건물 소속 국가">
+        <button type="button" class="owner-swatch active" data-owner="neutral" aria-pressed="true">중립</button>
+      </div>
+      <div class="toolbox-actions">
+        <button id="show-links" type="button" aria-pressed="true">↗ 자원 연결 표시 ON</button>
+        <button id="example" type="button">＋ 생산라인 예시</button>
+      </div>
     </aside>
     <footer class="hud">
       <section class="status-panel" aria-label="월드 상태">
@@ -57,6 +66,7 @@
         <div class="status-item"><span>ZOOM</span><output id="zoom">100%</output></div>
         <div class="status-item"><span>TILE</span><output id="tile-coords">—</output></div>
         <div class="status-item"><span>OBJECTS / CHUNKS</span><div><output id="structure-count">0</output><span class="separator"> / </span><output id="chunk-count">0</output></div></div>
+        <div class="status-item"><span>ITEM LINKS</span><output id="link-count">0</output></div>
       </section>
       <section class="control-panel" aria-label="조작 안내">
         <div class="selection-info" id="selected-info">타일 또는 건물을 선택해 봐</div>

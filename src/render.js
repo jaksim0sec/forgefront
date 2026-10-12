@@ -1,12 +1,14 @@
 import { CAMERA_CONFIG } from './camera.js';
 import { STRUCTURES, tileToWorld, worldToTile } from './world.js';
+import { nationColor } from './nations.js';
+import { DIRECTIONS } from './ports.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const templates = {
-  conveyor: `<symbol id="s-conveyor" viewBox="0 0 48 48"><rect x="2" y="2" width="44" height="44" rx="5" fill="#28343d" stroke="#64727b" stroke-width="3"/><rect x="9" y="4" width="30" height="40" rx="2" fill="#151f26"/><g fill="#876d4e" stroke="#c7a16a" stroke-width="1.2"><rect x="12" y="8" width="24" height="6" rx="1"/><rect x="12" y="21" width="24" height="6" rx="1"/><rect x="12" y="34" width="24" height="6" rx="1"/></g><path d="M5 9V39M43 9V39" stroke="#c59757" stroke-width="2" stroke-dasharray="4 4"/><path d="M21 15L24 18L27 15" fill="none" stroke="#e9b96c" stroke-width="1.7"/></symbol>`,
-  drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#303d45" stroke="#8ca6b2" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#daa65d" stroke-width="3" stroke-dasharray="13 7"/><circle cx="48" cy="48" r="29" fill="#4c626c" stroke="#a1bac2" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/><circle cx="48" cy="48" r="7" fill="#e9b769" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
-  smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#353c43" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#4d3830" stroke="#b88d60" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#ef9d50"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#e6b065" stroke-width="3" stroke-dasharray="5 5"/></symbol>`,
-  generator: `<symbol id="s-generator" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#2e4041" stroke="#8cb0ac" stroke-width="4"/><rect x="10" y="10" width="76" height="76" rx="5" fill="#1c2b31" stroke="#536d70" stroke-width="2"/><circle cx="48" cy="48" r="31" fill="#364f50" stroke="#97c5ba" stroke-width="3"/><circle cx="48" cy="48" r="24" fill="#1a3033"/><path d="M48 28L55 40L68 48L54 55L48 69L40 54L28 48L42 40Z" fill="#79aa9d"/><circle cx="48" cy="48" r="9" fill="#b5e2c6" stroke="#306f6a" stroke-width="3"/><path d="M17 17H31M65 17H79M17 79H31M65 79H79" stroke="#bdc8b8" stroke-width="3"/></symbol>`,
+  conveyor: `<symbol id="s-conveyor" viewBox="0 0 48 48"><rect x="2" y="2" width="44" height="44" rx="5" fill="#28343d" stroke="#64727b" stroke-width="3"/><rect x="9" y="4" width="30" height="40" rx="2" fill="#151f26"/><g fill="#56626a" stroke="#82909a" stroke-width="1.2"><rect x="12" y="8" width="24" height="6" rx="1"/><rect x="12" y="21" width="24" height="6" rx="1"/><rect x="12" y="34" width="24" height="6" rx="1"/></g><path d="M5 9V39M43 9V39" stroke="#8c9aa4" stroke-width="2" stroke-dasharray="4 4"/><path d="M21 15L24 18L27 15" fill="none" stroke="#b3c0c6" stroke-width="1.7"/></symbol>`,
+  drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#303d45" stroke="#8ca6b2" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-dasharray="13 7"/><circle cx="48" cy="48" r="29" fill="#4c626c" stroke="#a1bac2" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
+  smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#353c43" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#404f59" stroke="#86969f" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#758992"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#98a4aa" stroke-width="3" stroke-dasharray="5 5"/></symbol>`,
+  generator: `<symbol id="s-generator" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#2e4041" stroke="#8c9da5" stroke-width="4"/><rect x="10" y="10" width="76" height="76" rx="5" fill="#1c2b31" stroke="#536d70" stroke-width="2"/><circle cx="48" cy="48" r="31" fill="#364f50" stroke="#97a7ad" stroke-width="3"/><circle cx="48" cy="48" r="24" fill="#1a3033"/><path d="M48 28L55 40L68 48L54 55L48 69L40 54L28 48L42 40Z" fill="#94a7af"/><circle cx="48" cy="48" r="9" fill="#c4d0d3" stroke="#657b85" stroke-width="3"/><path d="M17 17H31M65 17H79M17 79H31M65 79H79" stroke="#bdc8b8" stroke-width="3"/></symbol>`,
 };
 
 export function installSprites(svg) {
@@ -29,18 +31,66 @@ function moveSprite(element, structure, camera) {
   const use = element.firstElementChild;
   use.setAttribute('width', w);
   use.setAttribute('height', h);
+  const marker = element.lastElementChild;
+  marker.setAttribute('x', 6 * camera.zoom);
+  marker.setAttribute('y', 6 * camera.zoom);
+  marker.setAttribute('width', 12 * camera.zoom);
+  marker.setAttribute('height', 4 * camera.zoom);
 }
 
 export class BuildingRenderer {
-  constructor(svg, world, camera) {
+  constructor(svg, world, camera, connections) {
     this.layer = svg.querySelector('#structures-layer');
     this.hover = svg.querySelector('#tile-highlight');
+    this.linksLayer = svg.querySelector('#connections-layer');
+    this.connections = connections;
+    this.linkElements = new Map();
     this.world = world;
     this.camera = camera;
     this.elements = new Map();
   }
 
-  draw(tool, hoverTile, rotation, selectedId) {
+  drawLinks(visible, selectedId, showLinks) {
+    const keep = new Set();
+    if (showLinks && this.camera.zoom >= 0.58) {
+      const tileSize = CAMERA_CONFIG.tileSize;
+      for (const sourceId of visible) {
+        for (const link of this.connections.outputs(sourceId).values()) {
+          if (!visible.has(link.to)) continue;
+          link.contacts.forEach((contact, index) => {
+            const key = `${link.from}-${link.to}-${index}`;
+            keep.add(key);
+            let path = this.linkElements.get(key);
+            if (!path) {
+              path = document.createElementNS(NS, 'path');
+              path.setAttribute('class', 'item-link');
+              this.linksLayer.appendChild(path);
+              this.linkElements.set(key, path);
+            }
+            const direction = DIRECTIONS[contact.side];
+            const p = this.camera.worldToScreen((contact.x + 0.5) * tileSize, (contact.y + 0.5) * tileSize);
+            const d = tileSize * this.camera.zoom;
+            const x = p.x + direction.x * d * 0.70;
+            const y = p.y + direction.y * d * 0.70;
+            const tailX = p.x + direction.x * d * 0.28;
+            const tailY = p.y + direction.y * d * 0.28;
+            const px = -direction.y, py = direction.x;
+            const arrow = Math.max(3, d * 0.10);
+            path.setAttribute('d', `M${tailX} ${tailY} L${x} ${y} M${x - direction.x * arrow + px * arrow * .6} ${y - direction.y * arrow + py * arrow * .6} L${x} ${y} L${x - direction.x * arrow - px * arrow * .6} ${y - direction.y * arrow - py * arrow * .6}`);
+            path.classList.toggle('focused', selectedId === sourceId || selectedId === link.to);
+          });
+        }
+      }
+    }
+    for (const [key, element] of this.linkElements) {
+      if (!keep.has(key)) {
+        element.remove();
+        this.linkElements.delete(key);
+      }
+    }
+  }
+
+  draw(tool, hoverTile, rotation, selectedId, showLinks = true) {
     const { camera, world } = this;
     const a = camera.screenToWorld(0, 0);
     const b = camera.screenToWorld(camera.width, camera.height);
@@ -55,10 +105,15 @@ export class BuildingRenderer {
         const use = document.createElementNS(NS, 'use');
         use.setAttribute('href', `#s-${structure.type}`);
         node.appendChild(use);
+        const marker = document.createElementNS(NS, 'rect');
+        marker.setAttribute('class', 'nation-marker');
+        marker.setAttribute('rx', '1.5');
+        node.appendChild(marker);
         this.layer.appendChild(node);
         this.elements.set(structure.id, node);
       }
       moveSprite(node, structure, camera);
+      node.style.setProperty('--nation-color', nationColor(structure.ownerId));
       node.setAttribute('opacity', selectedId === structure.id ? '0.78' : '1');
     }
     for (const [id, node] of this.elements) {
@@ -68,6 +123,7 @@ export class BuildingRenderer {
       }
     }
 
+    this.drawLinks(active, selectedId, showLinks);
     if (!hoverTile) {
       this.hover.setAttribute('visibility', 'hidden');
       return;
