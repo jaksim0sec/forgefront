@@ -23,6 +23,34 @@ const industry = new Industry(world, connections);
 installSprites(svg);
 const buildings = new BuildingRenderer(svg, world, camera, connections);
 const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
+// Each simulation transfer animates one actual resource along its delivery edge.
+const movingItems = svg.querySelector('#moving-items');
+let flyingItems = 0;
+world.subscribe(change => {
+  if (change.type !== 'transfer' || flyingItems >= 48) return;
+  const {fromId,toId,itemId} = change.entity;
+  const from = world.structures.get(fromId), to = world.structures.get(toId);
+  if (!from || !to || !RESOURCES[itemId]) return;
+  const a = camera.worldToScreen((from.x + from.width / 2) * CAMERA_CONFIG.tileSize,
+                                  (from.y + from.height / 2) * CAMERA_CONFIG.tileSize);
+  const b = camera.worldToScreen((to.x + to.width / 2) * CAMERA_CONFIG.tileSize,
+                                  (to.y + to.height / 2) * CAMERA_CONFIG.tileSize);
+  if (Math.max(a.x,b.x) < -32 || Math.min(a.x,b.x) > camera.width+32 ||
+      Math.max(a.y,b.y) < -32 || Math.min(a.y,b.y) > camera.height+32) return;
+  const icon = document.createElementNS('http://www.w3.org/2000/svg','image');
+  const size = Math.max(13, 23*camera.zoom);
+  icon.setAttribute('href', RESOURCES[itemId].icon);
+  icon.setAttribute('width',size); icon.setAttribute('height',size);
+  icon.setAttribute('x',-size/2); icon.setAttribute('y',-size/2);
+  icon.classList.add('flying-item');
+  icon.setAttribute('transform',`translate(${a.x} ${a.y})`);
+  movingItems.appendChild(icon);
+  flyingItems++;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduced) requestAnimationFrame(() => requestAnimationFrame(() =>
+    icon.setAttribute('transform',`translate(${b.x} ${b.y})`)));
+  setTimeout(() => { icon.remove(); flyingItems--; }, reduced ? 100 : 330);
+});
 
 const byId = id => document.getElementById(id);
 // The main toolbox retains its three essential tools while collapsed.
