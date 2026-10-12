@@ -1,4 +1,5 @@
 import { Camera, CAMERA_CONFIG } from './camera.js';
+import { installTerrain } from './terrain/index.js';
 import { World, STRUCTURES, worldToTile } from './world.js';
 import { BuildingRenderer, installSprites } from './render.js';
 import { ItemConnections } from './connections.js';
@@ -10,6 +11,7 @@ import { RESOURCES } from './resources.js';
 const svg = document.getElementById('world');
 const camera = new Camera();
 const world = new World();
+const terrainView = installTerrain({ world, camera, svg });
 const connections = new ItemConnections(world);
 const industry = new Industry(world, connections);
 installSprites(svg);
@@ -100,6 +102,7 @@ function render() {
   byId('cam-y').textContent = (camera.y / CAMERA_CONFIG.tileSize).toFixed(1);
   byId('zoom').textContent = Math.round(camera.zoom * 100) + '%';
   const hoverTile = hoverPoint ? hitTile(hoverPoint) : null;
+  terrainView.draw();
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint));
   ui.tile.textContent = hoverTile ? `[${hoverTile.x}, ${hoverTile.y}]` : '—';
   ui.count.textContent = world.structures.size;
