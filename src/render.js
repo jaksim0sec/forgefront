@@ -220,6 +220,12 @@ export class BuildingRenderer {
         resourceAmount.setAttribute('class', 'cargo-count');
         cargo.appendChild(resourceAmount);
         node.appendChild(cargo);
+        const status = document.createElementNS(NS, 'circle');
+        status.setAttribute('class','machine-status-dot');
+        status.setAttribute('r','3.3');
+        status.setAttribute('cx','0');
+        status.setAttribute('cy','0');
+        node.appendChild(status);
         const insignia = document.createElementNS(NS, 'g');
         insignia.setAttribute('class', 'insignia');
         insignia.setAttribute('visibility', 'hidden');
@@ -233,6 +239,14 @@ export class BuildingRenderer {
         this.elements.set(structure.id, node);
       }
       moveSprite(node, structure, camera);
+      const status = node.querySelector('.machine-status-dot');
+      const blocked = !structure.enabled || ['no-power','no-coal','no-ore','blocked'].includes(structure.activity);
+      const operating = ['mining','processing','generating','transporting','receiving'].includes(structure.activity);
+      status?.setAttribute('visibility', structure.type === 'conveyor' || structure.type === 'junction' ? 'hidden' : 'visible');
+      status?.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
+      status?.setAttribute('transform', 'translate(' + (STRUCTURES[structure.type].width*48-8)*camera.zoom + ' ' + 8*camera.zoom + ') scale(' + camera.zoom + ')');
+      node.classList.toggle('machine-operating', operating);
+      node.classList.toggle('machine-blocked',blocked);
       node.style.setProperty('--nation-color', nationColor(structure.ownerId));
       const sigil = nationSigil(structure.ownerId);
       node.querySelector('.insignia').setAttribute('visibility', sigil ? 'visible' : 'hidden');
