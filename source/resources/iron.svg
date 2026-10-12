@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="철 자원 아이콘"><title>철</title><g stroke-linejoin="round"><!-- one dense rugged hematite mass, rust veins -->
+<path d="m10 63 12-22 10-4 8-23 18 8 8-6 13 21-1 17 9 16-18 13-35-1-17-8Z" fill="#62605C"/>
+<path d="m22 41 18-27 18 8-10 21-16 12-22 8Z" fill="#999084"/>
+<path d="m40 14 18 8 8-6 13 21-17 15-14-9Z" fill="#6B6863"/>
+<path d="m10 63 22-8 16-12 14 9-9 24-29 6-17-8Z" fill="#7D6C60"/>
+<path d="m62 52 17-15-1 17 9 16-18 13-16-7Z" fill="#45494B"/>
+<path d="m25 82 28-6 16 7Z" fill="#535357"/>
+<!-- embedded oxide band, deliberately muted -->
+<path d="m32 55 16-12 14 9-6 7-14-7-12 10Z" fill="#A36E52"/>
+<path d="m42 52 14 7-3 17-6-10Z" fill="#855C49"/>
+<path d="m23 67 9-4 10 6" fill="none" stroke="#5D514C" stroke-width="2" stroke-linecap="round"/>
+<path d="m60 29 10 11-8 12" fill="none" stroke="#90908A" stroke-width="1.6" opacity=".8"/></g></svg>
