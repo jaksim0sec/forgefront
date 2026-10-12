@@ -8,9 +8,9 @@ const NS = 'http://www.w3.org/2000/svg';
 const templates = {
   conveyor: `<symbol id="s-conveyor" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#343d41" stroke="#647177" stroke-width="1.7"/><rect x="8" y="8" width="32" height="32" rx="4" fill="#202a30"/><path d="M13 12H35M13 36H35" stroke="#66747a" stroke-width="1.5"/><path d="M19 18L24 23L29 18" fill="none" stroke="#9baaaa" stroke-width="1.6"/></symbol>`,
   junction: `<symbol id="s-junction" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="5" fill="#343d40" stroke="#687579" stroke-width="1.8"/><rect x="9" y="9" width="30" height="30" rx="4" fill="#202b30"/><path d="M24 6V42M6 24H42" stroke="#877e6e" stroke-width="5" stroke-linecap="round"/><circle cx="24" cy="24" r="8" fill="#4a5559" stroke="#a49478" stroke-width="1.4"/><path d="M20 24h8m-4-4v8" stroke="#bac5c5" stroke-width="1.8"/></symbol>`,
-  drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#48413c" stroke="#9f8b78" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-dasharray="13 7"/><circle cx="48" cy="48" r="29" fill="#6c5c4f" stroke="#b29c85" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
+  drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#48413c" stroke="#9f8b78" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-dasharray="13 7"/><circle cx="48" cy="48" r="29" fill="#6c5c4f" stroke="#b29c85" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><g class="real-blades"><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/></g><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
   smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#3d4247" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#404f59" stroke="#86969f" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#758992"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#98a4aa" stroke-width="3" stroke-dasharray="5 5"/></symbol>`,
-  generator: `<symbol id="s-generator" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#374442" stroke="#8c9da5" stroke-width="4"/><rect x="10" y="10" width="76" height="76" rx="5" fill="#1c2b31" stroke="#536d70" stroke-width="2"/><circle cx="48" cy="48" r="31" fill="#364f50" stroke="#97a7ad" stroke-width="3"/><circle cx="48" cy="48" r="24" fill="#1a3033"/><path d="M48 28L55 40L68 48L54 55L48 69L40 54L28 48L42 40Z" fill="#94a7af"/><circle cx="48" cy="48" r="9" fill="#c4d0d3" stroke="#657b85" stroke-width="3"/><path d="M17 17H31M65 17H79M17 79H31M65 79H79" stroke="#bdc8b8" stroke-width="3"/></symbol>`,
+  generator: `<symbol id="s-generator" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#374442" stroke="#8c9da5" stroke-width="4"/><rect x="10" y="10" width="76" height="76" rx="5" fill="#1c2b31" stroke="#536d70" stroke-width="2"/><circle cx="48" cy="48" r="31" fill="#364f50" stroke="#97a7ad" stroke-width="3"/><circle cx="48" cy="48" r="24" fill="#1a3033"/><g class="real-blades"><path d="M48 28L55 40L68 48L54 55L48 69L40 54L28 48L42 40Z" fill="#94a7af"/></g><circle cx="48" cy="48" r="9" fill="#c4d0d3" stroke="#657b85" stroke-width="3"/><path d="M17 17H31M65 17H79M17 79H31M65 79H79" stroke="#bdc8b8" stroke-width="3"/></symbol>`,
 };
 
 Object.assign(templates, {
@@ -36,7 +36,7 @@ Object.assign(templates, {
     <path d="M12 22H84M12 74H84" stroke="#acafb2" stroke-width="4" stroke-dasharray="10 6"/>
     <circle cx="48" cy="48" r="29" fill="#526779" stroke="#b9c7cb" stroke-width="4"/>
     <circle cx="48" cy="48" r="20" fill="#1e3039" stroke="#788f99" stroke-width="3"/>
-    <path d="M48 22 57 40 73 48 57 56 48 74 39 56 23 48 39 40Z" fill="#b4bec2" stroke="#596e7d" stroke-width="2"/>
+    <g class="real-blades"><path d="M48 22 57 40 73 48 57 56 48 74 39 56 23 48 39 40Z" fill="#b4bec2" stroke="#596e7d" stroke-width="2"/></g>
     <circle cx="48" cy="48" r="7" fill="#d1dbdf"/>
     <path d="M17 17H31M65 17H79" stroke="#85c4cc" stroke-width="3"/>
   </symbol>`,
@@ -226,15 +226,7 @@ export class BuildingRenderer {
         status.setAttribute('cx','0');
         status.setAttribute('cy','0');
         node.appendChild(status);
-        if (['drill','leadCollector','poweredDrill','generator','smelter','siliconPlant','superconductorPlant'].includes(structure.type)) {
-          const rotor = document.createElementNS(NS,'path');
-          rotor.setAttribute('class','machine-rotor');
-          rotor.setAttribute('d','M0 -6V-2 M0 2V6 M-6 0H-2 M2 0H6');
-          rotor.setAttribute('stroke','#c3d1d0');
-          rotor.setAttribute('stroke-width','2');
-          rotor.setAttribute('stroke-linecap','round');
-          node.appendChild(rotor);
-        }
+
         const insignia = document.createElementNS(NS, 'g');
         insignia.setAttribute('class', 'insignia');
         insignia.setAttribute('visibility', 'hidden');
@@ -255,11 +247,8 @@ export class BuildingRenderer {
       status?.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
       status?.setAttribute('transform', 'translate(' + (STRUCTURES[structure.type].width*48-8)*camera.zoom + ' ' + 8*camera.zoom + ') scale(' + camera.zoom + ')');
       node.classList.toggle('machine-operating', operating);
-      const rotor = node.querySelector('.machine-rotor');
-      if (rotor) {
-        rotor.setAttribute('transform', 'translate(' + STRUCTURES[structure.type].width * 24 * camera.zoom + ' ' + STRUCTURES[structure.type].height * 24 * camera.zoom + ') scale(' + camera.zoom + ')');
-        rotor.setAttribute('visibility', operating && camera.zoom >= .7 ? 'visible' : 'hidden');
-      }
+      node.querySelector('use')?.setAttribute('data-active', operating ? 'true' : 'false');
+
       node.classList.toggle('machine-blocked',blocked);
       node.style.setProperty('--nation-color', nationColor(structure.ownerId));
       const sigil = nationSigil(structure.ownerId);
