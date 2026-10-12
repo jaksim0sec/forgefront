@@ -1,4 +1,6 @@
 import { Camera, CAMERA_CONFIG } from './camera.js';
+import { World, STRUCTURES, worldToTile } from './world.js';
+import { BuildingRenderer, installSprites } from './render.js';
 
 const svg = document.getElementById('world');
 const tilePattern = document.getElementById('tile-grid');
@@ -7,6 +9,59 @@ const tilePath = document.getElementById('tile-grid-path');
 const sectorPath = document.getElementById('sector-grid-path');
 const origin = document.getElementById('world-origin');
 const camera = new Camera();
+const world = new World();
+installSprites(svg);
+const buildings = new BuildingRenderer(svg, world, camera);
+const ui = {
+  tile: document.getElementById('tile-coords'),
+  count: document.getElementById('structure-count'),
+  chunks: document.getElementById('chunk-count'),
+  selected: document.getElementById('selected-info'),
+  rotation: document.getElementById('rotation'),
+};
+let tool = 'select';
+let rotation = 0;
+let selectedId = null;
+let hoverPoint = null;
+const toolboxButtons = [...document.querySelectorAll('[data-tool]')];
+function selectedDescription() {
+  const structure = world.structures.get(selectedId);
+  if (structure) return STRUCTURES[structure.type].label + ' #' + structure.id + ' · [' + structure.x + ', ' + structure.y + ']';
+  return tool === 'select' ? '타일 또는 건물을 선택해 봐' :
+    tool === 'erase' ? '선택한 건물 철거' : STRUCTURES[tool].label + ' 설치 모드';
+}
+function setTool(next) {
+  if (next !== 'select' && next !== 'erase' && !STRUCTURES[next]) return;
+  tool = next;
+  selectedId = null;
+  for (const button of toolboxButtons) {
+    const active = button.dataset.tool === tool;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  }
+  invalidate();
+}
+function hitTile(point) {
+  const pos = camera.screenToWorld(point.x, point.y);
+  return worldToTile(pos.x, pos.y);
+}
+function act(point, alternate = false) {
+  const tile = hitTile(point);
+  if (alternate || tool === 'erase') {
+    const existing = world.getAt(tile.x, tile.y);
+    if (existing) {
+      world.remove(existing.id);
+      if (selectedId === existing.id) selectedId = null;
+    }
+  } else if (STRUCTURES[tool]) {
+    const result = world.place(tool, tile.x, tile.y, rotation);
+    if (result.ok) selectedId = result.entity.id;
+  } else {
+    selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
+  }
+  hoverPoint = point;
+  invalidate();
+}
 
 let renderPending = false;
 function render() {
@@ -32,6 +87,13 @@ function render() {
   document.getElementById('cam-x').textContent = (camera.x / CAMERA_CONFIG.tileSize).toFixed(1);
   document.getElementById('cam-y').textContent = (camera.y / CAMERA_CONFIG.tileSize).toFixed(1);
   document.getElementById('zoom').textContent = Math.round(camera.zoom * 100) + '%';
+  const hoverTile = hoverPoint ? hitTile(hoverPoint) : null;
+  buildings.draw(tool, hoverTile, rotation, selectedId);
+  ui.tile.textContent = hoverTile ? '[' + hoverTile.x + ', ' + hoverTile.y + ']' : '—';
+  ui.count.textContent = String(world.structures.size);
+  ui.chunks.textContent = String(world.chunks.size);
+  ui.selected.textContent = selectedDescription();
+  ui.rotation.textContent = rotation * 90 + '°';
 }
 function invalidate() {
   if (renderPending) return;
@@ -49,6 +111,7 @@ resize();
 // Touch: one finger pans, two fingers pinch around the moving midpoint.
 // Reset baselines on any finger count change to avoid camera jumps.
 const fingers = new Map();
+const tapCandidates = new Map();
 let gesture = null;
 function midAndDistance() {
   const [a, b] = [...fingers.values()];
@@ -73,14 +136,30 @@ function localPoint(event) {
   return { x: event.clientX - rect.left, y: event.clientY - rect.top };
 }
 svg.addEventListener('pointerdown', event => {
-  if (event.pointerType !== 'touch' || fingers.size >= 2) return;
-  fingers.set(event.pointerId, localPoint(event));
-  svg.setPointerCapture(event.pointerId);
-  baseline();
+  const point = localPoint(event);
+  if (event.pointerType === 'touch') {
+    if (fingers.size >= 2) return;
+    if (fingers.size) for (const candidate of tapCandidates.values()) candidate.cancelled = true;
+    fingers.set(event.pointerId, point);
+    tapCandidates.set(event.pointerId, { start: point, cancelled: fingers.size > 1 });
+    svg.setPointerCapture(event.pointerId);
+    baseline();
+    hoverPoint = null;
+  } else if (event.button === 0 || event.button === 2) {
+    tapCandidates.set(event.pointerId, { start: point, cancelled: false, alternate: event.button === 2 });
+  }
+  invalidate();
 });
 svg.addEventListener('pointermove', event => {
-  if (!fingers.has(event.pointerId)) return;
-  fingers.set(event.pointerId, localPoint(event));
+  const point = localPoint(event);
+  const candidate = tapCandidates.get(event.pointerId);
+  if (candidate && Math.hypot(point.x - candidate.start.x, point.y - candidate.start.y) > 9) candidate.cancelled = true;
+  if (!fingers.has(event.pointerId)) {
+    if (event.pointerType !== 'touch') hoverPoint = point;
+    invalidate();
+    return;
+  }
+  fingers.set(event.pointerId, point);
   if (fingers.size === 1 && gesture?.type === 'pan') {
     const [point] = fingers.values();
     camera.panPixels(point.x - gesture.x, point.y - gesture.y);
@@ -96,15 +175,24 @@ svg.addEventListener('pointermove', event => {
     invalidate();
   }
 });
-function releasePointer(event) {
-  if (!fingers.delete(event.pointerId)) return;
-  if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
-  baseline();
+function releasePointer(event, allowAction) {
+  const candidate = tapCandidates.get(event.pointerId);
+  if (candidate && allowAction && !candidate.cancelled) act(localPoint(event), candidate.alternate);
+  tapCandidates.delete(event.pointerId);
+  if (fingers.delete(event.pointerId)) {
+    if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
+    baseline();
+  }
+  invalidate();
 }
-svg.addEventListener('pointerup', releasePointer);
-svg.addEventListener('pointercancel', releasePointer);
-svg.addEventListener('lostpointercapture', releasePointer);
-window.addEventListener('blur', () => { fingers.clear(); baseline(); });
+svg.addEventListener('pointerup', event => releasePointer(event, true));
+svg.addEventListener('pointercancel', event => releasePointer(event, false));
+svg.addEventListener('lostpointercapture', event => releasePointer(event, false));
+svg.addEventListener('pointerleave', event => {
+  if (event.pointerType !== 'touch') { hoverPoint = null; invalidate(); }
+});
+svg.addEventListener('contextmenu', event => event.preventDefault());
+window.addEventListener('blur', () => { fingers.clear(); tapCandidates.clear(); baseline(); });
 
 // Desktop wheel zooms about the pointer, not the viewport center.
 svg.addEventListener('wheel', event => {
@@ -142,10 +230,18 @@ function isEditing(target) {
     !!target.closest('input, textarea, select, [contenteditable="true"]');
 }
 window.addEventListener('keydown', event => {
-  if (!event.key.startsWith('Arrow') || isEditing(event.target)) return;
-  event.preventDefault();
-  pressed.add(event.key);
-  if (keyboardFrame === null) keyboardFrame = requestAnimationFrame(keyboardStep);
+  if (isEditing(event.target)) return;
+  if (event.key.startsWith('Arrow')) {
+    event.preventDefault();
+    pressed.add(event.key);
+    if (keyboardFrame === null) keyboardFrame = requestAnimationFrame(keyboardStep);
+    return;
+  }
+  if (event.repeat) return;
+  const shortcuts = { '1': 'conveyor', '2': 'drill', '3': 'smelter', '4': 'generator', v: 'select', x: 'erase' };
+  if (shortcuts[event.key.toLowerCase()]) setTool(shortcuts[event.key.toLowerCase()]);
+  if (event.key.toLowerCase() === 'r') { rotation = (rotation + 1) % 4; invalidate(); }
+  if (event.key === 'Escape') setTool('select');
 });
 window.addEventListener('keyup', event => {
   pressed.delete(event.key);
@@ -153,7 +249,11 @@ window.addEventListener('keyup', event => {
 });
 window.addEventListener('blur', () => { pressed.clear(); previousFrame = 0; });
 
+toolboxButtons.forEach(button => button.addEventListener('click', () => setTool(button.dataset.tool)));
+document.getElementById('rotate').addEventListener('click', () => { rotation = (rotation + 1) % 4; invalidate(); });
 document.getElementById('reset').addEventListener('click', () => {
   camera.reset();
+  hoverPoint = null;
   invalidate();
 });
+setTool('select');

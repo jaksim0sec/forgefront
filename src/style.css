@@ -81,3 +81,66 @@ body { overscroll-behavior: none; }
   .status-item output { font-size: 15px; }
   .control-panel { justify-content: space-between; }
 }
+
+
+/* M02: efficient sparse-world building editor */
+button { font: inherit; }
+.toolbox {
+  position:absolute; left:28px; top:92px; width:191px;
+  padding:10px; border:1px solid #43515e90; border-radius:10px;
+  background:#111a23e8; backdrop-filter:blur(16px);
+}
+.toolbox-heading {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 7px 12px; color:#8b9eae;
+  font-size:10px; letter-spacing:.15em; font-weight:750;
+}
+.toolbox-heading span { color:#dba65f; }
+.tool-list { display:grid; gap:3px; }
+.tool-list button, .rotate {
+  display:flex; align-items:center; gap:10px; color:#bac5ce;
+  background:transparent; border:1px solid transparent;
+  border-radius:6px; padding:9px; cursor:pointer;
+  text-align:left; font-size:12px;
+}
+.tool-list button:hover, .rotate:hover { background:#344452; }
+.tool-list button.active {
+  background:#5f8da52b; border-color:#9bcfe466; color:#ecf5fb;
+}
+.tool-icon {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:18px; color:#e6b36e; font-size:18px;
+}
+.tool-list kbd {
+  margin-left:auto; font-size:10px; color:#748897; font-family:inherit;
+}
+.rotate {
+  margin-top:8px; padding:11px; width:100%;
+  border-top:1px solid #34424e; border-radius:0;
+  justify-content:space-between;
+}
+.rotate output { color:#e6b36e; font-variant-numeric:tabular-nums; }
+button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
+.hud { flex-direction:column; align-items:flex-end; gap:8px; }
+.status-panel { gap:23px; padding:12px 17px; }
+.status-item { min-width:70px; }
+.status-item output { font-size:14px; }
+.status-item .separator { color:#70818e; }
+.control-panel { padding:9px 11px 9px 15px; }
+.selection-info { font-size:12px; color:#e2b879; }
+.desktop-hint, .mobile-hint { font-size:10px; }
+@media (max-width:730px) {
+  .toolbox { left:10px; top:60px; width:162px; padding:6px; }
+  .tool-list button { padding:6px; gap:7px; font-size:11px; }
+  .tool-icon { font-size:15px; }
+  .toolbox-heading { padding:6px; }
+  .rotate { padding:8px; }
+  .hud { left:9px; right:9px; bottom:max(8px,env(safe-area-inset-bottom)); align-items:stretch; }
+  .status-panel { justify-content:space-between; gap:6px; padding:10px; }
+  .status-item { min-width:0; }
+  .status-item output { font-size:11px; }
+  .status-item span { font-size:8px; }
+  .control-panel { flex-wrap:wrap; gap:6px 10px; justify-content:space-between; padding:9px; }
+  .selection-info { font-size:11px; }
+  .desktop-hint, .mobile-hint { font-size:9px; }
+}

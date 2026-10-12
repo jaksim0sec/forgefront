@@ -8,8 +8,8 @@
   <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
-  <main class="game" aria-label="FORGEFRONT 카메라 테스트 보드">
-    <svg id="world" class="world" xmlns="http://www.w3.org/2000/svg" aria-label="이동과 확대가 가능한 타일 보드">
+  <main class="game" aria-label="FORGEFRONT 월드 및 구조물 배치 테스트">
+    <svg id="world" class="world" xmlns="http://www.w3.org/2000/svg" aria-label="타일 보드">
       <defs>
         <pattern id="tile-grid" patternUnits="userSpaceOnUse" width="48" height="48">
           <path id="tile-grid-path" d="M48 0H0V48" fill="none" stroke="#8796a5" stroke-opacity=".12" stroke-width="1"/>
@@ -30,23 +30,39 @@
         <path d="M-23 0H23M0 -23V23" stroke="#f4ac54" stroke-width="1.5" stroke-opacity=".75"/>
         <circle r="3" fill="#f4ac54"/>
       </g>
+      <g id="structures-layer" pointer-events="none"></g>
+      <rect id="tile-highlight" visibility="hidden" fill-opacity=".18" stroke-width="2" pointer-events="none"/>
     </svg>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 01</span></div>
-      <div class="phase">CAMERA SYSTEM <span class="live-dot"></span> ACTIVE</div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 02</span></div>
+      <div class="phase">SPARSE WORLD <span class="live-dot"></span> ACTIVE</div>
     </header>
     <div class="side-label" aria-hidden="true">INDUSTRIAL TERRITORY / FOUNDATION</div>
     <div class="center-crosshair" aria-hidden="true"></div>
+    <aside class="toolbox" aria-label="구조물 설치 도구">
+      <div class="toolbox-heading">BUILD / EDIT <span>R ↻</span></div>
+      <div class="tool-list">
+        <button type="button" data-tool="select" aria-pressed="true"><span class="tool-icon">⌖</span><span>선택</span><kbd>V</kbd></button>
+        <button type="button" data-tool="conveyor" aria-pressed="false"><span class="tool-icon">⇥</span><span>컨베이어</span><kbd>1</kbd></button>
+        <button type="button" data-tool="drill" aria-pressed="false"><span class="tool-icon">⚙</span><span>채굴기</span><kbd>2</kbd></button>
+        <button type="button" data-tool="smelter" aria-pressed="false"><span class="tool-icon">▤</span><span>제련소</span><kbd>3</kbd></button>
+        <button type="button" data-tool="generator" aria-pressed="false"><span class="tool-icon">ϟ</span><span>발전기</span><kbd>4</kbd></button>
+        <button type="button" data-tool="erase" aria-pressed="false"><span class="tool-icon">×</span><span>철거</span><kbd>X</kbd></button>
+      </div>
+      <button type="button" id="rotate" class="rotate">↻ 회전 <output id="rotation">0°</output></button>
+    </aside>
     <footer class="hud">
-      <section class="status-panel" aria-label="카메라 정보">
-        <div class="status-item"><span>CAMERA X</span><output id="cam-x">0.0</output></div>
-        <div class="status-item"><span>CAMERA Y</span><output id="cam-y">0.0</output></div>
+      <section class="status-panel" aria-label="월드 상태">
+        <div class="status-item"><span>CAMERA X / Y</span><div><output id="cam-x">0.0</output><span class="separator"> / </span><output id="cam-y">0.0</output></div></div>
         <div class="status-item"><span>ZOOM</span><output id="zoom">100%</output></div>
+        <div class="status-item"><span>TILE</span><output id="tile-coords">—</output></div>
+        <div class="status-item"><span>OBJECTS / CHUNKS</span><div><output id="structure-count">0</output><span class="separator"> / </span><output id="chunk-count">0</output></div></div>
       </section>
       <section class="control-panel" aria-label="조작 안내">
-        <div class="desktop-hint">방향키 <b>카메라 이동</b><i></i> 휠 <b>확대·축소</b></div>
-        <div class="mobile-hint">한 손가락 <b>이동</b><i></i> 두 손가락 <b>확대·축소</b></div>
-        <button id="reset" class="reset" type="button" aria-label="카메라 위치와 확대율 초기화">↺ <span>초기화</span></button>
+        <div class="selection-info" id="selected-info">타일 또는 건물을 선택해 봐</div>
+        <div class="desktop-hint">방향키 이동 · 휠 확대 · 클릭 설치 · 우클릭 철거</div>
+        <div class="mobile-hint">한 손가락 이동 · 두 손가락 확대 · 탭 설치</div>
+        <button id="reset" class="reset" type="button" aria-label="카메라 위치와 확대율 초기화">↺ 초기화</button>
       </section>
     </footer>
   </main>
