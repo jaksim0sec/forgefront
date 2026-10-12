@@ -301,3 +301,7 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 @media(prefers-reduced-motion:reduce) {
   .machine-status-dot { animation:none !important; }
 }
+
+.belt-motion { animation:belt-flow .55s linear infinite; pointer-events:none; opacity:.7; }
+@keyframes belt-flow { to { stroke-dashoffset:-10; } }
+@media(prefers-reduced-motion:reduce) { .belt-motion { animation:none; } }
