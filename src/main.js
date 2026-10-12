@@ -26,7 +26,7 @@ const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
 
 const byId = id => document.getElementById(id);
 // The main toolbox retains its three essential tools while collapsed.
-for (const [id, title] of [['toolbox-panel','건설 도구'],['build-inspector','건설 정보'],['selected-detail','건물 정보'],['game-hud','상태 표시']]) {
+for (const [id, title] of [['toolbox-panel','건설 도구']]) {
   const panel = byId(id);
   if (!panel) continue;
   panel.classList.add('foldable-panel');
@@ -50,7 +50,8 @@ function setPanelCollapsed(panel, collapsed) {
   }
 }
 function dismissAuxiliaryPanels() {
-  for (const id of ['build-inspector', 'selected-detail', 'game-hud']) setPanelCollapsed(byId(id), true);
+  byId('build-inspector').hidden = true;
+  byId('selected-detail').hidden = true;
 }
 document.addEventListener('pointerdown', event => {
   if (event.target.closest('.foldable-panel') || event.target.closest('button, select, input')) return;
@@ -253,7 +254,6 @@ function showBuildInfo(type) {
   if (!STRUCTURES[type]) { panel.hidden = true; return; }
   const def = STRUCTURES[type], cost = BUILD_COSTS[type] ?? {};
   panel.hidden = false;
-  setPanelCollapsed(panel, false);
   byId('build-preview-sprite').setAttribute('href', '#s-' + type);
   byId('build-preview-name').textContent = def.label;
   byId('build-preview-description').textContent = BUILD_DESCRIPTIONS[type] ?? '산업용 구조물';
@@ -341,7 +341,7 @@ function actionAt(point, alternate = false) {
     notifyBuild(created, tool);
     if (created.ok) selectedId = created.entity.id;
   } else { selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
-    if (selectedId !== null) setPanelCollapsed(byId('selected-detail'), false);
+
   }
   invalidate();
 }
