@@ -117,7 +117,7 @@ function render() {
       `${STRUCTURES[tool].label} 설치 모드`);
   ui.hp.textContent = selected ? `${selected.health} / ${selected.maxHealth}` : '—';
   ui.status.textContent = selected ? (selected.enabled ? selected.activity : '중지됨') : '—';
-  const stocked = selected?.type === 'conveyor' ?
+  const stocked = (selected?.type === 'conveyor' || selected?.type === 'junction') ?
     (selected.itemId ? [[selected.itemId, selected.itemCount]] : []) :
     Object.entries(selected?.inventory ?? {}).filter(([k,v]) => v > 0);
   ui.stock.textContent = stocked.length ? stocked.map(([k,v])=>`${RESOURCES[k]?.label ?? k} ${v}`).join(' · ') : '재고 없음';
@@ -342,7 +342,7 @@ window.addEventListener('keydown', event => {
     return;
   }
   if (event.repeat) return;
-  const shortcuts = { '1':'conveyor', '2':'drill', '3':'smelter', '4':'generator', v:'select', x:'erase' };
+  const shortcuts = { '1':'conveyor', '2':'drill', '3':'smelter', '4':'generator', '5':'junction', v:'select', x:'erase' };
   if (shortcuts[event.key.toLowerCase()]) setTool(shortcuts[event.key.toLowerCase()]);
   if (event.key.toLowerCase() === 'r') { rotation = (rotation+1)%4; paint=null; invalidate(); }
   if (event.key === 'Escape') { finishStroke(false); setTool('select'); }
