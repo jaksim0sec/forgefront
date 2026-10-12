@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="제련된 금속 부품">
+<title>금속 부품</title><g stroke-linejoin="round">
+<path d="M9 57 27 44 79 48 92 63 74 80 24 77Z" fill="#667883"/>
+<path d="M27 44 43 33 90 40 79 48Z" fill="#b9c6cb"/>
+<path d="M79 48 90 40 96 55 92 63 74 80Z" fill="#465b67"/>
+<path d="M9 57 24 77 74 80 57 64Z" fill="#8a9ca5"/>
+<path d="M20 44 32 27 64 23 79 38 66 52 37 54Z" fill="#526672"/>
+<path d="M32 27 46 17 76 17 64 23Z" fill="#bcc9cb"/>
+<path d="M64 23 76 17 88 32 79 38 66 52Z" fill="#40525f"/>
+<path d="M20 44 37 54 66 52 49 42Z" fill="#8b9da5"/>
+<path d="M40 31H64M30 62 69 67" stroke="#d9c29b" stroke-width="3" opacity=".72"/>
+</g></svg>

@@ -13,6 +13,54 @@ const templates = {
   generator: `<symbol id="s-generator" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#374442" stroke="#8c9da5" stroke-width="4"/><rect x="10" y="10" width="76" height="76" rx="5" fill="#1c2b31" stroke="#536d70" stroke-width="2"/><circle cx="48" cy="48" r="31" fill="#364f50" stroke="#97a7ad" stroke-width="3"/><circle cx="48" cy="48" r="24" fill="#1a3033"/><path d="M48 28L55 40L68 48L54 55L48 69L40 54L28 48L42 40Z" fill="#94a7af"/><circle cx="48" cy="48" r="9" fill="#c4d0d3" stroke="#657b85" stroke-width="3"/><path d="M17 17H31M65 17H79M17 79H31M65 79H79" stroke="#bdc8b8" stroke-width="3"/></symbol>`,
 };
 
+Object.assign(templates, {
+  leadCollector: `<symbol id="s-leadCollector" viewBox="0 0 48 48">
+    <rect x="2" y="2" width="44" height="44" rx="5" fill="#444c51" stroke="#84929a" stroke-width="3"/>
+    <rect x="8" y="7" width="32" height="34" rx="4" fill="#25323a" stroke="#71838b"/>
+    <circle cx="24" cy="24" r="13" fill="#39474e" stroke="#95a8ad" stroke-width="2"/>
+    <circle cx="24" cy="24" r="7" fill="#19272d" stroke="#a7b5bb" stroke-width="2"/>
+    <path d="M24 15V33M15 24H33" stroke="#a0b2b7" stroke-width="2"/>
+    <path d="M37 13V37" stroke="#b5a17e" stroke-width="2"/>
+  </symbol>`,
+  tower: `<symbol id="s-tower" viewBox="0 0 96 96">
+    <rect x="2" y="2" width="92" height="92" rx="11" fill="#333f49" stroke="#8295a3" stroke-width="4"/>
+    <path d="M9 33H87M9 63H87M33 9V87M63 9V87" stroke="#4e6776" stroke-width="5"/>
+    <path d="M23 18H73L82 30V66L72 78H24L14 66V30Z" fill="#22333d" stroke="#9babaf" stroke-width="3"/>
+    <circle cx="48" cy="48" r="23" fill="#36505d" stroke="#6f909c" stroke-width="4"/>
+    <path d="M43 27 58 27 49 44 61 44 39 70 45 50 35 50Z" fill="#bacbd1" stroke="#7b989e" stroke-width="1"/>
+    <g fill="#aab7bd"><circle cx="12" cy="12" r="3"/><circle cx="84" cy="12" r="3"/><circle cx="12" cy="84" r="3"/><circle cx="84" cy="84" r="3"/></g>
+  </symbol>`,
+  poweredDrill: `<symbol id="s-poweredDrill" viewBox="0 0 96 96">
+    <rect x="2" y="2" width="92" height="92" rx="8" fill="#3e505c" stroke="#b4c1c7" stroke-width="4"/>
+    <rect x="9" y="9" width="78" height="78" rx="7" fill="#23323e" stroke="#5e7785" stroke-width="3"/>
+    <path d="M12 22H84M12 74H84" stroke="#acafb2" stroke-width="4" stroke-dasharray="10 6"/>
+    <circle cx="48" cy="48" r="29" fill="#526779" stroke="#b9c7cb" stroke-width="4"/>
+    <circle cx="48" cy="48" r="20" fill="#1e3039" stroke="#788f99" stroke-width="3"/>
+    <path d="M48 22 57 40 73 48 57 56 48 74 39 56 23 48 39 40Z" fill="#b4bec2" stroke="#596e7d" stroke-width="2"/>
+    <circle cx="48" cy="48" r="7" fill="#d1dbdf"/>
+    <path d="M17 17H31M65 17H79" stroke="#85c4cc" stroke-width="3"/>
+  </symbol>`,
+  siliconPlant: `<symbol id="s-siliconPlant" viewBox="0 0 144 96">
+    <rect x="2" y="2" width="140" height="92" rx="9" fill="#39454b" stroke="#a3b2b7" stroke-width="4"/>
+    <path d="M11 10H133V86H11Z" fill="#1c2e37" stroke="#556975" stroke-width="2"/>
+    <g fill="#687c86" stroke="#a7babf" stroke-width="3">
+      <rect x="20" y="19" width="29" height="57" rx="4"/><rect x="58" y="19" width="29" height="57" rx="4"/><rect x="96" y="19" width="29" height="57" rx="4"/>
+    </g>
+    <g stroke="#dae3e1" stroke-width="2"><path d="M24 36H45M24 48H45M24 60H45M62 36H83M62 48H83M62 60H83M100 36H121M100 48H121M100 60H121"/></g>
+    <path d="M13 11H131" stroke="#8db4bd" stroke-width="3"/>
+  </symbol>`,
+  superconductorPlant: `<symbol id="s-superconductorPlant" viewBox="0 0 144 144">
+    <rect x="2" y="2" width="140" height="140" rx="12" fill="#394951" stroke="#acbdc3" stroke-width="4"/>
+    <rect x="12" y="12" width="120" height="120" rx="9" fill="#1a2b32" stroke="#6a838e" stroke-width="4"/>
+    <circle cx="72" cy="72" r="46" fill="#425761" stroke="#a8b9be" stroke-width="4"/>
+    <circle cx="72" cy="72" r="34" fill="#172a33" stroke="#70919c" stroke-width="5"/>
+    <circle cx="72" cy="72" r="21" fill="#516d77" stroke="#ced7da" stroke-width="4"/>
+    <circle cx="72" cy="72" r="9" fill="#d4dfdf"/>
+    <g stroke="#99aeb7" stroke-width="4" fill="none"><path d="M72 17V35M72 109V127M17 72H35M109 72H127"/></g>
+    <path d="M24 24H44M100 24H120M24 120H44M100 120H120" stroke="#6ab8bb" stroke-width="3"/>
+  </symbol>`,
+});
+
 export function installSprites(svg) {
   const defs = svg.querySelector('defs');
   defs.insertAdjacentHTML('beforeend', Object.values(templates).join(''));
@@ -45,7 +93,7 @@ function moveSprite(element, structure, camera) {
   }
   element.querySelector('.insignia')?.setAttribute('transform', `translate(${5 * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
   element.querySelector('.cargo-overlay')?.setAttribute('transform',
-    `translate(${(def.width * 48 - 25) * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
+    `translate(${(def.width * 48 - (structure.type === 'conveyor' ? 27 : 25)) * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
   const health = element.querySelector('.structure-health');
   health?.setAttribute('transform', `translate(${5 * camera.zoom} ${(def.height * 48 - 7) * camera.zoom}) scale(${camera.zoom})`);
   health?.firstElementChild?.setAttribute('width', def.width * 48 - 10);
@@ -130,7 +178,7 @@ export class BuildingRenderer {
     } else this.routeBlock.setAttribute('visibility', 'hidden');
   }
 
-  draw(tool, hoverTile, rotation, selectedId, showLinks = true, preview = null) {
+  draw(tool, hoverTile, rotation, selectedId, showLinks = true, preview = null, ownerId = null) {
     const { camera, world } = this;
     const a = camera.screenToWorld(0, 0);
     const b = camera.screenToWorld(camera.width, camera.height);
@@ -162,12 +210,12 @@ export class BuildingRenderer {
         const resourceIcon = document.createElementNS(NS, 'image');
         resourceIcon.setAttribute('x', '0');
         resourceIcon.setAttribute('y', '0');
-        resourceIcon.setAttribute('width', '17');
-        resourceIcon.setAttribute('height', '17');
+        resourceIcon.setAttribute('width', structure.type === 'conveyor' ? '23' : '19');
+        resourceIcon.setAttribute('height', structure.type === 'conveyor' ? '23' : '19');
         cargo.appendChild(resourceIcon);
         const resourceAmount = document.createElementNS(NS, 'text');
-        resourceAmount.setAttribute('x', '8');
-        resourceAmount.setAttribute('y', '22');
+        resourceAmount.setAttribute('x', structure.type === 'conveyor' ? '11.5' : '9');
+        resourceAmount.setAttribute('y', structure.type === 'conveyor' ? '30' : '24');
         resourceAmount.setAttribute('text-anchor', 'middle');
         resourceAmount.setAttribute('class', 'cargo-count');
         cargo.appendChild(resourceAmount);
@@ -219,7 +267,7 @@ export class BuildingRenderer {
     let { x, y } = hoverTile;
     let width = 1, height = 1, okay = world.inBounds(x, y);
     if (STRUCTURES[tool]) {
-      const validity = world.canPlace(tool, x, y, rotation);
+      const validity = world.survival ? world.canBuild(tool, x, y, rotation, ownerId) : world.canPlace(tool, x, y, rotation);
       width = validity.width ?? 1;
       height = validity.height ?? 1;
       okay = validity.ok;

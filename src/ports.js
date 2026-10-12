@@ -15,6 +15,11 @@ export const ITEM_PORTS = Object.freeze({
   conveyor: Object.freeze([port(0, 'in'), port(1, 'in'), port(3, 'in'), port(2, 'out')]),
   junction: Object.freeze([0, 1, 2, 3].flatMap(side => [port(side, 'in'), port(side, 'out')])),
   drill: Object.freeze([0, 1, 2, 3].map(side => port(side, 'out'))),
+  leadCollector: Object.freeze([0, 1, 2, 3].map(side => port(side, 'out'))),
+  tower: Object.freeze([0, 1, 2, 3].map(side => port(side, 'in'))),
+  poweredDrill: Object.freeze([port(3, 'in'), port(0, 'out'), port(1, 'out'), port(2, 'out')]),
+  siliconPlant: Object.freeze([port(3, 'in'), port(0, 'in'), port(1, 'out')]),
+  superconductorPlant: Object.freeze([port(3, 'in'), port(0, 'in'), port(1, 'out')]),
   smelter: Object.freeze([port(3, 'in'), port(1, 'out')]),
   generator: Object.freeze([port(3, 'in')]),
 });

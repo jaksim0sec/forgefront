@@ -1,5 +1,6 @@
 import { DIRECTIONS, itemPorts } from './ports.js';
 import { STRUCTURES } from './world.js';
+import { BUILD_COSTS, canAfford, sumCosts } from './progression.js';
 
 export const ROUTE_LIMIT = 2048;
 export function directionBetween(a, b) {
@@ -65,11 +66,17 @@ export function planConveyorRoute(world, route, fallbackRotation = 0) {
 
 export function commitConveyorRoute(world, plan, ownerId = null) {
   if (!plan.ok) return { ok: false, count: 0, reason: plan.reason };
+  const placements = plan.cells.filter(cell => cell.action === 'place').length;
+  if (world.survival && !canAfford(world.walletFor(ownerId), sumCosts('conveyor', placements))) {
+    return { ok: false, count: 0, reason: 'materials', cost: sumCosts('conveyor', placements) };
+  }
   let count = 0;
   world.batch(() => {
     for (const cell of plan.cells) {
       if (cell.action === 'place') {
-        const result = world.place('conveyor', cell.x, cell.y, cell.rotation, ownerId, cell.inputSide);
+        const result = world.survival
+          ? world.build('conveyor', cell.x, cell.y, cell.rotation, ownerId, cell.inputSide)
+          : world.place('conveyor', cell.x, cell.y, cell.rotation, ownerId, cell.inputSide);
         if (result.ok) count++;
       } else if (cell.action === 'rotate' && world.rotateConveyor(cell.id, cell.rotation, cell.inputSide)) count++;
     }

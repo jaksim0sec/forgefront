@@ -25,6 +25,7 @@
       <rect width="100%" height="100%" fill="url(#ambient)"/>
       <rect width="100%" height="100%" fill="url(#tile-grid)"/>
       <rect width="100%" height="100%" fill="url(#sector-grid)"/>
+      <g id="ore-layer" pointer-events="none"></g>
       <g id="world-origin" pointer-events="none">
         <circle r="14" fill="#f4ac54" fill-opacity=".08" stroke="#f4ac54" stroke-opacity=".55"/>
         <path d="M-23 0H23M0 -23V23" stroke="#f4ac54" stroke-width="1.5" stroke-opacity=".75"/>
@@ -37,8 +38,8 @@
       <rect id="tile-highlight" visibility="hidden" fill-opacity=".18" stroke-width="2" pointer-events="none"/>
     </svg>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 04</span></div>
-      <div class="phase">INDUSTRIAL SYSTEMS <span class="live-dot"></span> ACTIVE</div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 05</span></div>
+      <div class="phase">INDUSTRIAL PROGRESSION <span class="live-dot"></span> ACTIVE</div>
     </header>
     <div class="side-label" aria-hidden="true">INDUSTRIAL TERRITORY / FOUNDATION</div>
     <div class="center-crosshair" aria-hidden="true"></div>
@@ -48,9 +49,13 @@
         <button type="button" data-tool="select" aria-pressed="true"><span class="tool-icon">⌖</span><span>선택</span><kbd>V</kbd></button>
         <button type="button" data-tool="conveyor" aria-pressed="false"><span class="tool-icon">⇥</span><span>컨베이어</span><kbd>1</kbd></button>
         <button type="button" data-tool="junction" aria-pressed="false"><span class="tool-icon">✣</span><span>교차기</span><kbd>5</kbd></button>
+        <button type="button" data-tool="leadCollector" aria-pressed="false"><span class="tool-icon">◉</span><span>납 채집기</span><kbd>6</kbd></button>
         <button type="button" data-tool="drill" aria-pressed="false"><span class="tool-icon">⚙</span><span>채굴기</span><kbd>2</kbd></button>
         <button type="button" data-tool="smelter" aria-pressed="false"><span class="tool-icon">▤</span><span>제련소</span><kbd>3</kbd></button>
         <button type="button" data-tool="generator" aria-pressed="false"><span class="tool-icon">ϟ</span><span>발전기</span><kbd>4</kbd></button>
+        <button type="button" data-tool="poweredDrill" aria-pressed="false"><span class="tool-icon">⚒</span><span>전동 드릴</span><kbd>7</kbd></button>
+        <button type="button" data-tool="siliconPlant" aria-pressed="false"><span class="tool-icon">▥</span><span>실리콘 공장</span><kbd>8</kbd></button>
+        <button type="button" data-tool="superconductorPlant" aria-pressed="false"><span class="tool-icon">◎</span><span>초전도체 공장</span><kbd>9</kbd></button>
         <button type="button" data-tool="erase" aria-pressed="false"><span class="tool-icon">×</span><span>철거</span><kbd>X</kbd></button>
       </div>
       <button type="button" id="rotate" class="rotate">↻ 회전 <output id="rotation">0°</output></button>
@@ -61,15 +66,19 @@
       <div class="toolbox-actions">
         <button id="show-links" type="button" aria-pressed="true">↗ 자원 연결 ON</button>
         <button id="touch-draw" type="button" aria-pressed="false">✎ 터치 경로 건설 OFF</button>
-        <button id="example" type="button">＋ 생산라인 예시</button>
+        <button id="example" type="button">＋ 철 채굴라인 예시</button>
       </div>
-      <div class="owner-heading">자원 라이브러리</div>
+      <div class="owner-heading">국가 비축 물자</div>
+      <p class="economy-hint">타워에 전달된 자원으로 시설을 건설해</p>
+      <div id="build-message" role="status" class="build-message"></div>
       <div id="resource-list" class="resource-list" aria-label="등록된 자원 6종"></div>
     </aside>
     <section class="selection-panel" id="selected-detail" hidden aria-label="선택 구조물 상태">
       <div class="inspector-heading">STRUCTURE STATUS</div>
       <div class="inspector-row"><span>내구도</span><output id="selected-health">—</output></div>
       <div class="inspector-row"><span>가동 상태</span><output id="selected-status">—</output></div>
+      <div class="inspector-row"><span>전력</span><output id="selected-power">—</output></div>
+      <div class="inspector-row"><span>광맥/생산</span><output id="selected-production">—</output></div>
       <div class="inspector-row"><span>재고</span><output id="selected-stock">—</output></div>
       <label class="inspector-row" id="resource-picker" hidden>채굴 자원 <select id="drill-resource" aria-label="채굴 자원 선택"></select></label>
       <div class="inspector-actions">
@@ -84,6 +93,7 @@
         <div class="status-item"><span>TILE</span><output id="tile-coords">—</output></div>
         <div class="status-item"><span>OBJECTS / CHUNKS</span><div><output id="structure-count">0</output><span class="separator"> / </span><output id="chunk-count">0</output></div></div>
         <div class="status-item"><span>ITEM LINKS</span><output id="link-count">0</output></div>
+        <div class="status-item"><span>POWER</span><output id="power-summary">3 / 0</output></div>
       </section>
       <section class="control-panel" aria-label="조작 안내">
         <div class="selection-info" id="selected-info">타일 또는 건물을 선택해 봐</div>

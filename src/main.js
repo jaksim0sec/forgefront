@@ -6,14 +6,23 @@ import { Industry } from './industry.js';
 import { extendRoute, planConveyorRoute, commitConveyorRoute } from './routes.js';
 import { NATIONS, nationLabel, nationColor } from './nations.js';
 import { RESOURCES } from './resources.js';
+import { Terrain } from './terrain.js';
+import { TerrainRenderer } from './terrain-render.js';
+import { RECIPES, BUILD_COSTS } from './progression.js';
 
 const svg = document.getElementById('world');
 const camera = new Camera();
 const world = new World();
+world.terrain = new Terrain();
+// Starting faction core offers only minimal power.
+world.place('tower', 0, -1, 0, 'north');
+world.place('leadCollector', -1, 0, 0, 'north');
+world.survival = true;
 const connections = new ItemConnections(world);
 const industry = new Industry(world, connections);
 installSprites(svg);
 const buildings = new BuildingRenderer(svg, world, camera, connections);
+const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
 
 const byId = id => document.getElementById(id);
 const ui = {
@@ -23,9 +32,11 @@ const ui = {
   hp: byId('selected-health'), stock: byId('selected-stock'),
   status: byId('selected-status'), drillResource: byId('drill-resource'),
   resourcePicker: byId('resource-picker'),
+  power: byId('power-summary'), powerDetail: byId('selected-power'),
+  production: byId('selected-production'), message: byId('build-message'),
 };
 let tool = 'select', rotation = 0, selectedId = null;
-let activeOwner = null, hoverPoint = null, showLinks = true;
+let activeOwner = 'north', hoverPoint = null, showLinks = true;
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 
 const ownerSwatches = byId('owner-swatches');
@@ -40,6 +51,13 @@ for (const nation of Object.values(NATIONS)) {
   ownerSwatches.appendChild(button);
 }
 const ownerButtons = [...ownerSwatches.querySelectorAll('[data-owner]')];
+for (const ownerButton of ownerButtons) {
+  const active = ownerButton.dataset.owner === activeOwner;
+  ownerButton.classList.toggle('active', active);
+  ownerButton.setAttribute('aria-pressed', String(active));
+}
+byId('nation-status').textContent = nationLabel(activeOwner);
+byId('nation-status').style.setProperty('--nation-color', nationColor(activeOwner));
 const resourceList = byId('resource-list');
 for (const r of Object.values(RESOURCES)) {
   const chip = document.createElement('span');
@@ -50,9 +68,14 @@ for (const r of Object.values(RESOURCES)) {
   img.loading = 'lazy';
   chip.appendChild(img);
   chip.append(r.label);
+  const quantity = document.createElement('span');
+  quantity.className = 'stock-count';
+  quantity.id = 'stock-' + r.id;
+  quantity.textContent = '0';
+  chip.appendChild(quantity);
   chip.title = r.label;
   resourceList.appendChild(chip);
-  if (r.kind === 'raw') {
+  if (r.id === 'iron' || r.id === 'coal') {
     const option = document.createElement('option');
     option.value = r.id;
     option.textContent = r.label;
@@ -104,11 +127,22 @@ function render() {
   byId('cam-y').textContent = (camera.y / CAMERA_CONFIG.tileSize).toFixed(1);
   byId('zoom').textContent = Math.round(camera.zoom * 100) + '%';
   const hoverTile = hoverPoint ? (STRUCTURES[tool] && tool !== 'conveyor' ? snappedTile(hitTile(hoverPoint)) : hitTile(hoverPoint)) : null;
-  buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint));
-  ui.tile.textContent = hoverTile ? `[${hoverTile.x}, ${hoverTile.y}]` : '—';
+  terrainVisual.draw();
+  buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
+  const oreAtHover = hoverTile ? world.terrain.oreAt(hoverTile.x, hoverTile.y) : null;
+  ui.tile.textContent = hoverTile ?
+    `[${hoverTile.x}, ${hoverTile.y}]${oreAtHover ? ' · ' + RESOURCES[oreAtHover].label : ''}` : '—';
   ui.count.textContent = world.structures.size;
   ui.chunks.textContent = world.chunks.size;
   ui.links.textContent = connections.linkCount;
+  ui.power.textContent = `${industry.power.supply} / ${industry.power.demand}`;
+  const wallet = world.walletFor(activeOwner);
+  for (const id of Object.keys(RESOURCES)) {
+    const node = byId('stock-' + id);
+    const quantity = wallet[id] ?? 0;
+    node.textContent = quantity;
+    node.classList.toggle('positive', quantity > 0);
+  }
   ui.rotation.textContent = rotation * 90 + '°';
   const selected = world.structures.get(selectedId);
   ui.selected.textContent = selected ?
@@ -117,9 +151,19 @@ function render() {
       `${STRUCTURES[tool].label} 설치 모드`);
   ui.hp.textContent = selected ? `${selected.health} / ${selected.maxHealth}` : '—';
   ui.status.textContent = selected ? (selected.enabled ? selected.activity : '중지됨') : '—';
+  ui.powerDetail.textContent = selected ? (
+    selected.type === 'tower' ? '기본 출력 3' :
+    selected.type === 'generator' ? (selected.burnRemaining > 0 ? '석탄 발전 중' : '석탄 필요') :
+    selected.powerUse ? `${selected.powerUse} 필요 · ${selected.powered ? '공급 중' : '부족'}` : '불필요'
+  ) : '—';
+  const recipe = selected ? RECIPES[selected.type] : null;
+  ui.production.textContent = !selected ? '—' :
+    recipe ? `${RESOURCES[recipe.output].label} 합성` :
+    selected.resourceId ? `${RESOURCES[selected.resourceId].label} 채집` : '—';
   const stocked = (selected?.type === 'conveyor' || selected?.type === 'junction') ?
     (selected.itemId ? [[selected.itemId, selected.itemCount]] : []) :
-    Object.entries(selected?.inventory ?? {}).filter(([k,v]) => v > 0);
+    Object.entries(selected?.type === 'tower' ? world.walletFor(selected.ownerId) :
+      selected?.inventory ?? {}).filter(([k,v]) => v > 0);
   ui.stock.textContent = stocked.length ? stocked.map(([k,v])=>`${RESOURCES[k]?.label ?? k} ${v}`).join(' · ') : '재고 없음';
   ui.resourcePicker.hidden = selected?.type !== 'drill';
   if (selected?.type === 'drill') ui.drillResource.value = selected.resourceId;
@@ -135,7 +179,30 @@ function setTool(next) {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   }
+  const cost = BUILD_COSTS[tool];
+  ui.message.textContent = cost != null
+    ? (Object.keys(cost).length
+      ? '건설비: ' + Object.entries(cost).map(([id, qty]) => `${RESOURCES[id]?.label ?? id} ${qty}`).join(' · ')
+      : '기본 건설비 없음')
+    : '';
   invalidate();
+}
+function notifyBuild(result, type) {
+  if (result?.ok) { ui.message.textContent = ''; return; }
+  const reasons = {
+    ore: '해당 자원 광맥 위에 설치해야 해',
+    bounds: '맵 범위 밖이야',
+    occupied: '건물이 이미 점유한 공간이야',
+    restricted: '전기 타워는 점령으로만 확보할 수 있어',
+    materials: '국가 비축 물자가 부족해',
+  };
+  const cost = result?.cost ?? BUILD_COSTS[type];
+  const wallet = world.walletFor(activeOwner);
+  const missing = result?.reason === 'materials' && cost ?
+    Object.entries(cost).filter(([id,amount]) => (wallet[id] ?? 0) < amount)
+      .map(([id,amount])=>`${RESOURCES[id]?.label ?? id} ${amount - (wallet[id] ?? 0)}`).join(', ') : '';
+  ui.message.textContent = (reasons[result?.reason] ?? '설치할 수 없는 위치야') +
+    (missing ? ' · 부족: ' + missing : '');
 }
 function actionAt(point, alternate = false) {
   const tile = hitTile(point);
@@ -143,10 +210,11 @@ function actionAt(point, alternate = false) {
     const entity = world.getAt(tile.x, tile.y);
     if (entity) { world.remove(entity.id); if (selectedId === entity.id) selectedId = null; }
   } else if (tool === 'conveyor') {
-    commitConveyorRoute(world, planConveyorRoute(world, [tile], rotation), activeOwner);
+    notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, [tile], rotation), activeOwner), 'conveyor');
   } else if (STRUCTURES[tool]) {
     const anchor = snappedTile(tile);
-    const created = world.place(tool, anchor.x, anchor.y, rotation, activeOwner);
+    const created = world.build(tool, anchor.x, anchor.y, rotation, activeOwner);
+    notifyBuild(created, tool);
     if (created.ok) selectedId = created.entity.id;
   } else selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
   invalidate();
@@ -170,7 +238,8 @@ function paintStructure(point) {
     for (let i = 1; i <= steps; i++) {
       const x = previous.x + Math.round(dx * i / steps) * size.width;
       const y = previous.y + Math.round(dy * i / steps) * size.height;
-      const placed = world.place(paint.kind, x, y, rotation, activeOwner);
+      const placed = world.build(paint.kind, x, y, rotation, activeOwner);
+      if (!placed.ok) notifyBuild(placed, paint.kind);
       if (placed.ok) selectedId = placed.entity.id;
     }
   });
@@ -187,7 +256,9 @@ function extendStroke(point) {
 }
 function finishStroke(commit) {
   if (!paint) return;
-  if (commit && paint.kind === 'conveyor') commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation), activeOwner);
+  if (commit && paint.kind === 'conveyor') {
+    notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation), activeOwner), 'conveyor');
+  }
   paint = null;
   invalidate();
 }
@@ -342,7 +413,9 @@ window.addEventListener('keydown', event => {
     return;
   }
   if (event.repeat) return;
-  const shortcuts = { '1':'conveyor', '2':'drill', '3':'smelter', '4':'generator', '5':'junction', v:'select', x:'erase' };
+  const shortcuts = { '1':'conveyor', '2':'drill', '3':'smelter', '4':'generator', '5':'junction',
+    '6':'leadCollector', '7':'poweredDrill', '8':'siliconPlant', '9':'superconductorPlant',
+    v:'select', x:'erase' };
   if (shortcuts[event.key.toLowerCase()]) setTool(shortcuts[event.key.toLowerCase()]);
   if (event.key.toLowerCase() === 'r') { rotation = (rotation+1)%4; paint=null; invalidate(); }
   if (event.key === 'Escape') { finishStroke(false); setTool('select'); }
@@ -376,14 +449,24 @@ byId('show-links').addEventListener('click',event => {
   invalidate();
 });
 byId('example').addEventListener('click', () => {
-  // Resource flow prototype: drill -> east-bound belts -> receiving smelter.
-  world.batch(() => {
-    world.place('drill',-4,-1,0,activeOwner);
-    world.place('smelter',0,0,0,activeOwner);
-    world.place('generator',3,0,0,activeOwner);
-    commitConveyorRoute(world,planConveyorRoute(world,[{x:-2,y:0},{x:-1,y:0}],3),activeOwner);
-  });
-  camera.reset(); setTool('select'); invalidate();
+  // Developer sample, not charged against the active faction's stockpile.
+  const oldSurvival = world.survival;
+  world.survival = false;
+  try {
+    world.batch(() => {
+      world.place('drill', -8, 8, 0, activeOwner);
+      const route = [];
+      extendRoute(route, { x: -6, y: 8 });
+      extendRoute(route, { x: 0, y: 8 });
+      extendRoute(route, { x: 0, y: 1 });
+      commitConveyorRoute(world, planConveyorRoute(world, route, 0), activeOwner);
+    });
+  } finally { world.survival = oldSurvival; }
+  camera.x = -4 * CAMERA_CONFIG.tileSize;
+  camera.y = 4 * CAMERA_CONFIG.tileSize;
+  setTool('select');
+  ui.message.textContent = '철 채굴 예시를 배치했어 · 건설비 미차감';
+  invalidate();
 });
 byId('rotate').addEventListener('click',()=>{rotation=(rotation+1)%4;finishStroke(false);invalidate();});
 byId('reset').addEventListener('click',()=>{camera.reset();hoverPoint=null;invalidate();});
