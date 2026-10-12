@@ -193,6 +193,7 @@ export class Industry {
         if (!this.canReceive(to, itemId)) continue;
         this.take(from, itemId);
         this.insert(to, itemId);
+        this.world.changed('transfer', { fromId: id, toId: targetId, itemId });
         if (to.type === 'junction') to.lastSourceId = from.id;
         if (from.type === 'junction') from.routeCursor = (from.routeCursor ?? 0) + 1;
         from.moveProgress = 0;
