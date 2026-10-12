@@ -69,6 +69,14 @@ Optional focused checks: `npm test` (Node.js). No external dependencies.
 
 `src/world.js` is the single owner of structures, nation stockpiles and sparse occupancy; `src/routes.js` computes tentative conveyor paths; `src/ports.js` and `src/connections.js` calculate directed contacts; `src/industry.js` advances only active producers and occupied belts; `src/entities.js` manages units/projectiles separately; `src/resources.js` resolves SVG metadata; `src/render.js` handles only visible SVG elements; `src/main.js` contains the gesture and editor state machine. Nation insignia and metadata live in `src/nations.js`.
 
+### Rendering scalability (incremental)
+
+- Buildings and their connection lines remain the original SVG artwork, but now live in world coordinates. Panning or zooming updates one transform per layer instead of every building's transform.
+- The renderer keeps per-structure SVG references and avoids rewriting unchanged placement, activity, ownership, health and cargo attributes. Connection paths are recalculated only when connection revision, camera-visible IDs, link visibility or selection changes.
+- Real resource transfer events are animated on **one transparent Canvas2D layer** (maximum 48 concurrent sprites), tracking the camera during movement. If Canvas2D is unavailable, the old SVG animation remains available.
+- Camera input, building selection, world simulation and industrial logic are unchanged. This is not yet WebGL instancing, and large-scale performance still needs browser profiling before promising a unit count.
+- The Service Worker includes the renderer module for offline PWA use.
+
 ### Next milestones
 
 - M05: first economy, recipe and local-power vertical slice implemented; refine network topology and balance.

@@ -66,38 +66,56 @@ export function installSprites(svg) {
   defs.insertAdjacentHTML('beforeend', Object.values(templates).join(''));
 }
 
-function moveSprite(element, structure, camera) {
+// A single world-space transform moves all visible structures. Camera motion
+// must not rewrite transforms and dimensions on every individual SVG node.
+export function worldLayerTransform(camera) {
+  return `translate(${camera.width / 2 - camera.x * camera.zoom} ${camera.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
+}
+
+export function structureWorldTransform(structure) {
   const def = STRUCTURES[structure.type];
-  const topLeft = tileToWorld(structure.x, structure.y);
-  const p = camera.worldToScreen(topLeft.x, topLeft.y);
-  const step = CAMERA_CONFIG.tileSize * camera.zoom;
-  const w = def.width * step;
-  const h = def.height * step;
-  const angle = structure.rotation * 90;
+  const x = structure.x * CAMERA_CONFIG.tileSize;
+  const y = structure.y * CAMERA_CONFIG.tileSize;
+  const w = def.width * CAMERA_CONFIG.tileSize;
+  const h = def.height * CAMERA_CONFIG.tileSize;
   const translate = [
-    [p.x, p.y], [p.x + h, p.y], [p.x + w, p.y + h], [p.x, p.y + w],
+    [x, y], [x + h, y], [x + w, y + h], [x, y + w],
   ][structure.rotation];
-  element.setAttribute('transform', `translate(${translate[0]} ${translate[1]}) rotate(${angle})`);
-  const use = element.firstElementChild;
-  use.setAttribute('width', w);
-  use.setAttribute('height', h);
-  const bend = element.querySelector('.conveyor-bend');
-  if (bend) {
-    const inputSides = [...(element._connections?.inputs(structure.id).values() ?? [])].flatMap(link => link.contacts.map(contact => (contact.side + 2) % 4));
+  return `translate(${translate[0]} ${translate[1]}) rotate(${structure.rotation * 90})`;
+}
+
+function moveSprite(element, structure, connections) {
+  const def = STRUCTURES[structure.type];
+  const parts = element._parts;
+  const placement = `${structure.x},${structure.y},${structure.rotation},${structure.type}`;
+  if (element._placement !== placement) {
+    element.setAttribute('transform', structureWorldTransform(structure));
+    parts.use.setAttribute('width', def.width * CAMERA_CONFIG.tileSize);
+    parts.use.setAttribute('height', def.height * CAMERA_CONFIG.tileSize);
+    parts.insignia.setAttribute('transform', 'translate(5 5)');
+    parts.cargo.setAttribute('transform',
+      `translate(${def.width * 48 - (structure.type === 'conveyor' ? 27 : 25)} 5)`);
+    parts.health.setAttribute('transform', `translate(5 ${def.height * 48 - 7})`);
+    parts.health.firstElementChild.setAttribute('width', def.width * 48 - 10);
+    parts.status.setAttribute('transform', `translate(${def.width * 48 - 8} 8)`);
+    element._placement = placement;
+  }
+  if (parts.bend && element._bendRevision !== connections.revision) {
+    const inputSides = [...connections.inputs(structure.id).values()]
+      .flatMap(link => link.contacts.map(contact => (contact.side + 2) % 4));
     const localSides = [...new Set(inputSides.map(side => (side - structure.rotation + 4) % 4))];
     const turns = { 1: 'M44 24H24V44', 3: 'M4 24H24V44' };
-    const paths = localSides.filter(side => turns[side]).map(side => turns[side]);
-    bend.setAttribute('visibility', paths.length ? 'visible' : 'hidden');
-    bend.setAttribute('d', paths.join(' '));
-    bend.setAttribute('transform', 'scale(' + camera.zoom + ')');
+    const path = localSides.filter(side => turns[side]).map(side => turns[side]).join(' ');
+    parts.bend.setAttribute('visibility', path ? 'visible' : 'hidden');
+    parts.bend.setAttribute('d', path);
+    element._bendRevision = connections.revision;
   }
-  element.querySelector('.insignia')?.setAttribute('transform', `translate(${5 * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
-  element.querySelector('.cargo-overlay')?.setAttribute('transform',
-    `translate(${(def.width * 48 - (structure.type === 'conveyor' ? 27 : 25)) * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
-  const health = element.querySelector('.structure-health');
-  health?.setAttribute('transform', `translate(${5 * camera.zoom} ${(def.height * 48 - 7) * camera.zoom}) scale(${camera.zoom})`);
-  health?.firstElementChild?.setAttribute('width', def.width * 48 - 10);
-  health?.lastElementChild?.setAttribute('width', (def.width * 48 - 10) * structure.health / structure.maxHealth);
+  if (element._health !== structure.health || element._maxHealth !== structure.maxHealth) {
+    parts.health.lastElementChild.setAttribute('width',
+      (def.width * 48 - 10) * structure.health / structure.maxHealth);
+    element._health = structure.health;
+    element._maxHealth = structure.maxHealth;
+  }
 }
 
 export class BuildingRenderer {
@@ -112,11 +130,25 @@ export class BuildingRenderer {
     this.world = world;
     this.camera = camera;
     this.elements = new Map();
+    this.lastTransform = '';
+    this.lastLinkRevision = -1;
+    this.lastLinkSelected = null;
+    this.lastLinkShow = null;
+    this.lastLinkVisible = new Set();
   }
 
   drawLinks(visible, selectedId, showLinks) {
+    const enabled = showLinks && this.camera.zoom >= 0.58;
+    const sameVisible = visible.size === this.lastLinkVisible.size
+      && [...visible].every(id => this.lastLinkVisible.has(id));
+    if (sameVisible && this.lastLinkRevision === this.connections.revision &&
+        this.lastLinkSelected === selectedId && this.lastLinkShow === enabled) return;
+    this.lastLinkVisible = new Set(visible);
+    this.lastLinkRevision = this.connections.revision;
+    this.lastLinkSelected = selectedId;
+    this.lastLinkShow = enabled;
     const keep = new Set();
-    if (showLinks && this.camera.zoom >= 0.58) {
+    if (enabled) {
       const tileSize = CAMERA_CONFIG.tileSize;
       for (const sourceId of visible) {
         for (const link of this.connections.outputs(sourceId).values()) {
@@ -132,14 +164,14 @@ export class BuildingRenderer {
               this.linkElements.set(key, path);
             }
             const direction = DIRECTIONS[contact.side];
-            const p = this.camera.worldToScreen((contact.x + 0.5) * tileSize, (contact.y + 0.5) * tileSize);
-            const d = tileSize * this.camera.zoom;
+            const p = {x: (contact.x + 0.5) * tileSize, y: (contact.y + 0.5) * tileSize};
+            const d = tileSize;
             const x = p.x + direction.x * d * 0.70;
             const y = p.y + direction.y * d * 0.70;
             const tailX = p.x + direction.x * d * 0.28;
             const tailY = p.y + direction.y * d * 0.28;
             const px = -direction.y, py = direction.x;
-            const arrow = Math.max(3, d * 0.10);
+            const arrow = d * 0.10;
             path.setAttribute('d', `M${tailX} ${tailY} L${x} ${y} M${x - direction.x * arrow + px * arrow * .6} ${y - direction.y * arrow + py * arrow * .6} L${x} ${y} L${x - direction.x * arrow - px * arrow * .6} ${y - direction.y * arrow - py * arrow * .6}`);
             path.classList.toggle('focused', selectedId === sourceId || selectedId === link.to);
           });
@@ -184,6 +216,12 @@ export class BuildingRenderer {
     const b = camera.screenToWorld(camera.width, camera.height);
     const lo = worldToTile(a.x, a.y);
     const hi = worldToTile(b.x, b.y);
+    const transform = worldLayerTransform(camera);
+    if (transform !== this.lastTransform) {
+      this.layer.setAttribute('transform', transform);
+      this.linksLayer.setAttribute('transform', transform);
+      this.lastTransform = transform;
+    }
     const active = new Set();
     for (const structure of world.visible(lo.x - 3, lo.y - 3, hi.x + 3, hi.y + 3)) {
       active.add(structure.id);
@@ -194,8 +232,9 @@ export class BuildingRenderer {
         const use = document.createElementNS(NS, 'use');
         use.setAttribute('href', `#s-${structure.type}`);
         node.appendChild(use);
+        let bend = null;
         if (structure.type === 'conveyor') {
-          const bend = document.createElementNS(NS, 'path');
+          bend = document.createElementNS(NS, 'path');
           bend.setAttribute('class', 'conveyor-bend');
           bend.setAttribute('fill', 'none');
           bend.setAttribute('stroke', '#b0a38f');
@@ -236,37 +275,49 @@ export class BuildingRenderer {
         health.setAttribute('class', 'structure-health');
         health.innerHTML = '<rect height="3.1" rx="1" fill="#141c22" /><rect height="3.1" rx="1" fill="#9eb5ad" />';
         node.appendChild(health);
+        node._parts = { use, bend, cargo, resourceIcon, resourceAmount, status, insignia,
+          rune: insignia.querySelector('.insignia-rune'), health };
         this.layer.appendChild(node);
         this.elements.set(structure.id, node);
       }
-      moveSprite(node, structure, camera);
-      const status = node.querySelector('.machine-status-dot');
+      moveSprite(node, structure, this.connections);
+      const { status, insignia, rune, health, cargo, resourceIcon, resourceAmount } = node._parts;
       const blocked = !structure.enabled || ['no-power','no-coal','no-ore','blocked'].includes(structure.activity);
       const operating = ['mining','processing','generating','transporting','receiving'].includes(structure.activity);
-      status?.setAttribute('visibility', structure.type === 'conveyor' || structure.type === 'junction' ? 'hidden' : 'visible');
-      status?.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
-      status?.setAttribute('transform', 'translate(' + (STRUCTURES[structure.type].width*48-8)*camera.zoom + ' ' + 8*camera.zoom + ') scale(' + camera.zoom + ')');
-      node.classList.toggle('machine-operating', operating);
-      node.style.setProperty('--blade-play', operating ? 'running' : 'paused');
-
-      node.classList.toggle('machine-blocked',blocked);
-      node.style.setProperty('--nation-color', nationColor(structure.ownerId));
-      const sigil = nationSigil(structure.ownerId);
-      node.querySelector('.insignia').setAttribute('visibility', sigil ? 'visible' : 'hidden');
-      node.querySelector('.insignia-rune').setAttribute('d', sigil);
-      node.querySelector('.structure-health').setAttribute('visibility',
-        selectedId === structure.id || structure.health < structure.maxHealth ? 'visible' : 'hidden');
-      const cargo = node.querySelector('.cargo-overlay');
+      const stateKey = `${blocked}:${operating}:${structure.ownerId}`;
+      if (node._renderStateKey !== stateKey) {
+        status.setAttribute('visibility',
+          structure.type === 'conveyor' || structure.type === 'junction' ? 'hidden' : 'visible');
+        status.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
+        node.classList.toggle('machine-operating', operating);
+        node.classList.toggle('machine-blocked', blocked);
+        node.style.setProperty('--blade-play', operating ? 'running' : 'paused');
+        node.style.setProperty('--nation-color', nationColor(structure.ownerId));
+        const sigil = nationSigil(structure.ownerId);
+        insignia.setAttribute('visibility', sigil ? 'visible' : 'hidden');
+        if (sigil) rune.setAttribute('d', sigil);
+        node._renderStateKey = stateKey;
+      }
+      const healthVisibility =
+        selectedId === structure.id || structure.health < structure.maxHealth ? 'visible' : 'hidden';
+      if (node._healthVisibility !== healthVisibility) {
+        health.setAttribute('visibility', healthVisibility);
+        node._healthVisibility = healthVisibility;
+      }
       const firstItem = (structure.type === 'conveyor' || structure.type === 'junction') ? structure.itemId :
         Object.keys(structure.inventory ?? {}).find(id => structure.inventory[id] > 0);
       const amount = (structure.type === 'conveyor' || structure.type === 'junction') ? structure.itemCount : (structure.inventory?.[firstItem] ?? 0);
       const resource = RESOURCES[firstItem];
-      cargo.setAttribute('visibility', resource && amount && camera.zoom >= .68 ? 'visible' : 'hidden');
-      if (resource && amount && camera.zoom >= .68) {
-        cargo.firstElementChild.setAttribute('href', resource.icon);
-        cargo.lastElementChild.textContent = amount > 99 ? '99+' : String(amount);
+      const cargoVisible = Boolean(resource && amount && camera.zoom >= .68);
+      if (node._cargoVisible !== cargoVisible) {
+        cargo.setAttribute('visibility', cargoVisible ? 'visible' : 'hidden');
+        node._cargoVisible = cargoVisible;
       }
-      node.setAttribute('opacity', '1');
+      if (cargoVisible) {
+        if (resourceIcon.getAttribute('href') !== resource.icon) resourceIcon.setAttribute('href', resource.icon);
+        const label = amount > 99 ? '99+' : String(amount);
+        if (resourceAmount.textContent !== label) resourceAmount.textContent = label;
+      }
     }
     for (const [id, node] of this.elements) {
       if (!active.has(id)) {
