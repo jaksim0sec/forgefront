@@ -191,7 +191,21 @@ function render() {
     (tool === 'select' ? '타일 또는 건물을 선택해 봐' : tool === 'erase' ? '건물 철거 모드' :
       `${STRUCTURES[tool].label} 설치 모드`);
   ui.hp.textContent = selected ? `${selected.health} / ${selected.maxHealth}` : '—';
-  ui.status.textContent = selected ? (selected.enabled ? selected.activity : '중지됨') : '—';
+  const recipeState = selected && RECIPES[selected.type];
+  const missingMaterials = recipeState ? Object.entries(recipeState.inputs)
+    .filter(([id, qty]) => (selected.inventory?.[id] ?? 0) < qty)
+    .map(([id, qty]) => `${RESOURCES[id]?.label ?? id} ${qty - (selected.inventory?.[id] ?? 0)}`) : [];
+  const finishedCount = recipeState ? (selected.inventory?.[recipeState.output] ?? 0) : 0;
+  const stateLabels = {
+    idle:'대기 중', mining:'채굴 중', processing:'생산 중', generating:'발전 중',
+    transporting:'운송 중', receiving:'자원 수령 중', blocked:'출력 막힘 / 저장 공간 부족',
+    'no-power':'전력 부족', 'no-coal':'석탄 부족', 'no-ore':'광맥 없음',
+    'waiting-input':'재료 부족'
+  };
+  ui.status.textContent = selected ? (!selected.enabled ? '중지됨'
+    : selected.activity === 'waiting-input' && missingMaterials.length ? '재료 부족 · ' + missingMaterials.join(', ')
+    : selected.activity === 'blocked' && finishedCount ? '완성품 ' + finishedCount + '개 · 배출 경로 확인'
+    : stateLabels[selected.activity] ?? selected.activity) : '—';
   ui.powerDetail.textContent = selected ? (
     selected.type === 'tower' ? '기본 출력 3' :
     selected.type === 'generator' ? (selected.burnRemaining > 0 ? '석탄 발전 중' : '석탄 필요') :
@@ -199,7 +213,7 @@ function render() {
   ) : '—';
   const recipe = selected ? RECIPES[selected.type] : null;
   ui.production.textContent = !selected ? '—' :
-    recipe ? `${RESOURCES[recipe.output].label} 합성` :
+    recipe ? `${RESOURCES[recipe.output].label} · ${Math.min(100, Math.floor(100 * (selected.progress ?? 0) / recipe.seconds))}% ${finishedCount ? '· 완성품 ' + finishedCount + '개' : ''}` :
     selected.resourceId ? `${RESOURCES[selected.resourceId].label} 채집` : '—';
   const stocked = (selected?.type === 'conveyor' || selected?.type === 'junction') ?
     (selected.itemId ? [[selected.itemId, selected.itemCount]] : []) :
