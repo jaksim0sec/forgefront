@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="초전도체 자원 아이콘"><title>초전도체</title><g stroke-linejoin="round"><!-- sintered conductive composite billets: manufactured feedstock, no fantasy glow -->
+<!-- rear compact bar -->
+<path d="m27 26 15-12 36 5 11 13-14 14-37-5Z" fill="#647274"/>
+<path d="m42 14 36 5 11 13-38-4Z" fill="#A1AA9F"/>
+<path d="m51 28 38 4-14 14-37-5Z" fill="#43565A"/>
+<!-- lower raw billet -->
+<path d="m14 49 13-13 42 5 13 15-13 17-42-5Z" fill="#59676B"/>
+<path d="m27 36 42 5 13 15-44-6Z" fill="#96A29D"/>
+<path d="m38 50 44 6-13 17-42-5Z" fill="#354B51"/>
+<!-- front bar -->
+<path d="m15 67 13-14 42 5 13 16-14 14-43-6Z" fill="#6A7879"/>
+<path d="m28 53 42 5 13 16-44-6Z" fill="#A4AFA8"/>
+<path d="m39 68 44 6-14 14-43-6Z" fill="#3E5459"/>
+<!-- narrow ceramic alloy inclusion seam, not a light source -->
+<path d="m50 55 6 1 13 16-6-1Z" fill="#729395"/>
+<path d="m50 37 6 1 12 15-6-1Z" fill="#729395" opacity=".8"/></g></svg>
