@@ -56,7 +56,9 @@ export function planConveyorRoute(world, route, fallbackRotation = 0) {
     else side = bestTerminalDirection(world, point, route[i - 1], (fallbackRotation + 2) % 4);
     if (side === null) return { ok: false, reason: 'disconnected', cells, blocked: point };
     const rotation = (side + 2) % 4;
-    cells.push({ ...point, action: entity ? (entity.rotation === rotation ? 'keep' : 'rotate') : 'place', id: entity?.id ?? null, rotation });
+    const inputSide = i > 0 ? directionBetween(point, route[i - 1]) : null;
+    const unchanged = entity && entity.rotation === rotation && entity.inputSide === inputSide;
+    cells.push({ ...point, action: entity ? (unchanged ? 'keep' : 'rotate') : 'place', id: entity?.id ?? null, rotation, inputSide });
   }
   return { ok: true, cells };
 }
@@ -66,8 +68,10 @@ export function commitConveyorRoute(world, plan, ownerId = null) {
   let count = 0;
   world.batch(() => {
     for (const cell of plan.cells) {
-      if (cell.action === 'place' && world.place('conveyor', cell.x, cell.y, cell.rotation, ownerId).ok) count++;
-      else if (cell.action === 'rotate' && world.rotateConveyor(cell.id, cell.rotation)) count++;
+      if (cell.action === 'place') {
+        const result = world.place('conveyor', cell.x, cell.y, cell.rotation, ownerId);
+        if (result.ok) { result.entity.inputSide = cell.inputSide; count++; }
+      } else if (cell.action === 'rotate' && world.rotateConveyor(cell.id, cell.rotation, cell.inputSide)) count++;
     }
   });
   return { ok: true, count };
