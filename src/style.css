@@ -325,9 +325,9 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 #toolbox-panel.panel-collapsed > .tool-list { display:flex !important; }
 #toolbox-panel.panel-collapsed > .toolbox-heading { display:none !important; }
 .cargo-overlay.belt-cargo { animation: cargo-roll .45s linear infinite; }
-.cargo-overlay.belt-cargo image { image-rendering:auto; filter:drop-shadow(0 1px 1px #000b); }
+.cargo-overlay.belt-cargo image { image-rendering:auto; }
 @keyframes cargo-roll { 0% { opacity:.85; } 50% { opacity:1; } 100% { opacity:.85; } }
-.machine-operating use { filter:brightness(1.065); }
+.machine-operating use { opacity:1; }
 @media (max-width:730px) {
   #toolbox-panel.panel-collapsed { width:150px !important; }
   #toolbox-panel.panel-collapsed .tool-list .tool-label { font-size:9px; }
@@ -338,7 +338,7 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 @keyframes machine-spin { to { rotate:360deg; } }
 @media(prefers-reduced-motion:reduce) { .machine-rotor { animation:none !important; } }
 
-.flying-item { pointer-events:none; transition:transform .29s linear; image-rendering:auto; filter:drop-shadow(0 1px 2px #061015); }
+.flying-item { pointer-events:none; transition:transform .29s linear; image-rendering:auto; }
 #toolbox-panel.panel-collapsed > .tool-list { display:flex !important; }
 #toolbox-panel.panel-collapsed .tool-list [data-tool="select"],
 #toolbox-panel.panel-collapsed .tool-list [data-tool="conveyor"],
