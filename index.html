@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10161c">
+  <title>FORGEFRONT — World Foundation</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <main class="game" aria-label="FORGEFRONT 카메라 테스트 보드">
+    <svg id="world" class="world" xmlns="http://www.w3.org/2000/svg" aria-label="이동과 확대가 가능한 타일 보드">
+      <defs>
+        <pattern id="tile-grid" patternUnits="userSpaceOnUse" width="48" height="48">
+          <path id="tile-grid-path" d="M48 0H0V48" fill="none" stroke="#8796a5" stroke-opacity=".12" stroke-width="1"/>
+        </pattern>
+        <pattern id="sector-grid" patternUnits="userSpaceOnUse" width="384" height="384">
+          <path id="sector-grid-path" d="M384 0H0V384" fill="none" stroke="#8796a5" stroke-opacity=".28" stroke-width="1.25"/>
+        </pattern>
+        <radialGradient id="ambient" cx="50%" cy="45%" r="75%">
+          <stop offset="0%" stop-color="#1c2831"/>
+          <stop offset="100%" stop-color="#111920"/>
+        </radialGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#ambient)"/>
+      <rect width="100%" height="100%" fill="url(#tile-grid)"/>
+      <rect width="100%" height="100%" fill="url(#sector-grid)"/>
+      <g id="world-origin" pointer-events="none">
+        <circle r="14" fill="#f4ac54" fill-opacity=".08" stroke="#f4ac54" stroke-opacity=".55"/>
+        <path d="M-23 0H23M0 -23V23" stroke="#f4ac54" stroke-width="1.5" stroke-opacity=".75"/>
+        <circle r="3" fill="#f4ac54"/>
+      </g>
+    </svg>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 01</span></div>
+      <div class="phase">CAMERA SYSTEM <span class="live-dot"></span> ACTIVE</div>
+    </header>
+    <div class="side-label" aria-hidden="true">INDUSTRIAL TERRITORY / FOUNDATION</div>
+    <div class="center-crosshair" aria-hidden="true"></div>
+    <footer class="hud">
+      <section class="status-panel" aria-label="카메라 정보">
+        <div class="status-item"><span>CAMERA X</span><output id="cam-x">0.0</output></div>
+        <div class="status-item"><span>CAMERA Y</span><output id="cam-y">0.0</output></div>
+        <div class="status-item"><span>ZOOM</span><output id="zoom">100%</output></div>
+      </section>
+      <section class="control-panel" aria-label="조작 안내">
+        <div class="desktop-hint">방향키 <b>카메라 이동</b><i></i> 휠 <b>확대·축소</b></div>
+        <div class="mobile-hint">한 손가락 <b>이동</b><i></i> 두 손가락 <b>확대·축소</b></div>
+        <button id="reset" class="reset" type="button" aria-label="카메라 위치와 확대율 초기화">↺ <span>초기화</span></button>
+      </section>
+    </footer>
+  </main>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
