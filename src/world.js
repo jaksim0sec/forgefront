@@ -37,6 +37,7 @@ export class World {
     this.nextId = 1; // 0 = empty cell
     this.revision = 0;
     this.listeners = new Set();
+    this.placementRule = null;
     this.batchDepth = 0;
     this.pendingChanges = [];
     this.units = new DynamicEntities('unit');
@@ -104,6 +105,10 @@ export class World {
     return true;
   }
 
+  setPlacementRule(rule) {
+    this.placementRule = rule;
+  }
+
   setOwner(id, ownerId) {
     const entity = this.structures.get(id);
     if (!entity) return false;
@@ -152,6 +157,10 @@ export class World {
       for (let dx = 0; dx < area.width; dx++) {
         if (this.getAt(x + dx, y + dy)) return { ok: false, reason: 'occupied', ...area };
       }
+    }
+    if (this.placementRule) {
+      const result = this.placementRule(type, x, y, area.rotation, area);
+      if (!result.ok) return { ...result, ...area };
     }
     return { ok: true, ...area };
   }
