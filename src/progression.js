@@ -11,6 +11,7 @@ export const BUILD_COSTS = Object.freeze({
   drill: Object.freeze({ lead: 8 }),
   smelter: Object.freeze({ lead: 14 }),
   generator: Object.freeze({ lead: 4, parts: 6 }),
+  turret: Object.freeze({ lead: 12, iron: 6 }),
   poweredDrill: Object.freeze({ iron: 8, parts: 4 }),
   siliconPlant: Object.freeze({ titanium: 10, parts: 4 }),
   superconductorPlant: Object.freeze({ titanium: 16, silicon: 10 }),

@@ -41,7 +41,7 @@ function bestTerminalDirection(world, point, previous, fallback) {
 }
 
 /** Pure preview: endpoints may be existing producer/consumer facilities. */
-export function planConveyorRoute(world, route, fallbackRotation = 0) {
+export function planConveyorRoute(world, route, fallbackRotation = 0, ownerId = null) {
   if (!route.length) return { ok: false, reason: 'empty', cells: [] };
   const cells = [];
   for (let i = 0; i < route.length; i++) {
@@ -50,6 +50,12 @@ export function planConveyorRoute(world, route, fallbackRotation = 0) {
     if (!world.inBounds(point.x, point.y) || (entity && entity.type !== 'conveyor' && !endpoint)) {
       return { ok: false, reason: entity ? 'occupied' : 'bounds', cells, blocked: point };
     }
+    if (world.survival && world.territory && (!ownerId ||
+        world.territory.ownerAt(point.x, point.y) !== ownerId)) {
+      return { ok: false, reason: 'territory', cells, blocked: point };
+    }
+    if (entity && entity.type === 'conveyor' && world.survival && entity.ownerId !== ownerId)
+      return { ok: false, reason: 'territory', cells, blocked: point };
     if (endpoint) { cells.push({ ...point, action: 'endpoint', id: entity.id }); continue; }
     let side;
     if (i + 1 < route.length) side = directionBetween(point, route[i + 1]);
@@ -68,6 +74,14 @@ export function planConveyorRoute(world, route, fallbackRotation = 0) {
 
 export function commitConveyorRoute(world, plan, ownerId = null) {
   if (!plan.ok) return { ok: false, count: 0, reason: plan.reason };
+  // Transaction preflight: an invalid endpoint or enemy belt must never
+  // leave a partially placed line behind.
+  if (world.survival && world.territory) for (const cell of plan.cells) {
+    if (cell.action === 'endpoint') continue;
+    if (!ownerId || world.territory.ownerAt(cell.x, cell.y) !== ownerId ||
+        (cell.id && world.structures.get(cell.id)?.ownerId !== ownerId))
+      return { ok: false, count: 0, reason: 'territory', blocked: cell };
+  }
   const placements = plan.cells.filter(cell => cell.action === 'place').length;
   if (world.survival && !canAfford(world.walletFor(ownerId), sumCosts('conveyor', placements))) {
     return { ok: false, count: 0, reason: 'materials', cost: sumCosts('conveyor', placements) };

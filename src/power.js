@@ -23,7 +23,7 @@ export class PowerGrid {
 
   track(entity) {
     if (entity.type === 'tower' || entity.type === 'generator') this.sources.add(entity.id);
-    if (entity.type === 'smelter' || entity.type === 'poweredDrill' ||
+    if (entity.type === 'turret' || entity.type === 'smelter' || entity.type === 'poweredDrill' ||
         entity.type === 'siliconPlant' || entity.type === 'superconductorPlant') this.consumers.add(entity.id);
     this.dirty = true;
   }

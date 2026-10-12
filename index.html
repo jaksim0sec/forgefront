@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
-  <main class="game" aria-label="FORGEFRONT 월드 및 구조물 배치 테스트">
+  <main class="game" aria-label="FORGEFRONT 산업, 영토 및 방어 게임">
     <svg id="world" class="world" xmlns="http://www.w3.org/2000/svg" aria-label="타일 보드">
       <defs>
         <pattern id="tile-grid" patternUnits="userSpaceOnUse" width="48" height="48">
@@ -39,6 +39,7 @@
         <path d="M-23 0H23M0 -23V23" stroke="#f4ac54" stroke-width="1.5" stroke-opacity=".75"/>
         <circle r="3" fill="#f4ac54"/>
       </g>
+      <circle id="weapon-radius" visibility="hidden" fill="#d1a77f" fill-opacity=".055" stroke="#dbad78" stroke-opacity=".55" stroke-width="1.6" stroke-dasharray="6 8" pointer-events="none"/>
       <circle id="power-radius" visibility="hidden" fill="#e5bf75" fill-opacity=".035" stroke="#e5bf75" stroke-opacity=".4" stroke-width="1.8" stroke-dasharray="8 7" pointer-events="none"/>
       <g id="structures-layer" pointer-events="none"></g>
       <g id="moving-items" pointer-events="none"></g>
@@ -49,8 +50,8 @@
       <rect id="tile-highlight" visibility="hidden" fill-opacity=".18" stroke-width="2" pointer-events="none"/>
     </svg>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 06</span></div>
-      <div class="phase">TERRITORY SYSTEM <span class="live-dot"></span> ACTIVE</div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 07</span></div>
+      <div class="phase">TERRITORY / DEFENSE <span class="live-dot"></span> ACTIVE</div>
     </header>
     <div class="side-label" aria-hidden="true">INDUSTRIAL TERRITORY / FOUNDATION</div>
     <div class="center-crosshair" aria-hidden="true"></div>
@@ -64,6 +65,7 @@
         <button type="button" data-tool="drill" aria-pressed="false"><span class="tool-icon">⚙</span><span>채굴기</span><kbd>2</kbd></button>
         <button type="button" data-tool="smelter" aria-pressed="false"><span class="tool-icon">▤</span><span>제련소</span><kbd>3</kbd></button>
         <button type="button" data-tool="generator" aria-pressed="false"><span class="tool-icon">ϟ</span><span>발전기</span><kbd>4</kbd></button>
+        <button type="button" data-tool="turret" aria-pressed="false"><span class="tool-icon">◉</span>방어 포탑<kbd>0</kbd></button>
         <button type="button" data-tool="poweredDrill" aria-pressed="false"><span class="tool-icon">⚒</span><span>전동 드릴</span><kbd>7</kbd></button>
         <button type="button" data-tool="siliconPlant" aria-pressed="false"><span class="tool-icon">▥</span><span>실리콘 공장</span><kbd>8</kbd></button>
         <button type="button" data-tool="superconductorPlant" aria-pressed="false"><span class="tool-icon">◎</span><span>초전도체 공장</span><kbd>9</kbd></button>
@@ -79,6 +81,7 @@
         <button id="show-territory" type="button" aria-pressed="true">◇ 영토 경계 ON</button>
         <button id="touch-draw" type="button" aria-pressed="false">✎ 터치 경로 건설 OFF</button>
         <button id="example" type="button">＋ 철 채굴라인 예시</button>
+        <button id="simulate-raid" type="button">◈ 적 정찰 드론 시험</button>
       </div>
       <div class="owner-heading">국가 비축 물자</div>
       <p class="economy-hint">타워에 전달된 자원으로 시설을 건설해</p>

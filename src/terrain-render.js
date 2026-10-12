@@ -96,14 +96,41 @@ export class TerrainRenderer {
       ctx.fillStyle = groundColor(sample, (detail % 9) - 4);
       ctx.fillRect(px, py, size, size);
 
-      // Cross-tile relief: faint terrace edges along genuine height contours.
+      // Orthographic terrace relief. Height steps are shared across tile
+      // boundaries, so this reads as layered land instead of random colors.
       const right = this.terrain.heightAt(x + 1, y);
       const below = this.terrain.heightAt(x, y + 1);
-      ctx.fillStyle = sample.biome === 'ridge'
-        ? 'rgba(218,218,202,.14)' : 'rgba(180,199,192,.065)';
-      const line = Math.floor(sample.height * 13);
-      if (Math.floor(right * 13) !== line) ctx.fillRect(px + size - 1, py, 1, size);
-      if (Math.floor(below * 13) !== line) ctx.fillRect(px, py + size - 1, size, 1);
+      const above = this.terrain.heightAt(x, y - 1);
+      const left = this.terrain.heightAt(x - 1, y);
+      const level = Math.floor(sample.height * 12);
+      const eastLevel = Math.floor(right * 12);
+      const southLevel = Math.floor(below * 12);
+      const northLevel = Math.floor(above * 12);
+      const westLevel = Math.floor(left * 12);
+      // Top-facing lip and deep south/east drop shadow form a raised board tile.
+      if (level > southLevel) {
+        const depth = Math.min(9, 2 + (level - southLevel) * 3);
+        ctx.fillStyle = 'rgba(13,22,29,.68)';
+        ctx.fillRect(px, py + size - depth, size, depth);
+        ctx.fillStyle = 'rgba(175,189,183,.31)';
+        ctx.fillRect(px, py + size - depth - 2, size, 2);
+      } else if (level < southLevel) {
+        ctx.fillStyle = 'rgba(207,218,209,.26)';
+        ctx.fillRect(px, py + size - 2, size, 2);
+      }
+      if (level > eastLevel) {
+        const depth = Math.min(7, 2 + (level - eastLevel) * 2);
+        ctx.fillStyle = 'rgba(9,18,24,.44)';
+        ctx.fillRect(px + size - depth, py, depth, size);
+      }
+      if (level > northLevel) {
+        ctx.fillStyle = 'rgba(183,196,186,.22)';
+        ctx.fillRect(px + 1, py + 1, size - 2, 2);
+      }
+      if (level > westLevel) {
+        ctx.fillStyle = 'rgba(197,210,198,.16)';
+        ctx.fillRect(px + 1, py + 1, 2, size - 2);
+      }
 
       // Deterministic, sparse ground grit. Avoid SVG filters and per-pixel noise.
       const sx = px + 3 + ((detail >>> 5) % (size - 8));
@@ -115,8 +142,13 @@ export class TerrainRenderer {
         // even at minimum zoom. Basalt wall, pale top lip and diagonal strata.
         ctx.fillStyle = '#18252c';
         ctx.fillRect(px + 1, py + 2, size - 2, size - 3);
-        ctx.fillStyle = '#78868a';
-        ctx.fillRect(px + 1, py + 1, size - 2, 5);
+        if (above < sample.height || left < sample.height) {
+          ctx.fillStyle = '#a0adac';
+          ctx.fillRect(px + 1, py + 1, size - 2, 5);
+        } else {
+          ctx.fillStyle = '#576d75';
+          ctx.fillRect(px + 1, py + 1, size - 2, 3);
+        }
         ctx.fillStyle = '#42535a';
         ctx.fillRect(px + 3, py + 8, size - 6, 5);
         ctx.fillStyle = '#101b23';

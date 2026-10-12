@@ -374,3 +374,7 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 /* Terrain chunks are baked into single passive SVG image nodes. */
 #terrain-layer, #ore-layer { pointer-events:none; }
 #terrain-layer image, #ore-layer image { image-rendering:auto; }
+
+/* M07: unit/projectile paint remains separate from interactive world SVG. */
+.combat-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; display:block; }
+#weapon-radius { vector-effect:non-scaling-stroke; }

@@ -39,6 +39,22 @@ Object.assign(templates, {
     <path d="M48 36V56M39 46H57" stroke="#253941" stroke-width="3" stroke-linecap="round"/>
     <g fill="#d5b684"><circle cx="48" cy="15" r="3"/><circle cx="81" cy="48" r="3"/><circle cx="48" cy="81" r="3"/><circle cx="15" cy="48" r="3"/></g>
   </symbol>`,
+
+  turret: `<symbol id="s-turret" viewBox="0 0 96 96">
+    <rect x="3" y="3" width="90" height="90" rx="9" fill="#343d47" stroke="#8596a2" stroke-width="3.5"/>
+    <rect x="11" y="11" width="74" height="74" rx="7" fill="#162630" stroke="#607681" stroke-width="2.5"/>
+    <path d="M12 26H84M12 70H84" stroke="#576976" stroke-width="3" stroke-dasharray="7 7"/>
+    <g fill="#5b707a" stroke="#9aafb6" stroke-width="2">
+      <path d="M11 11H28V28H11ZM68 11H85V28H68ZM11 68H28V85H11ZM68 68H85V85H68Z"/>
+    </g>
+    <circle cx="48" cy="48" r="31" fill="#425560" stroke="#a8b5bc" stroke-width="3"/>
+    <circle cx="48" cy="48" r="24" fill="#202f38" stroke="#718a97" stroke-width="3"/>
+    <path d="M38 20V39L31 51 42 63H54L65 51 58 39V20Z" fill="#74858c" stroke="#c5cdd0" stroke-width="3"/>
+    <path d="M42 13V39H54V13" fill="#b6a68c" stroke="#d9d5c7" stroke-width="2.5"/>
+    <rect x="38" y="9" width="20" height="8" rx="2" fill="#44565e" stroke="#a9b7bc" stroke-width="2"/>
+    <circle cx="48" cy="48" r="10" fill="#273b46" stroke="#b7c4c6" stroke-width="3"/>
+    <circle cx="48" cy="48" r="3" fill="#d3b988"/>
+  </symbol>`,
   poweredDrill: `<symbol id="s-poweredDrill" viewBox="0 0 96 96">
     <rect x="2" y="2" width="92" height="92" rx="8" fill="#3e505c" stroke="#b4c1c7" stroke-width="4"/>
     <rect x="9" y="9" width="78" height="78" rx="7" fill="#23323e" stroke="#5e7785" stroke-width="3"/>

@@ -10,6 +10,8 @@ import { Terrain } from './terrain.js';
 import { TerrainRenderer } from './terrain-render.js';
 import { Territory } from './territory.js';
 import { TerritoryRenderer } from './territory-render.js';
+import { Combat, TURRET } from './combat.js';
+import { CombatRenderer } from './combat-render.js';
 import { CargoRenderer } from './cargo-renderer.js';
 import { RECIPES, BUILD_COSTS } from './progression.js';
 
@@ -25,14 +27,17 @@ world.place('leadCollector', -1, 0, 0, 'north');
 world.survival = true;
 const connections = new ItemConnections(world);
 const industry = new Industry(world, connections);
+const combat = new Combat(world);
 installSprites(svg);
 const buildings = new BuildingRenderer(svg, world, camera, connections);
 const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
 const territory = new Territory(world);
+world.territory = territory;
 const territoryVisual = new TerritoryRenderer(svg, territory, camera);
 // Cargo visuals use one transparent Canvas, with the original SVG fallback.
 const cargoRenderer = new CargoRenderer(svg, camera, RESOURCES);
 world.subscribe(change => cargoRenderer.transfer(change, world));
+const combatVisual = new CombatRenderer(svg, camera, world, combat);
 
 const byId = id => document.getElementById(id);
 // The main toolbox retains its three essential tools while collapsed.
@@ -144,7 +149,7 @@ function snappedTile(tile, kind = tool) {
            y: tile.y - Math.floor((size.height - 1) / 2) };
 }
 function previewForStroke(stroke) {
-  return stroke?.kind === 'conveyor' ? { route: stroke.route, plan: planConveyorRoute(world, stroke.route, rotation) } : null;
+  return stroke?.kind === 'conveyor' ? { route: stroke.route, plan: planConveyorRoute(world, stroke.route, rotation, activeOwner) } : null;
 }
 
 let paint = null, renderPending = false;
@@ -209,6 +214,15 @@ function render() {
   ui.rotation.textContent = rotation * 90 + '°';
   const selected = world.structures.get(selectedId);
   const powerRadius = byId('power-radius');
+  const weaponRadius = byId('weapon-radius');
+  if (selected?.type === 'turret') {
+    const origin = camera.worldToScreen((selected.x + selected.width / 2) * CAMERA_CONFIG.tileSize,
+      (selected.y + selected.height / 2) * CAMERA_CONFIG.tileSize);
+    weaponRadius.setAttribute('cx', origin.x);
+    weaponRadius.setAttribute('cy', origin.y);
+    weaponRadius.setAttribute('r', TURRET.range * CAMERA_CONFIG.tileSize * camera.zoom);
+    weaponRadius.setAttribute('visibility', 'visible');
+  } else weaponRadius.setAttribute('visibility','hidden');
   const source = selected && (selected.type === 'tower' || selected.type === 'generator' ? selected : world.structures.get(selected.powerSourceId));
   const activeSource = source && (source.type === 'tower' || source.burnRemaining > 0);
   if (activeSource) {
@@ -245,7 +259,8 @@ function render() {
   const recipe = selected ? RECIPES[selected.type] : null;
   ui.production.textContent = !selected ? '—' :
     recipe ? `${RESOURCES[recipe.output].label} · ${Math.min(100, Math.floor(100 * (selected.progress ?? 0) / recipe.seconds))}% ${finishedCount ? '· 완성품 ' + finishedCount + '개' : ''}` :
-    selected.resourceId ? `${RESOURCES[selected.resourceId].label} 채집` : '—';
+    selected.resourceId ? `${RESOURCES[selected.resourceId].label} 채집` :
+    selected.type === 'turret' ? `사거리 ${TURRET.range}칸 · 피해 ${TURRET.damage} · ${selected.powered ? '방어 준비' : '전력 대기'}` : '—';
   const stocked = (selected?.type === 'conveyor' || selected?.type === 'junction') ?
     (selected.itemId ? [[selected.itemId, selected.itemCount]] : []) :
     Object.entries(selected?.type === 'tower' ? world.walletFor(selected.ownerId) :
@@ -267,6 +282,7 @@ const BUILD_DESCRIPTIONS = Object.freeze({
   drill:'철·석탄 광맥에서 자원을 채굴하는 기본 드릴.',
   smelter:'납과 철을 제련해 발전 설비 제작에 필요한 금속 부품을 생산해.',
   generator:'석탄을 태워 주변 고전력 산업 시설에 전기를 공급해.',
+  turret:'전기 2를 소비해 사거리 9칸 안의 적 정찰 드론을 자동 추적하는 방어 포탑.',
   poweredDrill:'석탄과 전기를 소비해 티타늄 광맥을 채굴하는 고급 장비.',
   siliconPlant:'철과 석탄을 가공해 실리콘을 생산해.',
   superconductorPlant:'철·석탄·실리콘과 전력으로 초전도체를 합성해.',
@@ -337,6 +353,7 @@ function notifyBuild(result, type) {
   if (result?.ok) { ui.message.textContent = ''; return; }
   const reasons = {
     ore: '해당 자원 광맥 위에 설치해야 해',
+    territory: '자기 국가 영토 안에서만 건설할 수 있어',
     terrain: '경사가 가파르거나 너무 높은 지형이라 건설할 수 없어',
     bounds: '맵 범위 밖이야',
     occupied: '건물이 이미 점유한 공간이야',
@@ -357,7 +374,7 @@ function actionAt(point, alternate = false) {
     const entity = world.getAt(tile.x, tile.y);
     if (entity) { world.remove(entity.id); if (selectedId === entity.id) selectedId = null; }
   } else if (tool === 'conveyor') {
-    notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, [tile], rotation), activeOwner), 'conveyor');
+    notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, [tile], rotation, activeOwner), activeOwner), 'conveyor');
   } else if (STRUCTURES[tool]) {
     const anchor = snappedTile(tile);
     const created = world.build(tool, anchor.x, anchor.y, rotation, activeOwner);
@@ -423,7 +440,7 @@ function finishStroke(commit) {
     if (victims.has(selectedId)) selectedId = null;
   }
   if (commit && paint.kind === 'conveyor') {
-    notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation), activeOwner), 'conveyor');
+    notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation, activeOwner), activeOwner), 'conveyor');
   }
   paint = null;
   invalidate();
@@ -581,6 +598,7 @@ window.addEventListener('keydown', event => {
   if (event.repeat) return;
   const shortcuts = { '1':'conveyor', '2':'drill', '3':'smelter', '4':'generator', '5':'junction',
     '6':'leadCollector', '7':'poweredDrill', '8':'siliconPlant', '9':'superconductorPlant',
+    '0':'turret',
     v:'select', x:'erase' };
   if (shortcuts[event.key.toLowerCase()]) setTool(shortcuts[event.key.toLowerCase()]);
   if (event.key.toLowerCase() === 'r') { rotation = (rotation+1)%4; paint=null; invalidate(); }
@@ -621,7 +639,18 @@ byId('show-links').addEventListener('click',event => {
   event.currentTarget.textContent = `↗ 자원 연결 ${showLinks ? 'ON' : 'OFF'}`;
   invalidate();
 });
+byId('simulate-raid').addEventListener('click', () => {
+  const ok = combat.spawnRaid(activeOwner);
+  ui.message.textContent = ok ? '적 정찰 드론 3기 접근 중 · 포탑으로 방어해 봐'
+    : '정찰 시험을 시작할 수 없어 · 해당 국가의 중앙 타워를 확인해';
+  if (ok) { combatVisual.wake(); invalidate(); }
+});
 byId('example').addEventListener('click', () => {
+  // This no-cost tutorial shortcut must not silently construct in rival territory.
+  if (activeOwner !== 'north') {
+    ui.message.textContent = '철 채굴 예시는 북부 시작 영토에서만 사용할 수 있어';
+    return;
+  }
   // Developer sample, not charged against the active faction's stockpile.
   const oldSurvival = world.survival;
   world.survival = false;
@@ -632,7 +661,7 @@ byId('example').addEventListener('click', () => {
       extendRoute(route, { x: -6, y: 8 });
       extendRoute(route, { x: 0, y: 8 });
       extendRoute(route, { x: 0, y: 1 });
-      commitConveyorRoute(world, planConveyorRoute(world, route, 0), activeOwner);
+      commitConveyorRoute(world, planConveyorRoute(world, route, 0, activeOwner), activeOwner);
     });
   } finally { world.survival = oldSurvival; }
   camera.x = -4 * CAMERA_CONFIG.tileSize;
@@ -661,7 +690,10 @@ let lastTick = performance.now();
 setInterval(() => {
   const now = performance.now(), dt = Math.min(.5, (now-lastTick)/1000);
   lastTick = now;
-  if (industry.step(dt)) invalidate();
+  const productionChanged = industry.step(dt);
+  const combatChanged = combat.step(dt);
+  if (productionChanged || combatChanged) invalidate();
+  if (combatChanged) combatVisual.wake();
 }, 200);
 
 setTool('select');

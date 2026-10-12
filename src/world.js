@@ -10,6 +10,7 @@ export const STRUCTURES = Object.freeze({
   drill: Object.freeze({ label: '기본 채굴기', width: 2, height: 2, maxHealth: 180, itemCapacity: 12, itemsPerSecond: 1 }),
   leadCollector: Object.freeze({ label: '납 채집기', width: 1, height: 1, maxHealth: 100, itemCapacity: 10, itemsPerSecond: 0.9 }),
   tower: Object.freeze({ label: '중앙 타워', width: 2, height: 2, maxHealth: 700, itemCapacity: Infinity, powerOutput: 3 }),
+  turret: Object.freeze({ label: '방어 포탑', width: 2, height: 2, maxHealth: 260, itemCapacity: 0, powerUse: 2 }),
   poweredDrill: Object.freeze({ label: '전동 티타늄 드릴', width: 2, height: 2, maxHealth: 300, itemCapacity: 12, itemsPerSecond: 0.7, powerUse: 8 }),
   siliconPlant: Object.freeze({ label: '실리콘 공장', width: 3, height: 2, maxHealth: 370, itemCapacity: 28, powerUse: 10 }),
   superconductorPlant: Object.freeze({ label: '초전도체 공장', width: 3, height: 3, maxHealth: 510, itemCapacity: 36, powerUse: 17 }),
@@ -50,6 +51,7 @@ export class World {
     this.projectiles = new DynamicEntities('projectile');
     this.effects = new Effects();
     this.terrain = null; // Optional deterministic geology (M05)
+    this.territory = null; // Supplied by game bootstrap; optional for editor fixtures
     this.survival = false; // Existing world.place remains a sandbox constructor
     this.stockpiles = new Map(); // Nation's deliveries to its tower
 
@@ -136,6 +138,13 @@ export class World {
     const position = this.canPlace(type, x, y, rotation);
     if (!position.ok) return position;
     if (!this.survival) return position;
+    // The ENTIRE footprint must belong to the builder, not just its center.
+    if (this.territory) {
+      for (let dy = 0; dy < position.height; dy++)
+        for (let dx = 0; dx < position.width; dx++)
+          if (!ownerId || this.territory.ownerAt(x + dx, y + dy) !== ownerId)
+            return { ok: false, reason: 'territory' };
+    }
     const cost = BUILD_COSTS[type];
     if (cost == null) return { ok: false, reason: 'restricted' };
     const ore = this.terrain && (

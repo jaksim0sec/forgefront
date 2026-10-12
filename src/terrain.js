@@ -40,7 +40,12 @@ export class Terrain {
     const detail = this.noise(x / 9, y / 9, 83);
     // Folded ridge noise produces meaningful high ground without a height map.
     const fold = 1 - Math.abs(2 * this.noise(x / 42, y / 42, 59) - 1);
-    let height = clamp01(0.08 + continents * 0.43 + hills * 0.22 + detail * 0.09 + fold * 0.25);
+    // Long folded ridge bands turn random hill noise into navigable valleys,
+    // raised plateaus and continuous natural defensive walls.
+    const ridgeWave = 1 - Math.abs(Math.sin(x * 0.048 + y * 0.021 + continents * 5));
+    const ridgePeak = smooth(clamp01((ridgeWave - 0.73) / 0.27));
+    let height = clamp01(0.08 + continents * 0.43 + hills * 0.22 +
+      detail * 0.09 + fold * 0.25 + ridgePeak * 0.25);
 
     // Do not strand the starter core or scripted early deposits on cliffs.
     const anchors = [{x:0,y:0,r:7}, ...STARTER_VEINS.map(v=>({x:v.x,y:v.y,r:4}))];

@@ -1,6 +1,6 @@
 # FORGEFRONT
 
-Browser-based industrial territory strategy game. **Current stage: M06 territory groundwork (industrial progression remains playable).** Static app with no server-side gameplay code or runtime dependencies.
+Browser-based industrial territory strategy game. **Current stage: M07 early defense prototype; territory-restricted industrial progression remains playable.** Static app with no server-side gameplay code or runtime dependencies.
 
 ## Implemented
 
@@ -45,6 +45,18 @@ The new `src/progression.js` owns the recipes/build costs, `src/terrain.js` gene
 - `src/territory-render.js` bakes nation colors and border-only outlines into at most one image per visible 16×16 chunk; repaint happens only when tower ownership changes or new chunks become visible. The UI includes a territory visibility toggle and selected structure's territory status.
 - Build-blocking highlands now share the public `CLIFF_HEIGHT = 0.78` constant with the terrain art. The ground layer paints actual impassable cells as clear basalt cliff faces with bright upper edges, dark strata and relief shadows; the hover HUD identifies them as **절벽**. Existing construction rules and free routing behavior are unchanged.
 - This is a **territory influence foundation**, not full conquest gameplay. Tower logistics still work, and the map is designed to accommodate future front lines and units without changing the industry tick.
+
+## M07 — Territory building rules, terrain relief and first defense prototype
+
+- **Territorial construction:** in survival mode the game injects the current `Territory` index into `World`. Every occupied tile of a proposed structure footprint must belong to the constructing nation. Neutral and enemy tiles cannot be used, even for a zero-cost collector or a single conveyor. The unrestricted `World.place()` path stays available only as a fixture/editor primitive.
+- **Atomic conveyor borders:** preview and commit both validate the entire conveyor route, including enemy-owned existing belts; an invalid segment cannot leave a partially installed route. The no-cost example facility is restricted to the northern starting territory.
+- **Topographic relief:** deterministic ridgeline bands now create long walls and valleys, with raised-step shadows, terrace edges, visible rock faces and cliff highlights. Building cutoff and render cutoff continue to share the same `CLIFF_HEIGHT`; starter material veins remain accessible.
+- **Defensive turret:** new 2×2 `turret` structure with unique SVG sprite, 260 health and material cost of 12 lead + 6 iron. It needs 2 power from the existing `PowerGrid`, acquires hostile scouting units within 9 tiles, and fires bounded projectile entities that apply real unit health damage.
+- **Terrain in combat:** steep slopes slow scouting units and impassable cliffs block movement and turret line of sight. Small manually initiated drone raids approach the chosen nation's central command tower and can inflict limited structural damage on reaching it. There are no unsolicited attacks or autonomous enemy production.
+- **Batching:** `src/combat.js` operates on the existing `world.units`/`world.projectiles` registries without any dependency on rendering. `src/combat-render.js` draws interpolated units and projectiles on one passive Canvas2D layer with no per-unit DOM elements. The frame loop stops when no dynamic objects remain.
+- The BUILD bar includes the turret, its range is drawn while selected, and the toolbox has a manual scout raid test action.
+
+The unit movement here is a local training scenario, not yet full pathfinding or battlefield AI. There is no automatic tower capture, ammo industry, ammunition routing, real-player multiplayer or sophisticated combat balancing yet.
 
 ## Controls
 
@@ -97,8 +109,8 @@ Optional focused checks: `npm test` (Node.js). No external dependencies.
 ### Next milestones
 
 - M05: first economy, recipe and local-power vertical slice implemented; refine network topology and balance.
-- M06: basic faction influence and drawn boundaries are in place; next add capture conditions, neutral strongholds and territory-dependent power/production activation (without blocking early industrial progression).
-- M07: defense lines, attack units and real projectile simulation; spatial indexing for moving entities.
+- M06: basic faction influence, drawn boundaries and full-footprint owned-territory build restrictions implemented; next add real capture conditions and territory-aware industry operation.
+- M07: first powered defense turret, bounded scout units and real projectile damage implemented; next expand to attack units, defense lines, mobile-unit spatial indexing and proper navigation.
 - M08: persistent world/save snapshots, bulk-logistics optimizations and profile-guided rendering upgrades.
 
 Not implemented: multiplayer, proper physical power cables, unit-based territorial capture, advanced full-factory recipes/balancing, pathfinding or automated combat. SVG assets and game logic are separate to keep them editable and cheap to render.
