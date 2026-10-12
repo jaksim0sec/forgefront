@@ -291,3 +291,13 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 @media(max-width:730px) {
   #game-hud.panel-collapsed { right:9px; bottom:max(8px,env(safe-area-inset-bottom)); }
 }
+
+/* Lightweight, viewport-culled activity cues. */
+.machine-status-dot { stroke:#17232b; stroke-width:1.4; }
+.machine-operating .machine-status-dot { animation:factory-led 1.5s ease-in-out infinite; transform-box:fill-box; }
+.machine-blocked .machine-status-dot { animation:factory-warning 2s ease-in-out infinite; }
+@keyframes factory-led { 50% { opacity:.4; } }
+@keyframes factory-warning { 50% { opacity:.55; } }
+@media(prefers-reduced-motion:reduce) {
+  .machine-status-dot { animation:none !important; }
+}
