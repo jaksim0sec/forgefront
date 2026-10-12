@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="납 자원 아이콘"><title>납</title><g stroke-linejoin="round"><!-- rear fractured galena cube -->
+<path d="M40 23 59 15 77 24 78 45 61 56 40 46Z" fill="#596066"/>
+<path d="M40 23 59 15 77 24 58 34Z" fill="#92979A"/>
+<path d="M58 34 77 24 78 45 61 56Z" fill="#41494F"/>
+<path d="M40 23 58 34 61 56 40 46Z" fill="#6C7276"/>
+<!-- left jagged raw cube -->
+<path d="m14 48 11-15 22 2 10 19-11 19-23 2-12-14Z" fill="#50585C"/>
+<path d="m25 33 22 2 10 19-26-2Z" fill="#858A8C"/>
+<path d="m11 61 20-9 15 21-23 2Z" fill="#70787C"/>
+<!-- heavy front galena cleavage -->
+<path d="m33 53 26-9 17 12-2 20-28 9-19-15Z" fill="#555E63"/>
+<path d="m33 53 26-9 17 12-29 10Z" fill="#959A9C"/>
+<path d="m47 66 29-10-2 20-28 9Z" fill="#414A4F"/>
+<path d="m33 53 14 13-1 19-19-15Z" fill="#6B7275"/>
+<path d="m42 45 8-3 5 5-8 3Z" fill="#C0C3C1" opacity=".35"/></g></svg>
