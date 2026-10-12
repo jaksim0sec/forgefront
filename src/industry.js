@@ -37,7 +37,7 @@ export class Industry {
     if (!entity.enabled || entity.health <= 0) return false;
     const definition = STRUCTURES[entity.type];
     if (this.totalStock(entity) >= definition.itemCapacity) return false;
-    return entity.type !== 'conveyor' || entity.itemCount === 0 || entity.itemId === itemId;
+    return (entity.type !== 'conveyor' && entity.type !== 'junction') || entity.itemCount === 0 || entity.itemId === itemId;
   }
   insert(entity, id, amount=1) {
     if ((entity.type === 'conveyor' || entity.type === 'junction')) {
