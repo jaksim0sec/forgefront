@@ -1,6 +1,7 @@
 import { CAMERA_CONFIG } from './camera.js';
 import { STRUCTURES, tileToWorld, worldToTile } from './world.js';
-import { nationColor } from './nations.js';
+import { nationColor, nationSigil } from './nations.js';
+import { RESOURCES } from './resources.js';
 import { DIRECTIONS } from './ports.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -31,11 +32,13 @@ function moveSprite(element, structure, camera) {
   const use = element.firstElementChild;
   use.setAttribute('width', w);
   use.setAttribute('height', h);
-  const marker = element.lastElementChild;
-  marker.setAttribute('x', 6 * camera.zoom);
-  marker.setAttribute('y', 6 * camera.zoom);
-  marker.setAttribute('width', 12 * camera.zoom);
-  marker.setAttribute('height', 4 * camera.zoom);
+  element.querySelector('.insignia')?.setAttribute('transform', `translate(${5 * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
+  element.querySelector('.cargo-overlay')?.setAttribute('transform',
+    `translate(${(def.width * 48 - 25) * camera.zoom} ${5 * camera.zoom}) scale(${camera.zoom})`);
+  const health = element.querySelector('.structure-health');
+  health?.setAttribute('transform', `translate(${5 * camera.zoom} ${(def.height * 48 - 7) * camera.zoom}) scale(${camera.zoom})`);
+  health?.firstElementChild?.setAttribute('width', def.width * 48 - 10);
+  health?.lastElementChild?.setAttribute('width', (def.width * 48 - 10) * structure.health / structure.maxHealth);
 }
 
 export class BuildingRenderer {
@@ -43,6 +46,8 @@ export class BuildingRenderer {
     this.layer = svg.querySelector('#structures-layer');
     this.hover = svg.querySelector('#tile-highlight');
     this.linksLayer = svg.querySelector('#connections-layer');
+    this.routeLayer = svg.querySelector('#route-preview');
+    this.routeBlock = svg.querySelector('#route-block');
     this.connections = connections;
     this.linkElements = new Map();
     this.world = world;
@@ -90,7 +95,31 @@ export class BuildingRenderer {
     }
   }
 
-  draw(tool, hoverTile, rotation, selectedId, showLinks = true) {
+  drawRoute(preview) {
+    if (!preview?.route?.length) {
+      this.routeLayer.setAttribute('visibility', 'hidden');
+      this.routeBlock.setAttribute('visibility', 'hidden');
+      return;
+    }
+    const tile = CAMERA_CONFIG.tileSize;
+    const points = preview.route.map(({ x, y }) =>
+      this.camera.worldToScreen((x + .5) * tile, (y + .5) * tile));
+    this.routeLayer.setAttribute('d', points.map((p, i) =>
+      `${i ? 'L' : 'M'}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' '));
+    this.routeLayer.setAttribute('stroke-width', Math.max(4, tile * this.camera.zoom * .72));
+    this.routeLayer.setAttribute('class', preview.plan.ok ? 'route-preview valid' : 'route-preview invalid');
+    this.routeLayer.setAttribute('visibility', 'visible');
+    if (preview.plan.blocked) {
+      const p = this.camera.worldToScreen(preview.plan.blocked.x * tile, preview.plan.blocked.y * tile);
+      this.routeBlock.setAttribute('x', p.x);
+      this.routeBlock.setAttribute('y', p.y);
+      this.routeBlock.setAttribute('width', tile * this.camera.zoom);
+      this.routeBlock.setAttribute('height', tile * this.camera.zoom);
+      this.routeBlock.setAttribute('visibility', 'visible');
+    } else this.routeBlock.setAttribute('visibility', 'hidden');
+  }
+
+  draw(tool, hoverTile, rotation, selectedId, showLinks = true, preview = null) {
     const { camera, world } = this;
     const a = camera.screenToWorld(0, 0);
     const b = camera.screenToWorld(camera.width, camera.height);
@@ -105,16 +134,52 @@ export class BuildingRenderer {
         const use = document.createElementNS(NS, 'use');
         use.setAttribute('href', `#s-${structure.type}`);
         node.appendChild(use);
-        const marker = document.createElementNS(NS, 'rect');
-        marker.setAttribute('class', 'nation-marker');
-        marker.setAttribute('rx', '1.5');
-        node.appendChild(marker);
+        const cargo = document.createElementNS(NS, 'g');
+        cargo.setAttribute('class', 'cargo-overlay');
+        cargo.setAttribute('visibility', 'hidden');
+        const resourceIcon = document.createElementNS(NS, 'image');
+        resourceIcon.setAttribute('x', '0');
+        resourceIcon.setAttribute('y', '0');
+        resourceIcon.setAttribute('width', '17');
+        resourceIcon.setAttribute('height', '17');
+        cargo.appendChild(resourceIcon);
+        const resourceAmount = document.createElementNS(NS, 'text');
+        resourceAmount.setAttribute('x', '8');
+        resourceAmount.setAttribute('y', '22');
+        resourceAmount.setAttribute('text-anchor', 'middle');
+        resourceAmount.setAttribute('class', 'cargo-count');
+        cargo.appendChild(resourceAmount);
+        node.appendChild(cargo);
+        const insignia = document.createElementNS(NS, 'g');
+        insignia.setAttribute('class', 'insignia');
+        insignia.setAttribute('visibility', 'hidden');
+        insignia.innerHTML = '<rect class="insignia-recess" x="0" y="0" width="16" height="17" rx="3"/><path class="insignia-rune" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>';
+        node.appendChild(insignia);
+        const health = document.createElementNS(NS, 'g');
+        health.setAttribute('class', 'structure-health');
+        health.innerHTML = '<rect height="3.1" rx="1" fill="#141c22" /><rect height="3.1" rx="1" fill="#9eb5ad" />';
+        node.appendChild(health);
         this.layer.appendChild(node);
         this.elements.set(structure.id, node);
       }
       moveSprite(node, structure, camera);
       node.style.setProperty('--nation-color', nationColor(structure.ownerId));
-      node.setAttribute('opacity', selectedId === structure.id ? '0.78' : '1');
+      const sigil = nationSigil(structure.ownerId);
+      node.querySelector('.insignia').setAttribute('visibility', sigil ? 'visible' : 'hidden');
+      node.querySelector('.insignia-rune').setAttribute('d', sigil);
+      node.querySelector('.structure-health').setAttribute('visibility',
+        selectedId === structure.id || structure.health < structure.maxHealth ? 'visible' : 'hidden');
+      const cargo = node.querySelector('.cargo-overlay');
+      const firstItem = structure.type === 'conveyor' ? structure.itemId :
+        Object.keys(structure.inventory ?? {}).find(id => structure.inventory[id] > 0);
+      const amount = structure.type === 'conveyor' ? structure.itemCount : (structure.inventory?.[firstItem] ?? 0);
+      const resource = RESOURCES[firstItem];
+      cargo.setAttribute('visibility', resource && amount && camera.zoom >= .68 ? 'visible' : 'hidden');
+      if (resource && amount && camera.zoom >= .68) {
+        cargo.firstElementChild.setAttribute('href', resource.icon);
+        cargo.lastElementChild.textContent = amount > 99 ? '99+' : String(amount);
+      }
+      node.setAttribute('opacity', '1');
     }
     for (const [id, node] of this.elements) {
       if (!active.has(id)) {
@@ -124,6 +189,7 @@ export class BuildingRenderer {
     }
 
     this.drawLinks(active, selectedId, showLinks);
+    this.drawRoute(preview);
     if (!hoverTile) {
       this.hover.setAttribute('visibility', 'hidden');
       return;

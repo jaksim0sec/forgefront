@@ -14,7 +14,7 @@ export class ItemConnections {
     this.revision = 0;
     this.lastRebuilt = 0; // diagnostic: number of nodes revisited on last mutation
     this.unsubscribe = world.subscribe(change => {
-      if (change.type === 'place' || change.type === 'remove') this.rebuildAround(change.entity);
+      if (change.type === 'place' || change.type === 'remove' || change.type === 'rotate') this.rebuildAround(change.entity);
     });
     // Supports construction after a world has already been populated.
     for (const entity of world.structures.values()) this.rebuildAround(entity);

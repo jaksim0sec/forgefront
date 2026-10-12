@@ -1,62 +1,58 @@
 # FORGEFRONT
 
-A browser-based industrial territory strategy game. The production and construction layer takes inspiration from complex factory games; territorial warfare will be developed separately.
+Browser-based industrial territory strategy game. **Current stage: M04 factory interaction prototype.** Static app with no server-side gameplay code or runtime dependencies.
 
-## M03 — Item connection foundation
+## Implemented
 
-**Current interactive prototype:** a 2048 × 2048 logical-tile map with sparse occupancy and directional item-port networks.
+- **Map foundation:** 2048 × 2048 logical tile coordinates; sparse 32×32 allocation for occupied chunks, ID-indexed structures.
+- **Camera:** arrow keys / wheel, one-finger pan / two-finger pinch, clamped 40–300% zoom.
+- **Industrial editor:** multi-tile footprints, placement, removal, rotation, canvas culling.
+- **Conveyor route drawing:** click and drag on desktop; tile gap filling, corner turns, preview, auto-selected conveyor orientation, reorientation of existing route tiles. Placement validated before commit and connections rebuilt around changed neighbors rather than globally.
+- **Touch gestures:** one-finger camera pan by default; separate "터치 경로 건설" toggle to draw conveyor paths. Pinch cancels any incomplete touch stroke. Tap still places a single building or conveyor.
+- **Directional item connectivity:** input/output ports on all four sides where configured, with incremental graph updates when structures rotate or are installed/destroyed.
+- **Structure state:** health and max health, enabled flag, activity, production progress and item inventory. Test damage and enable/disable from inspector.
+- **Entity hierarchy:** dynamic unit and projectile registries have health without occupying building tiles; visual effects are separate and have no health.
+- **Resources:** six original SVGs in `source/resources/` linked via `src/resources.js`. Resource library and inventory icons are visible in UI.
+- **Industrial vertical slice:** a drill produces a configurable raw resource; nearby conveyors carry items at a capped rate into a receiving structure. This is a **placeholder logistics experiment**, not finalized recipes, power generation or terrain deposits.
+- **Nation identity:** steel/neutral building shells with subtle engraved faction rune; faction identity controlled through `--nation-color`, not a full-building tint. Nation registry can be expanded.
 
-- **M01:** touch drag, two-finger pinch, desktop arrow pan and wheel zoom (40–300%), with stable screen ↔ world coordinates.
-- **M02:** sparse 32×32 tile chunks, multi-tile structure placement, rotation, collision checks and removal. Empty logical tiles allocate no objects.
-- **M03:** item input/output ports (including rectangular rotated structures); directional OUT → IN connections automatically updated when structures are placed or removed. No full-world scan on routine edits.
-- **Nation visuals:** neutral industrial structure colors; owner-specific CSS variable `--nation-color` controls only a small marker. Two initial nations are configured in `src/nations.js` and new ones can be added there. Ownership does not yet enforce construction or routing rules.
-- **Visualization:** small connection arrows, per-structure IN/OUT diagnostics, connection count, and opt-in sample production line.
+## Controls
 
-### Controls
+| Input | Result |
+| --- | --- |
+| PC arrow keys / scroll | Move / zoom camera |
+| PC conveyor tool + mouse drag | Draw continuous conveyor route |
+| PC right-click | Remove building |
+| Mobile one finger | Pan camera |
+| Mobile two fingers | Pinch zoom; cancel pending paint |
+| Mobile touch drawing toggle + conveyor tool | Draw a conveyor route |
+| Tap / click building tool | Place selected prototype building |
+| R / Rotate button | Rotation for new structures |
+| V / X | Select / delete mode |
+| 1 / 2 / 3 / 4 | Conveyor / drill / smelter / generator |
+| Faction controls | Set owner for new or selected structures |
+| Sample button | Place test drill → belt → receiver system |
 
-| Action | Desktop | Mobile |
-| --- | --- | --- |
-| Pan | Arrow keys | One-finger drag |
-| Zoom | Wheel/trackpad | Two-finger pinch |
-| Select or place | Click | Tap |
-| Rotate | R or button | Rotate button |
-| Tools | 1–4, V, X or toolbar | Toolbar |
-| Remove | Right click / X tool | Remove tool |
-| Nation marker | Nation buttons | Nation buttons |
-| Inspect example | `생산라인 예시` button | Same |
+Select a building to view its health, current stock and activity. Drill resources can be changed in the inspector.
 
-Use the nation buttons while a structure is selected to change its owner marker, or choose a nation before placing a new structure. There is no actual territory capture yet.
+## Local run
 
-### Run
-
-No external runtime dependencies or build tools are needed.
-
-```bash
+```sh
 python3 -m http.server 8080
 # Open http://localhost:8080
 ```
 
-For tests (Node.js):
+Optional focused checks: `npm test` (Node.js). No external dependencies.
 
-```bash
-npm test
-```
+## Architecture
 
-### Architecture
+`src/world.js` is the single owner of structures and sparse occupancy; `src/routes.js` computes tentative conveyor paths; `src/ports.js` and `src/connections.js` calculate directed contacts; `src/industry.js` advances only active producers and occupied belts; `src/entities.js` manages units/projectiles separately; `src/resources.js` resolves SVG metadata; `src/render.js` handles only visible SVG elements; `src/main.js` contains the gesture and editor state machine. Nation insignia and metadata live in `src/nations.js`.
 
-- `src/camera.js` — independent screen/world camera math
-- `src/world.js` — bounded logical map, entity registry, sparse occupancy and mutation hooks
-- `src/ports.js` — oriented, typed item-port positions at actual footprint boundaries
-- `src/connections.js` — incremental directional link graph, upstream/downstream queries
-- `src/nations.js` — extensible nation metadata and color tokens
-- `src/render.js` — neutral SVG symbols, CSS-based small ownership markers, viewport culling and connection arrows
-- `src/main.js` — keyboard, touch, wheel and editor integration
-- `tests/...` — deterministic connectivity, changes, orientation, camera and regression tests
+### Next milestones
 
-### Deliberately not implemented yet
+- M05: terrain/ore deposits, per-building resource recipes, stockpiles and power graphs with tower-provided base power.
+- M06: faction towers, ownership/territory bounds, capture and territory-dependent power activation.
+- M07: defense lines, attack units and real projectile simulation; spatial indexing for moving entities.
+- M08: persistent world/save snapshots, bulk-logistics optimizations and profile-guided rendering upgrades.
 
-- No resource items move through conveyors yet. Ports describe **possible paths**, not simulation, crafting recipes or throughput.
-- Electricity, fuel, territory capture, tower rules, units, projectiles, saves and multiplayer remain future work.
-- Nation ownership is currently metadata/visual only; cross-nation item links are allowed until warfare and access rules are designed.
-
-The connection engine operates over *existing structures and immediate neighbors*, not millions of empty tiles. Visual rendering never decides whether a structure actually exists or operates.
+Not implemented: multiplayer, functional terrain deposits, advanced factory recipes, actual power consumption, territory capture, pathfinding or automated combat. SVG assets and game logic are separate to keep them editable and cheap to render.

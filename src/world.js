@@ -1,11 +1,13 @@
 import { CAMERA_CONFIG } from './camera.js';
+import { DynamicEntities, Effects } from './entities.js';
+import { RESOURCES } from './resources.js';
 
 export const WORLD_CONFIG = Object.freeze({ width: 2048, height: 2048, chunkSize: 32 });
 export const STRUCTURES = Object.freeze({
-  conveyor: Object.freeze({ label: '컨베이어', width: 1, height: 1 }),
-  drill: Object.freeze({ label: '채굴기', width: 2, height: 2 }),
-  smelter: Object.freeze({ label: '제련소', width: 3, height: 2 }),
-  generator: Object.freeze({ label: '발전기', width: 2, height: 2 }),
+  conveyor: Object.freeze({ label: '컨베이어', width: 1, height: 1, maxHealth: 55, itemCapacity: 3, itemsPerSecond: 5 }),
+  drill: Object.freeze({ label: '채굴기', width: 2, height: 2, maxHealth: 180, itemCapacity: 12, itemsPerSecond: 1 }),
+  smelter: Object.freeze({ label: '제련소', width: 3, height: 2, maxHealth: 300, itemCapacity: 24, powerUse: 12 }),
+  generator: Object.freeze({ label: '발전기', width: 2, height: 2, maxHealth: 220, itemCapacity: 16, powerOutput: 20 }),
 });
 export function worldToTile(worldX, worldY) {
   return { x: Math.floor(worldX / CAMERA_CONFIG.tileSize), y: Math.floor(worldY / CAMERA_CONFIG.tileSize) };
@@ -35,6 +37,11 @@ export class World {
     this.nextId = 1; // 0 = empty cell
     this.revision = 0;
     this.listeners = new Set();
+    this.batchDepth = 0;
+    this.pendingChanges = [];
+    this.units = new DynamicEntities('unit');
+    this.projectiles = new DynamicEntities('projectile');
+    this.effects = new Effects();
   }
 
   subscribe(listener) {
@@ -44,7 +51,57 @@ export class World {
 
   changed(type, entity) {
     this.revision++;
-    for (const listener of this.listeners) listener({ type, entity });
+    const change = { type, entity };
+    if (this.batchDepth) this.pendingChanges.push(change);
+    else for (const listener of this.listeners) listener(change);
+  }
+
+  batch(fn) {
+    this.batchDepth++;
+    try { return fn(); }
+    finally {
+      if (--this.batchDepth === 0) {
+        const pending = this.pendingChanges;
+        this.pendingChanges = [];
+        for (const change of pending) for (const listener of this.listeners) listener(change);
+      }
+    }
+  }
+
+  rotateConveyor(id, rotation) {
+    const entity = this.structures.get(id);
+    if (!entity || entity.type !== 'conveyor' || !Number.isInteger(rotation)) return false;
+    const next = ((rotation % 4) + 4) % 4;
+    if (next === entity.rotation) return true;
+    entity.rotation = next;
+    this.changed('rotate', entity);
+    return true;
+  }
+
+  damageStructure(id, amount) {
+    const entity = this.structures.get(id);
+    if (!entity || !Number.isFinite(amount) || amount <= 0) return null;
+    entity.health = Math.max(0, entity.health - amount);
+    if (entity.health === 0) this.remove(id);
+    else this.changed('state', entity);
+    return entity.health;
+  }
+
+  setEnabled(id, enabled) {
+    const entity = this.structures.get(id);
+    if (!entity) return false;
+    entity.enabled = !!enabled;
+    this.changed('state', entity);
+    return true;
+  }
+
+  setDrillResource(id, resourceId) {
+    const entity = this.structures.get(id);
+    if (!entity || entity.type !== 'drill' || RESOURCES[resourceId]?.kind !== 'raw') return false;
+    entity.resourceId = resourceId;
+    entity.progress = 0;
+    this.changed('state', entity);
+    return true;
   }
 
   setOwner(id, ownerId) {
@@ -106,6 +163,16 @@ export class World {
     const entity = {
       id: this.nextId++, type, x, y, width: check.width, height: check.height,
       rotation: check.rotation, ownerId,
+      maxHealth: STRUCTURES[type].maxHealth,
+      health: STRUCTURES[type].maxHealth,
+      enabled: true,
+      activity: 'idle',
+      progress: 0,
+      moveProgress: 0,
+      itemId: null, // one-item-type fast lane for conveyor
+      itemCount: 0,
+      inventory: type === 'conveyor' ? null : Object.create(null),
+      resourceId: type === 'drill' ? 'iron' : null,
     };
     this.structures.set(entity.id, entity);
     for (let dy = 0; dy < entity.height; dy++) {

@@ -167,3 +167,53 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
  .toolbox-actions button { padding:6px 4px; }
  .status-item.wide { min-width:75px; }
 }
+
+
+/* M04: editable, orthographic industrial UI. Nation hue appears only inside
+   inset faction engravings, never as the structure's primary material. */
+.insignia-recess { fill:#18232b; stroke:#5d7380; stroke-width:1; }
+.insignia-rune { stroke:var(--nation-color, #9aa4ab); opacity:.96; }
+.structure-health rect { pointer-events:none; }
+.cargo-overlay { pointer-events:none; }
+.cargo-count { fill:#e4e9ec; font-size:9px; font-weight:750; paint-order:stroke; stroke:#1c2830; stroke-width:2.2; }
+.route-preview { fill:none; stroke-linejoin:round; stroke-linecap:round; stroke-opacity:.3; }
+.route-preview.valid { stroke:#76bba7; }
+.route-preview.invalid { stroke:#e77878; }
+.toolbox { max-height:calc(100dvh - 125px); overflow-y:auto; overscroll-behavior:contain; }
+.toolbox::-webkit-scrollbar { width:4px; }
+.toolbox::-webkit-scrollbar-thumb { background:#475865; border-radius:2px; }
+.owner-heading { display:flex; align-items:center; justify-content:space-between; }
+#nation-status { font-size:11px; color:var(--nation-color, #9aa4ab); font-weight:650; letter-spacing:.03em; }
+.owner-swatch { text-align:center; }
+.owner-swatch::before { height:2px; width:22px; opacity:.5; }
+.owner-swatch .swatch-rune { color:var(--nation-color,#9aa4ab); font-size:19px; vertical-align:middle; font-weight:650; }
+.resource-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; margin-top:4px; }
+.resource-chip { display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:6px 2px; font-size:9px; color:#9fb0ba; border:1px solid #394a55; border-radius:5px;
+  background:#1d2b35; text-align:center; }
+.resource-chip img { width:25px; height:25px; object-fit:contain; filter:drop-shadow(0 1px 1px #08101780); }
+.selection-panel { position:absolute; right:28px; top:92px; width:min(252px,30vw); padding:13px 14px;
+  color:#d8e4eb; background:#111a23e8; border:1px solid #43515e90; border-radius:10px;
+  pointer-events:auto; backdrop-filter:blur(16px); }
+.inspector-heading { color:#94abb9; font-size:10px; letter-spacing:.16em; margin-bottom:9px; font-weight:750; }
+.inspector-row { display:flex; align-items:center; justify-content:space-between; gap:7px;
+  padding:5px 0; font-size:11px; color:#9eafbb; border-top:1px solid #39495355; }
+.inspector-row output { text-align:right; font-size:11px; color:#dce7eb; }
+.inspector-row select { background:#263843; color:#e2ebef; border:1px solid #5b7480; padding:4px; border-radius:5px; font-size:11px; }
+.inspector-actions { display:flex; gap:6px; margin-top:10px; }
+.inspector-actions button { flex:1; border:1px solid #465c69; border-radius:5px; background:#293b47;
+ color:#c3d3dc; font-size:10px; cursor:pointer; padding:7px 3px; }
+.inspector-actions button:hover { background:#36505e; }
+#touch-draw[aria-pressed="true"] { border-color:#7fb29e; color:#c5efe0; background:#2d544a; }
+#selected-detail[hidden], #resource-picker[hidden] { display:none; }
+@media(max-width:730px) {
+ .toolbox { max-height:calc(100dvh - 185px); }
+ .resource-chip { padding:4px 1px; font-size:8px; }
+ .resource-chip img { width:20px; height:20px; }
+ .selection-panel { right:10px; top:61px; width:min(185px,calc(100vw - 184px)); padding:9px; }
+ .inspector-heading { letter-spacing:.06em; font-size:8px; }
+ .inspector-row, .inspector-row output { font-size:9px; }
+ .inspector-actions button { font-size:8px; }
+}
+
+.owner-swatch svg.swatch-rune { width:16px; height:16px; display:inline-block; color:var(--nation-color,#9aa4ab); vertical-align:-3px; margin-right:2px; }
