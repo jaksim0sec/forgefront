@@ -344,3 +344,14 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 #toolbox-panel.panel-collapsed .tool-list [data-tool="conveyor"],
 #toolbox-panel.panel-collapsed .tool-list [data-tool="erase"] { display:flex !important; }
 @media(prefers-reduced-motion:reduce){.flying-item{transition:none}}
+
+/* Rotate the actual SVG machine blades, not an added decorative rotor. */
+.real-blades {
+  transform-box:fill-box;
+  transform-origin:center;
+  animation:actual-blades 1.65s linear infinite;
+  animation-play-state:var(--blade-play,paused);
+}
+@keyframes actual-blades { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .real-blades { animation:none; } }
+.belt-motion,.machine-rotor { display:none !important; }
