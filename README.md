@@ -8,7 +8,7 @@ Browser-based industrial territory strategy game. **Current stage: M04 factory i
 - **Camera:** arrow keys / wheel, one-finger pan / two-finger pinch, clamped 40–300% zoom.
 - **Industrial editor:** multi-tile footprints, placement, removal, rotation, canvas culling.
 - **Conveyor route drawing:** click and drag on desktop; tile gap filling, corner turns, preview, auto-selected conveyor orientation, reorientation of existing route tiles. Placement validated before commit and connections rebuilt around changed neighbors rather than globally.
-- **Touch gestures:** one-finger camera pan by default; separate "터치 경로 건설" toggle to draw conveyor paths. Pinch cancels any incomplete touch stroke. Tap still places a single building or conveyor.
+- **Touch gestures:** one-finger pan by default; hold a building or conveyor tool on the map for 350ms, then drag to build. Moving before the hold pans the camera. Pinch cancels an incomplete conveyor stroke. Tap places a single building or conveyor.
 - **Directional item connectivity:** input/output ports on all four sides where configured, with incremental graph updates when structures rotate or are installed/destroyed.
 - **Structure state:** health and max health, enabled flag, activity, production progress and item inventory. Test damage and enable/disable from inspector.
 - **Entity hierarchy:** dynamic unit and projectile registries have health without occupying building tiles; visual effects are separate and have no health.
@@ -25,7 +25,7 @@ Browser-based industrial territory strategy game. **Current stage: M04 factory i
 | PC right-click | Remove building |
 | Mobile one finger | Pan camera |
 | Mobile two fingers | Pinch zoom; cancel pending paint |
-| Mobile touch drawing toggle + conveyor tool | Draw a conveyor route |
+| Mobile long press + drag with any building tool | Draw a conveyor route or repeat building placement |
 | Tap / click building tool | Place selected prototype building |
 | R / Rotate button | Rotation for new structures |
 | V / X | Select / delete mode |
