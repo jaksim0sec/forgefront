@@ -49,7 +49,9 @@ function setPanelCollapsed(panel, collapsed) {
     button.setAttribute('aria-label', (panel.getAttribute('aria-label') ?? '창') + (collapsed ? ' 펼치기' : ' 접기'));
   }
 }
+let selectionDismissed = false;
 function dismissAuxiliaryPanels() {
+  selectionDismissed = true;
   byId('build-inspector').hidden = true;
   byId('selected-detail').hidden = true;
 }
@@ -236,7 +238,7 @@ function render() {
   ui.stock.textContent = stocked.length ? stocked.map(([k,v])=>`${RESOURCES[k]?.label ?? k} ${v}`).join(' · ') : '재고 없음';
   ui.resourcePicker.hidden = selected?.type !== 'drill';
   if (selected?.type === 'drill') ui.drillResource.value = selected.resourceId;
-  byId('selected-detail').hidden = !selected;
+  byId('selected-detail').hidden = !selected || selectionDismissed;
 }
 const BUILD_DESCRIPTIONS = Object.freeze({
   conveyor:'단방향 자원 운송 벨트. 드래그로 연속 설치하고 모서리는 자동으로 연결돼.',
@@ -341,6 +343,7 @@ function actionAt(point, alternate = false) {
     notifyBuild(created, tool);
     if (created.ok) selectedId = created.entity.id;
   } else { selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
+    selectionDismissed = false;
 
   }
   invalidate();
