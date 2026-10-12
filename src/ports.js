@@ -13,6 +13,7 @@ export const DIRECTIONS = Object.freeze([
 const port = (side, mode) => Object.freeze({ side, mode });
 export const ITEM_PORTS = Object.freeze({
   conveyor: Object.freeze([port(0, 'in'), port(1, 'in'), port(3, 'in'), port(2, 'out')]),
+  junction: Object.freeze([0, 1, 2, 3].flatMap(side => [port(side, 'in'), port(side, 'out')])),
   drill: Object.freeze([0, 1, 2, 3].map(side => port(side, 'out'))),
   smelter: Object.freeze([port(3, 'in'), port(1, 'out')]),
   generator: Object.freeze([port(3, 'in')]),
@@ -32,9 +33,7 @@ export function rotateCell(x, y, width, height, rotation) {
 export function itemPorts(structure, definitions) {
   const definition = definitions[structure.type];
   if (!definition) return [];
-  const rules = structure.type === 'conveyor' && structure.inputSide != null
-    ? [port((structure.inputSide - structure.rotation + 4) % 4, 'in'), port(2, 'out')]
-    : ITEM_PORTS[structure.type] ?? [];
+  const rules = ITEM_PORTS[structure.type] ?? [];
   const result = [];
   for (const { side, mode } of rules) {
     const horizontal = side === 0 || side === 2;
