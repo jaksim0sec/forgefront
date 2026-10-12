@@ -337,3 +337,10 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 .machine-operating .machine-rotor { transform-box:fill-box; transform-origin:center; animation:machine-spin 2s linear infinite; }
 @keyframes machine-spin { to { rotate:360deg; } }
 @media(prefers-reduced-motion:reduce) { .machine-rotor { animation:none !important; } }
+
+.flying-item { pointer-events:none; transition:transform .29s linear; image-rendering:auto; filter:drop-shadow(0 1px 2px #061015); }
+#toolbox-panel.panel-collapsed > .tool-list { display:flex !important; }
+#toolbox-panel.panel-collapsed .tool-list [data-tool="select"],
+#toolbox-panel.panel-collapsed .tool-list [data-tool="conveyor"],
+#toolbox-panel.panel-collapsed .tool-list [data-tool="erase"] { display:flex !important; }
+@media(prefers-reduced-motion:reduce){.flying-item{transition:none}}
