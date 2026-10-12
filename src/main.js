@@ -167,7 +167,7 @@ function render() {
   ui.count.textContent = world.structures.size;
   ui.chunks.textContent = world.chunks.size;
   ui.links.textContent = connections.linkCount;
-  ui.power.textContent = `${industry.power.supply} / ${industry.power.demand}`;
+  ui.power.textContent = `${industry.power.supply} 공급 / ${industry.power.demand} 필요`;
   const wallet = world.walletFor(activeOwner);
   for (const id of Object.keys(RESOURCES)) {
     const node = byId('stock-' + id);
@@ -177,6 +177,15 @@ function render() {
   }
   ui.rotation.textContent = rotation * 90 + '°';
   const selected = world.structures.get(selectedId);
+  const powerRadius = byId('power-radius');
+  const source = selected && (selected.type === 'tower' || selected.type === 'generator' ? selected : world.structures.get(selected.powerSourceId));
+  const activeSource = source && (source.type === 'tower' || source.burnRemaining > 0);
+  if (activeSource) {
+    const pos = camera.worldToScreen((source.x + source.width / 2) * CAMERA_CONFIG.tileSize, (source.y + source.height / 2) * CAMERA_CONFIG.tileSize);
+    powerRadius.setAttribute('cx', pos.x); powerRadius.setAttribute('cy', pos.y);
+    powerRadius.setAttribute('r', (source.type === 'tower' ? 10 : 18) * CAMERA_CONFIG.tileSize * camera.zoom);
+    powerRadius.setAttribute('visibility', 'visible');
+  } else powerRadius.setAttribute('visibility','hidden');
   ui.selected.textContent = selected ?
     `${STRUCTURES[selected.type].label} #${selected.id} · ${nationLabel(selected.ownerId)}` :
     (tool === 'select' ? '타일 또는 건물을 선택해 봐' : tool === 'erase' ? '건물 철거 모드' :
@@ -186,7 +195,7 @@ function render() {
   ui.powerDetail.textContent = selected ? (
     selected.type === 'tower' ? '기본 출력 3' :
     selected.type === 'generator' ? (selected.burnRemaining > 0 ? '석탄 발전 중' : '석탄 필요') :
-    selected.powerUse ? `${selected.powerUse} 필요 · ${selected.powered ? '공급 중' : '부족'}` : '불필요'
+    selected.powerUse ? `${selected.powerUse} 필요 · ${selected.powered ? '공급 중' : ({capacity:'전력 용량 부족',range:'공급 범위 밖',source:'가동 중인 같은 국가 발전원 없음'}[selected.powerReason] ?? '전력 부족')}` : '불필요'
   ) : '—';
   const recipe = selected ? RECIPES[selected.type] : null;
   ui.production.textContent = !selected ? '—' :
@@ -203,7 +212,7 @@ function render() {
 }
 const BUILD_DESCRIPTIONS = Object.freeze({
   conveyor:'단방향 자원 운송 벨트. 드래그로 연속 설치하고 모서리는 자동으로 연결돼.',
-  junction:'서로 다른 벨트 경로의 자원을 중계하는 교차기.',
+  junction:'서로 다른 벨트 경로의 자원을 기계에도 분배해.',
   leadCollector:'지표에서 납을 채집하는 기본 시설. 전기가 필요 없어.',
   drill:'철·석탄 광맥에서 자원을 채굴하는 기본 드릴.',
   smelter:'납과 철을 제련해 발전 설비 제작에 필요한 금속 부품을 생산해.',
