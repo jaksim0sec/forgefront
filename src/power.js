@@ -73,6 +73,9 @@ export class PowerGrid {
           sourceId = closest.entity.id;
         }
       }
+      const reason = powered ? 'connected' : sources.some(candidate => candidate.entity.ownerId === e.ownerId && this.distance(e, candidate.entity) <= candidate.radius) ? 'capacity' : sources.some(candidate => candidate.entity.ownerId === e.ownerId) ? 'range' : 'source';
+      if (e.powerReason !== reason) changed = true;
+      e.powerReason = reason;
       if (e.powered !== powered || e.powerSourceId !== sourceId) changed = true;
       e.powered = powered;
       e.powerSourceId = sourceId;
