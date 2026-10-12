@@ -73,6 +73,18 @@
       <div id="build-message" role="status" class="build-message"></div>
       <div id="resource-list" class="resource-list" aria-label="등록된 자원 6종"></div>
     </aside>
+    <section class="build-inspector" id="build-inspector" aria-live="polite" hidden>
+      <svg class="build-hero" viewBox="0 0 100 100" aria-hidden="true"><use id="build-preview-sprite" href="#s-conveyor" width="100" height="100"/></svg>
+      <h2 class="build-name" id="build-preview-name"></h2>
+      <p class="build-description" id="build-preview-description"></p>
+      <div class="build-meta">
+        <span>크기</span><strong id="build-preview-size"></strong>
+        <span>내구도</span><strong id="build-preview-health"></strong>
+        <span>건설비</span><strong id="build-preview-cost"></strong>
+        <span>전력</span><strong id="build-preview-power"></strong>
+      </div>
+      <div class="build-hint">선택 후 맵에서 설치 · R 회전</div>
+    </section>
     <section class="selection-panel" id="selected-detail" hidden aria-label="선택 구조물 상태">
       <div class="inspector-heading">STRUCTURE STATUS</div>
       <div class="inspector-row"><span>내구도</span><output id="selected-health">—</output></div>

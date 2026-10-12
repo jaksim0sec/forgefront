@@ -169,9 +169,64 @@ function render() {
   if (selected?.type === 'drill') ui.drillResource.value = selected.resourceId;
   byId('selected-detail').hidden = !selected;
 }
+const BUILD_DESCRIPTIONS = Object.freeze({
+  conveyor:'단방향 자원 운송 벨트. 드래그로 연속 설치하고 모서리는 자동으로 연결돼.',
+  junction:'서로 다른 벨트 경로의 자원을 중계하는 교차기.',
+  leadCollector:'지표에서 납을 채집하는 기본 시설. 전기가 필요 없어.',
+  drill:'철·석탄 광맥에서 자원을 채굴하는 기본 드릴.',
+  smelter:'납과 철을 제련해 발전 설비 제작에 필요한 금속 부품을 생산해.',
+  generator:'석탄을 태워 주변 고전력 산업 시설에 전기를 공급해.',
+  poweredDrill:'석탄과 전기를 소비해 티타늄 광맥을 채굴하는 고급 장비.',
+  siliconPlant:'철과 석탄을 가공해 실리콘을 생산해.',
+  superconductorPlant:'철·석탄·실리콘과 전력으로 초전도체를 합성해.',
+});
+function showBuildInfo(type) {
+  const panel = byId('build-inspector');
+  if (!STRUCTURES[type]) { panel.hidden = true; return; }
+  const def = STRUCTURES[type], cost = BUILD_COSTS[type] ?? {};
+  panel.hidden = false;
+  byId('build-preview-sprite').setAttribute('href', '#s-' + type);
+  byId('build-preview-name').textContent = def.label;
+  byId('build-preview-description').textContent = BUILD_DESCRIPTIONS[type] ?? '산업용 구조물';
+  byId('build-preview-size').textContent = def.width + ' × ' + def.height;
+  byId('build-preview-health').textContent = String(def.maxHealth);
+  byId('build-preview-cost').textContent = Object.keys(cost).length ?
+    Object.entries(cost).map(([id,amount])=> (RESOURCES[id]?.label ?? id) + ' ' + amount).join(' · ') : '무료';
+  byId('build-preview-power').textContent = def.powerUse ? def.powerUse + ' 필요' :
+    def.powerOutput ? def.powerOutput + ' 공급' : '없음';
+}
+function setupBuildThumbnails() {
+  for (const button of toolButtons) {
+    const type = button.dataset.tool;
+    const label = button.textContent.trim().replace(/[0-9VX]$/,'').trim();
+    if (STRUCTURES[type]) {
+      const icon = button.querySelector('.tool-icon');
+      if (icon) icon.remove();
+      const sprite = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      sprite.setAttribute('viewBox','0 0 100 100');
+      sprite.setAttribute('class','build-mini');
+      const use = document.createElementNS('http://www.w3.org/2000/svg','use');
+      use.setAttribute('href','#s-'+type);
+      use.setAttribute('width','100');
+      use.setAttribute('height','100');
+      sprite.appendChild(use);
+      button.prepend(sprite);
+    }
+    const key = button.querySelector('kbd');
+    const caption = document.createElement('span');
+    caption.className = 'tool-label';
+    const text = [...button.childNodes].filter(x=>x.nodeType===Node.TEXT_NODE).map(x=>x.textContent).join('').trim();
+    caption.textContent = text || label;
+    for (const node of [...button.childNodes]) if (node.nodeType===Node.TEXT_NODE) node.remove();
+    if (key) button.insertBefore(caption,key); else button.appendChild(caption);
+  }
+}
+setupBuildThumbnails();
+
 function setTool(next) {
   if (next !== 'select' && next !== 'erase' && !STRUCTURES[next]) return;
   tool = next;
+  showBuildInfo(next);
   paint = null;
   selectedId = null;
   for (const button of toolButtons) {

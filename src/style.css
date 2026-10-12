@@ -232,3 +232,39 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
   .economy-hint, .build-message { font-size:9px; }
   .status-panel { max-width:100%; overflow-x:auto; }
 }
+
+/* Build catalog: compact true-to-world miniatures and separate detail surface. */
+.toolbox { width:212px; box-shadow:0 14px 40px #050b1266; }
+.tool-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.tool-list button { min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; padding:7px 3px 6px; border:1px solid #30434f; background:#1b2933; }
+.tool-list button.active { border-color:#9fc8d2; background:#304651; }
+.tool-list .tool-icon { display:none; }
+.tool-list .build-mini { width:53px; height:48px; display:block; filter:drop-shadow(0 2px 3px #09131b); }
+.tool-list .tool-label { display:block; font-size:10px; font-weight:650; text-align:center; min-height:14px; }
+.tool-list kbd { position:absolute; align-self:flex-end; margin-right:5px; font-size:8px; color:#8198a7; }
+.tool-list button { position:relative; }
+.build-inspector {
+  position:absolute; left:calc(28px + 222px); top:92px; width:220px;
+  padding:14px; border:1px solid #536672; border-radius:10px;
+  background:#101b25f0; color:#d9e5ea; box-shadow:0 14px 35px #04090f88;
+  pointer-events:none; backdrop-filter:blur(10px);
+}
+.build-inspector[hidden] { display:none; }
+.build-inspector .build-hero { width:78px; height:70px; display:block; margin:0 auto 8px; }
+.build-inspector .build-name { font-size:15px; font-weight:750; margin:0 0 5px; }
+.build-inspector .build-description { font-size:11px; line-height:1.55; color:#abbcc7; margin:0 0 11px; }
+.build-inspector .build-meta { display:grid; grid-template-columns:auto 1fr; column-gap:9px; row-gap:7px; font-size:10px; color:#a8bec9; }
+.build-inspector .build-meta strong { text-align:right; color:#e0e9ed; font-weight:600; }
+.build-inspector .build-hint { margin-top:12px; border-top:1px solid #3a4d58; padding-top:9px; font-size:10px; color:#8fa5b3; }
+.ore-visual { filter:none; }
+@media(max-width:730px) {
+  .toolbox { width:168px; left:10px; }
+  .tool-list { gap:3px; }
+  .tool-list button { padding:4px 2px; gap:3px; }
+  .tool-list .build-mini { width:38px; height:34px; }
+  .tool-list .tool-label { font-size:9px; }
+  .build-inspector { left:183px; top:61px; width:min(180px,calc(100vw - 190px)); padding:10px; }
+  .build-inspector .build-hero { width:56px; height:53px; }
+  .build-inspector .build-name { font-size:12px; }
+  .build-inspector .build-description { font-size:10px; }
+}

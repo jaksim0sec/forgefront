@@ -53,10 +53,12 @@ export function planConveyorRoute(world, route, fallbackRotation = 0) {
     if (endpoint) { cells.push({ ...point, action: 'endpoint', id: entity.id }); continue; }
     let side;
     if (i + 1 < route.length) side = directionBetween(point, route[i + 1]);
-    else if (entity) side = (entity.rotation + 2) % 4;
-    else side = bestTerminalDirection(world, point, route[i - 1], (fallbackRotation + 2) % 4);
+    else side = bestTerminalDirection(world, point, route[i - 1], entity ? (entity.rotation + 2) % 4 : (fallbackRotation + 2) % 4);
+
     if (side === null) return { ok: false, reason: 'disconnected', cells, blocked: point };
     const rotation = (side + 2) % 4;
+    // An isolated endpoint accepts feeds from any non-output side. A drawn
+    // continuous route keeps its explicitly specified incoming side.
     const inputSide = i > 0 ? directionBetween(point, route[i - 1]) : null;
     const unchanged = entity && entity.rotation === rotation && entity.inputSide === inputSide;
     cells.push({ ...point, action: entity ? (unchanged ? 'keep' : 'rotate') : 'place', id: entity?.id ?? null, rotation, inputSide });

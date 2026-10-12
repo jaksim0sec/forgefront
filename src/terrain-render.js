@@ -17,23 +17,36 @@ export class TerrainRenderer {
     this.camera = camera;
     this.chunks = new Map();
     this.lastViewport = '';
+    this.detailLevel = 'full';
+    this.lastTransform = '';
   }
 
   makeChunk(cx, cy) {
     const group = document.createElementNS(NS, 'g');
     group.setAttribute('data-ore-chunk', `${cx},${cy}`);
+    const distant = this.detailLevel === 'distant';
     for (let y = cy * CHUNK_TILES; y < (cy + 1) * CHUNK_TILES; y++) {
       for (let x = cx * CHUNK_TILES; x < (cx + 1) * CHUNK_TILES; x++) {
+        // At low zoom sample a stable world-aligned 2x2 lattice.
+        // Do not create thousands of individual SVG images while zoomed out.
+        if (distant && (x % 2 !== 0 || y % 2 !== 0)) continue;
         const ore = this.terrain.oreAt(x, y);
         if (!ore || !RESOURCES[ore]) continue;
-        const icon = document.createElementNS(NS, 'image');
+        const icon = document.createElementNS(NS, distant ? 'circle' : 'image');
         icon.setAttribute('class', 'ore-visual');
-        icon.setAttribute('href', RESOURCES[ore].icon);
-        icon.setAttribute('opacity', '.46');
-        icon.setAttribute('x', (x + .21) * TILE);
-        icon.setAttribute('y', (y + .21) * TILE);
-        icon.setAttribute('width', TILE * .58);
-        icon.setAttribute('height', TILE * .58);
+        if (!distant) icon.setAttribute('href', RESOURCES[ore].icon);
+        icon.setAttribute('opacity', distant ? '.38' : '.46');
+        if (distant) {
+          icon.setAttribute('cx', (x + .5) * TILE);
+          icon.setAttribute('cy', (y + .5) * TILE);
+          icon.setAttribute('r', TILE * .17);
+          icon.setAttribute('fill', ore === 'coal' ? '#66727a' : ore === 'iron' ? '#a9a7a0' : '#83a2b5');
+        } else {
+          icon.setAttribute('x', (x + .21) * TILE);
+          icon.setAttribute('y', (y + .21) * TILE);
+          icon.setAttribute('width', TILE * .58);
+          icon.setAttribute('height', TILE * .58);
+        }
         group.appendChild(icon);
       }
     }
@@ -44,10 +57,11 @@ export class TerrainRenderer {
     const c = this.camera;
     // World->screen translation is identical to camera.worldToScreen().
     // No zoom-specific sampling means panning/pinching stays pixel-perfect.
-    this.layer.setAttribute(
-      'transform',
-      `translate(${c.width / 2 - c.x * c.zoom} ${c.height / 2 - c.y * c.zoom}) scale(${c.zoom})`
-    );
+    const transform = `translate(${c.width / 2 - c.x * c.zoom} ${c.height / 2 - c.y * c.zoom}) scale(${c.zoom})`;
+    if (transform !== this.lastTransform) {
+      this.layer.setAttribute('transform', transform);
+      this.lastTransform = transform;
+    }
 
     const halfW = c.width / (2 * c.zoom * TILE);
     const halfH = c.height / (2 * c.zoom * TILE);
@@ -57,7 +71,13 @@ export class TerrainRenderer {
     const maxCX = Math.floor((x + halfW) / CHUNK_TILES);
     const minCY = Math.floor((y - halfH) / CHUNK_TILES);
     const maxCY = Math.floor((y + halfH) / CHUNK_TILES);
-    const viewport = `${minCX},${minCY},${maxCX},${maxCY}`;
+    const detailLevel = c.zoom < .9 ? 'distant' : 'full';
+    if (detailLevel !== this.detailLevel) {
+      this.detailLevel = detailLevel;
+      for (const chunk of this.chunks.values()) chunk.remove();
+      this.chunks.clear();
+    }
+    const viewport = `${minCX},${minCY},${maxCX},${maxCY},${this.detailLevel}`;
     if (viewport === this.lastViewport) return;
     this.lastViewport = viewport;
 
