@@ -213,13 +213,21 @@ export class BuildingRenderer {
           node.appendChild(motion);
         }
         const cargo = document.createElementNS(NS, 'g');
-        cargo.setAttribute('class', 'cargo-overlay');
+        cargo.setAttribute('class', structure.type === 'conveyor' ? 'cargo-overlay belt-cargo' : 'cargo-overlay');
         cargo.setAttribute('visibility', 'hidden');
         const resourceIcon = document.createElementNS(NS, 'image');
         resourceIcon.setAttribute('x', '0');
         resourceIcon.setAttribute('y', '0');
         resourceIcon.setAttribute('width', structure.type === 'conveyor' ? '23' : '19');
         resourceIcon.setAttribute('height', structure.type === 'conveyor' ? '23' : '19');
+        if (structure.type === 'conveyor') {
+          const moving = document.createElementNS(NS, 'animate');
+          moving.setAttribute('attributeName', 'y');
+          moving.setAttribute('values', '26;-8;26');
+          moving.setAttribute('dur', '.65s');
+          moving.setAttribute('repeatCount', 'indefinite');
+          resourceIcon.appendChild(moving);
+        }
         cargo.appendChild(resourceIcon);
         const resourceAmount = document.createElementNS(NS, 'text');
         resourceAmount.setAttribute('x', structure.type === 'conveyor' ? '11.5' : '9');
