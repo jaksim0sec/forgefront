@@ -90,9 +90,13 @@ function localPoint(event) {
   const bounds = svg.getBoundingClientRect();
   return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
 }
-function snappedTile(tile) {
-  // A building follows individual tile cells, not multiples of its footprint.
-  return { x: tile.x, y: tile.y };
+function snappedTile(tile, kind = tool) {
+  const def = STRUCTURES[kind];
+  if (!def) return { x: tile.x, y: tile.y };
+  const size = rotatedSize(def, rotation);
+  // Center on the hovered tile. Even footprints bias half a tile up/left.
+  return { x: tile.x - Math.floor((size.width - 1) / 2),
+           y: tile.y - Math.floor((size.height - 1) / 2) };
 }
 function previewForStroke(stroke) {
   return stroke?.kind === 'conveyor' ? { route: stroke.route, plan: planConveyorRoute(world, stroke.route, rotation) } : null;
@@ -290,26 +294,31 @@ function startStroke(pointerId, point, isTouch) {
   invalidate();
 }
 function paintStructure(point) {
-  if (!paint || paint.kind === 'conveyor') return;
+  if (!paint || paint.kind === 'conveyor' || paint.kind === 'erase') return;
   const anchor = snappedTile(hitTile(point), paint.kind);
-  const key = `${anchor.x},${anchor.y}`;
-  if (paint.lastAnchor === key) return;
+  const size = rotatedSize(STRUCTURES[paint.kind], rotation);
   const previous = paint.lastTile ?? anchor;
-  const dx = anchor.x - previous.x;
-  const dy = anchor.y - previous.y;
+  const dx = anchor.x - previous.x, dy = anchor.y - previous.y;
   const steps = Math.min(256, Math.max(Math.abs(dx), Math.abs(dy), 1));
   world.batch(() => {
     for (let i = 1; i <= steps; i++) {
       const x = previous.x + Math.round(dx * i / steps);
       const y = previous.y + Math.round(dy * i / steps);
+      const last = paint.lastPlaced;
+      // Avoid repeatedly attempting overlapping footprints during a drag.
+      if (last && Math.abs(x - last.x) < size.width && Math.abs(y - last.y) < size.height) continue;
       const placed = world.build(paint.kind, x, y, rotation, activeOwner);
-      if (!placed.ok) notifyBuild(placed, paint.kind);
-      if (placed.ok) selectedId = placed.entity.id;
+      if (!placed.ok) {
+        if (!last || placed.reason !== 'occupied') notifyBuild(placed, paint.kind);
+      } else {
+        selectedId = placed.entity.id;
+        paint.lastPlaced = { x, y };
+      }
     }
   });
-  paint.lastAnchor = key;
   paint.lastTile = anchor;
 }
+
 function extendStroke(point) {
   if (!paint) return;
   if (paint.kind === 'erase') { paint.route[1] = hitTile(point); invalidate(); return; }
