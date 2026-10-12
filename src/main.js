@@ -161,9 +161,21 @@ function paintStructure(point) {
   const anchor = snappedTile(hitTile(point), paint.kind);
   const key = `${anchor.x},${anchor.y}`;
   if (paint.lastAnchor === key) return;
+  const size = rotatedSize(STRUCTURES[paint.kind], rotation);
+  const previous = paint.lastTile ?? anchor;
+  const dx = Math.round((anchor.x - previous.x) / size.width);
+  const dy = Math.round((anchor.y - previous.y) / size.height);
+  const steps = Math.min(256, Math.max(Math.abs(dx), Math.abs(dy), 1));
+  world.batch(() => {
+    for (let i = 1; i <= steps; i++) {
+      const x = previous.x + Math.round(dx * i / steps) * size.width;
+      const y = previous.y + Math.round(dy * i / steps) * size.height;
+      const placed = world.place(paint.kind, x, y, rotation, activeOwner);
+      if (placed.ok) selectedId = placed.entity.id;
+    }
+  });
   paint.lastAnchor = key;
-  const placed = world.place(paint.kind, anchor.x, anchor.y, rotation, activeOwner);
-  if (placed.ok) selectedId = placed.entity.id;
+  paint.lastTile = anchor;
 }
 function extendStroke(point) {
   if (!paint) return;
