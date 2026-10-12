@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="실리콘 자원 아이콘"><title>실리콘</title><g stroke-linejoin="round"><!-- mined silica quartz; upright hexagonal rough crystals -->
+<path d="m12 70 8-29 15-13 13 16-2 34-21 7Z" fill="#8C999C"/>
+<path d="m20 41 15-13 13 16-15 11Z" fill="#D4D6D0"/>
+<path d="m33 55 15-11-2 34-21 7Z" fill="#64757C"/>
+<path d="m25 85-13-15 8-29 13 14Z" fill="#AFBAB9"/>
+<!-- main rough quartz prism -->
+<path d="m38 70 4-42 16-20 16 20 4 43-20 16Z" fill="#A6B4B7"/>
+<path d="m42 28 16-20 16 20-16 15Z" fill="#E0E0D9"/>
+<path d="m42 28 16 15v44L38 70Z" fill="#B6C2C3"/>
+<path d="m58 43 16-15 4 43-20 16Z" fill="#71848C"/>
+<!-- small faceted white tip -->
+<path d="m69 76 4-24 11-14 9 19-2 22-13 8Z" fill="#A9B7BB"/>
+<path d="m73 52 11-14 9 19-14 6Z" fill="#D1D9D6"/>
+<path d="m79 63 14-6-2 22-13 8Z" fill="#6A7E87"/></g></svg>
