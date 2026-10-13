@@ -10,8 +10,8 @@ const NS = 'http://www.w3.org/2000/svg';
 const templates = {
   conveyor: `<symbol id="s-conveyor" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#343d41" stroke="#647177" stroke-width="1.7"/><rect x="8" y="8" width="32" height="32" rx="4" fill="#202a30"/><path d="M13 12H35M13 36H35" stroke="#66747a" stroke-width="1.5"/><path d="M19 18L24 23L29 18" fill="none" stroke="#9baaaa" stroke-width="1.6"/></symbol>`,
   junction: `<symbol id="s-junction" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="5" fill="#343d40" stroke="#687579" stroke-width="1.8"/><rect x="9" y="9" width="30" height="30" rx="4" fill="#202b30"/><path d="M24 6V42M6 24H42" stroke="#877e6e" stroke-width="5" stroke-linecap="round"/><circle cx="24" cy="24" r="8" fill="#4a5559" stroke="#a49478" stroke-width="1.4"/><path d="M20 24h8m-4-4v8" stroke="#bac5c5" stroke-width="1.8"/></symbol>`,
-  drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#48413c" stroke="#9f8b78" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-dasharray="13 7"/><circle cx="48" cy="48" r="29" fill="#6c5c4f" stroke="#b29c85" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><g class="real-blades"><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/></g><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
-  smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#3d4247" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#404f59" stroke="#86969f" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#758992"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#98a4aa" stroke-width="3" stroke-dasharray="5 5"/></symbol>`,
+  drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#48413c" stroke="#9f8b78" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-opacity=".55"/><circle cx="48" cy="48" r="29" fill="#6c5c4f" stroke="#b29c85" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><g class="real-blades"><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/></g><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
+  smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#3d4247" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#404f59" stroke="#86969f" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#758992"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#98a4aa" stroke-width="3" stroke-opacity=".5"/></symbol>`,
   generator: `<symbol id="s-generator" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#374442" stroke="#8c9da5" stroke-width="4"/><rect x="10" y="10" width="76" height="76" rx="5" fill="#1c2b31" stroke="#536d70" stroke-width="2"/><circle cx="48" cy="48" r="31" fill="#364f50" stroke="#97a7ad" stroke-width="3"/><circle cx="48" cy="48" r="24" fill="#1a3033"/><g class="real-blades"><path d="M48 28L55 40L68 48L54 55L48 69L40 54L28 48L42 40Z" fill="#94a7af"/></g><circle cx="48" cy="48" r="9" fill="#c4d0d3" stroke="#657b85" stroke-width="3"/><path d="M17 17H31M65 17H79M17 79H31M65 79H79" stroke="#bdc8b8" stroke-width="3"/></symbol>`,
 };
 
@@ -44,7 +44,7 @@ Object.assign(templates, {
   turret: `<symbol id="s-turret" viewBox="0 0 96 96">
     <rect x="3" y="3" width="90" height="90" rx="9" fill="#343d47" stroke="#8596a2" stroke-width="3.5"/>
     <rect x="11" y="11" width="74" height="74" rx="7" fill="#162630" stroke="#607681" stroke-width="2.5"/>
-    <path d="M12 26H84M12 70H84" stroke="#576976" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M12 26H84M12 70H84" stroke="#576976" stroke-width="3" stroke-opacity=".45"/>
     <g fill="#5b707a" stroke="#9aafb6" stroke-width="2">
       <path d="M11 11H28V28H11ZM68 11H85V28H68ZM11 68H28V85H11ZM68 68H85V85H68Z"/>
     </g>
@@ -59,7 +59,7 @@ Object.assign(templates, {
   poweredDrill: `<symbol id="s-poweredDrill" viewBox="0 0 96 96">
     <rect x="2" y="2" width="92" height="92" rx="8" fill="#3e505c" stroke="#b4c1c7" stroke-width="4"/>
     <rect x="9" y="9" width="78" height="78" rx="7" fill="#23323e" stroke="#5e7785" stroke-width="3"/>
-    <path d="M12 22H84M12 74H84" stroke="#acafb2" stroke-width="4" stroke-dasharray="10 6"/>
+    <path d="M12 22H84M12 74H84" stroke="#acafb2" stroke-width="4" stroke-opacity=".48"/>
     <circle cx="48" cy="48" r="29" fill="#526779" stroke="#b9c7cb" stroke-width="4"/>
     <circle cx="48" cy="48" r="20" fill="#1e3039" stroke="#788f99" stroke-width="3"/>
     <g class="real-blades"><path d="M48 22 57 40 73 48 57 56 48 74 39 56 23 48 39 40Z" fill="#b4bec2" stroke="#596e7d" stroke-width="2"/></g>
@@ -68,7 +68,7 @@ Object.assign(templates, {
   </symbol>`,
   siliconPlant: `<symbol id="s-siliconPlant" viewBox="0 0 144 96">
     <rect x="2" y="2" width="140" height="92" rx="9" fill="#39454b" stroke="#a3b2b7" stroke-width="4"/>
-    <path d="M11 10H133V86H11Z" fill="#1c2e37" stroke="#556975" stroke-width="2"/>
+    <rect x="11" y="10" width="122" height="76" rx="7" fill="#1c2e37" stroke="#556975" stroke-width="2.5"/>
     <g fill="#687c86" stroke="#a7babf" stroke-width="3">
       <rect x="20" y="19" width="29" height="57" rx="4"/><rect x="58" y="19" width="29" height="57" rx="4"/><rect x="96" y="19" width="29" height="57" rx="4"/>
     </g>
@@ -86,6 +86,10 @@ Object.assign(templates, {
     <path d="M24 24H44M100 24H120M24 120H44M100 120H120" stroke="#6ab8bb" stroke-width="3"/>
   </symbol>`,
 });
+
+// Shared rounded line endings apply to the game sprites and distant cached art.
+for (const type of Object.keys(templates))
+  templates[type] = templates[type].replace('<symbol ', '<symbol stroke-linecap="round" stroke-linejoin="round" ');
 
 export function installSprites(svg) {
   const defs = svg.querySelector('defs');
