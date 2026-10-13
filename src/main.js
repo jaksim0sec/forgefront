@@ -288,45 +288,104 @@ const BUILD_DESCRIPTIONS = Object.freeze({
   siliconPlant:'철과 석탄을 가공해 실리콘을 생산해.',
   superconductorPlant:'철·석탄·실리콘과 전력으로 초전도체를 합성해.',
 });
+function resourceCostNode(id, amount, available) {
+  const resource = RESOURCES[id];
+  const chip = document.createElement('span');
+  chip.className = 'cost-chip' + (available < amount ? ' missing' : '');
+  const image = document.createElement('img');
+  image.src = resource?.icon ?? '';
+  image.alt = resource?.label ?? id;
+  const label = document.createElement('span');
+  label.textContent = resource?.label ?? id;
+  const value = document.createElement('strong');
+  value.textContent = String(amount);
+  chip.append(image, label, value);
+  chip.title = `${resource?.label ?? id} ${amount}개 필요 · 보유 ${available}개`;
+  return chip;
+}
+function fillCost(container, cost) {
+  container.replaceChildren();
+  if (!cost) {
+    container.textContent = '점령 전용';
+    return;
+  }
+  if (!Object.keys(cost).length) {
+    container.textContent = '무료';
+    return;
+  }
+  const wallet = world.walletFor(activeOwner);
+  for (const [id, amount] of Object.entries(cost))
+    container.appendChild(resourceCostNode(id,amount,wallet[id] ?? 0));
+}
 function showBuildInfo(type) {
   const panel = byId('build-inspector');
   if (!STRUCTURES[type]) { panel.hidden = true; return; }
-  const def = STRUCTURES[type], cost = BUILD_COSTS[type] ?? {};
+  const def = STRUCTURES[type], cost = BUILD_COSTS[type];
   panel.hidden = false;
-  byId('build-preview-sprite').setAttribute('href', '#s-' + type);
+  byId('build-preview-sprite').setAttribute('href','#s-' + type);
   byId('build-preview-name').textContent = def.label;
   byId('build-preview-description').textContent = BUILD_DESCRIPTIONS[type] ?? '산업용 구조물';
   byId('build-preview-size').textContent = def.width + ' × ' + def.height;
   byId('build-preview-health').textContent = String(def.maxHealth);
-  byId('build-preview-cost').textContent = Object.keys(cost).length ?
-    Object.entries(cost).map(([id,amount])=> (RESOURCES[id]?.label ?? id) + ' ' + amount).join(' · ') : '무료';
+  fillCost(byId('build-preview-cost'),cost);
   byId('build-preview-power').textContent = def.powerUse ? def.powerUse + ' 필요' :
-    def.powerOutput ? def.powerOutput + ' 공급' : '없음';
+    def.powerOutput ? def.powerOutput + ' 공급' : '불필요';
 }
+const TOOL_GROUPS = Object.freeze([
+  {label:'기본 조작',types:['select','conveyor','junction','erase']},
+  {label:'채굴 · 생산',types:['leadCollector','drill','smelter','poweredDrill','siliconPlant','superconductorPlant']},
+  {label:'전력 · 방어',types:['generator','turret']},
+]);
 function setupBuildThumbnails() {
+  const list = document.querySelector('#toolbox-panel .tool-list');
+  // Keep original buttons/listeners: only move each tool to a named group.
+  const groups = new Map();
+  for (const {label,types} of TOOL_GROUPS) {
+    const group = document.createElement('div');
+    group.className = 'tool-group';
+    const title = document.createElement('div');
+    title.className = 'tool-group-title';
+    title.textContent = label;
+    const grid = document.createElement('div');
+    grid.className = 'tool-group-grid';
+    group.append(title,grid);
+    list.append(group);
+    for (const type of types) groups.set(type,grid);
+  }
   for (const button of toolButtons) {
     const type = button.dataset.tool;
-    const label = button.textContent.trim().replace(/[0-9VX]$/,'').trim();
+    const legacy = button.querySelector('.tool-icon');
+    const key = button.querySelector('kbd');
+    const original = [...button.childNodes].filter(node=>
+      node.nodeType === Node.TEXT_NODE).map(node=>node.textContent).join('').trim();
+    const name = STRUCTURES[type]?.label ?? (type === 'select' ? '선택' : '철거');
+    if (legacy) legacy.remove();
+    // Existing markup already has a name span for some tools; strip it too.
+    for (const child of [...button.children])
+      if (child !== key && child.tagName !== 'svg') child.remove();
+    for (const node of [...button.childNodes])
+      if (node.nodeType === Node.TEXT_NODE) node.remove();
     if (STRUCTURES[type]) {
-      const icon = button.querySelector('.tool-icon');
-      if (icon) icon.remove();
       const sprite = document.createElementNS('http://www.w3.org/2000/svg','svg');
       sprite.setAttribute('viewBox','0 0 100 100');
       sprite.setAttribute('class','build-mini');
       const use = document.createElementNS('http://www.w3.org/2000/svg','use');
-      use.setAttribute('href','#s-'+type);
-      use.setAttribute('width','100');
-      use.setAttribute('height','100');
+      use.setAttribute('href','#s-' + type);
+      use.setAttribute('width','100');use.setAttribute('height','100');
       sprite.appendChild(use);
       button.prepend(sprite);
+    } else {
+      const glyph = document.createElement('span');
+      glyph.className = 'tool-glyph';
+      glyph.textContent = type === 'erase' ? '×' : '⌖';
+      button.prepend(glyph);
     }
-    const key = button.querySelector('kbd');
     const caption = document.createElement('span');
     caption.className = 'tool-label';
-    const text = [...button.childNodes].filter(x=>x.nodeType===Node.TEXT_NODE).map(x=>x.textContent).join('').trim();
-    caption.textContent = text || label;
-    for (const node of [...button.childNodes]) if (node.nodeType===Node.TEXT_NODE) node.remove();
-    if (key) button.insertBefore(caption,key); else button.appendChild(caption);
+    caption.textContent = name;
+    button.append(caption);
+    if (key) button.append(key);
+    groups.get(type)?.append(button);
   }
 }
 setupBuildThumbnails();

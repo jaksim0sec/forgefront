@@ -49,12 +49,7 @@
       <rect id="route-block" visibility="hidden" fill="#ef7474" fill-opacity=".24" stroke="#ff9c9c" stroke-width="2" pointer-events="none"/>
       <rect id="tile-highlight" visibility="hidden" fill-opacity=".18" stroke-width="2" pointer-events="none"/>
     </svg>
-    <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 07</span></div>
-      <div class="phase">TERRITORY / DEFENSE <span class="live-dot"></span> ACTIVE</div>
-    </header>
     <div id="selected-info" class="floating-selection" aria-live="polite">타일 또는 건물을 선택해 봐</div>
-    <div class="side-label" aria-hidden="true">INDUSTRIAL TERRITORY / FOUNDATION</div>
     <div class="center-crosshair" aria-hidden="true"></div>
     <aside id="toolbox-panel" class="toolbox" aria-label="구조물 설치 도구">
       <div class="toolbox-heading">BUILD / EDIT <span>R ↻</span></div>
@@ -97,7 +92,7 @@
       <div class="build-meta">
         <span>크기</span><strong id="build-preview-size"></strong>
         <span>내구도</span><strong id="build-preview-health"></strong>
-        <span>건설비</span><strong id="build-preview-cost"></strong>
+        <span>건설비</span><div id="build-preview-cost" class="cost-list"></div>
         <span>전력</span><strong id="build-preview-power"></strong>
       </div>
       <div class="build-hint">선택 후 맵에서 설치 · R 회전</div>

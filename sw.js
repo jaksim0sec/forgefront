@@ -1,5 +1,5 @@
 // Offline-first availability, network-first freshness. Static assets only.
-const CACHE_NAME = 'forgefront-offline-v8';
+const CACHE_NAME = 'forgefront-offline-v9';
 const CACHE_PREFIX = 'forgefront-offline-';
 const CORE_ASSETS = [
   "./",

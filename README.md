@@ -58,12 +58,20 @@ The new `src/progression.js` owns the recipes/build costs, `src/terrain.js` gene
 
 The unit movement here is a local training scenario, not yet full pathfinding or battlefield AI. There is no automatic tower capture, ammo industry, ammunition routing, real-player multiplayer or sophisticated combat balancing yet.
 
-## Mobile UX and landscape PWA update
+## Mobile UX and portrait PWA update
 - Fixed bottom status and help HUD panels have been removed. Selected-object context now appears in a small non-interactive label near the top of the screen; camera reset is available within the toolbox.
 - The toolbox keeps one SVG thumbnail and one label per tool with tighter mobile spacing. The full editor still folds into select / conveyor / delete.
 - Repeated-building drags use a stable origin-aligned footprint grid, even through sharp corners. `src/build-stroke.js` is isolated and tested independently.
 - Opposing southern command tower moved farther away to (70, -25). Natural ridge bands are more frequent; blocked cliffs use the same slate shading family as nearby rock, with relief edges rather than stamped black stripes.
 - Manifest prefers landscape orientation. On launch the installed standalone PWA requests a landscape lock if supported and permitted; browsers may refuse the lock.
+
+## Palette and defensible terrain update
+- The wide top brand/status banner and side watermark are removed from the playable viewport.
+- Build/inspect view is docked to the right on widescreen and portrait screens; the toolbox keeps its own scroll.
+- The build palette is split into Basic / Production / Defense groups, each tool has only one title and one SVG illustration.
+- Resource construction costs use the actual SVG resource icon, required quantity and a low-stock appearance rather than ambiguous text alone.
+- A deterministic winding escarpment rises between the factions around the map's midfront, but has two open passages. The height function determines both collision and appearance; original tutorial resources and both starting towers remain reachable.
+- The portrait-mode PWA orientation setting remains unchanged.
 
 ## Controls
 

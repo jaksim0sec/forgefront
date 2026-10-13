@@ -46,6 +46,16 @@ export class Terrain {
     const ridgePeak = smooth(clamp01((ridgeWave - 0.62) / 0.38));
     let height = clamp01(0.08 + continents * 0.43 + hills * 0.22 +
       detail * 0.09 + fold * 0.25 + ridgePeak * 0.33);
+    // Two defensible natural bottlenecks between the starting factions:
+    // a winding escarpment, with genuinely passable openings at -12 and 22.
+    // This augments the seeded geology, not a rectilinear artificial wall.
+    const frontX = 36 + Math.sin(y * 0.066) * 5.2 + Math.sin(y * 0.019) * 3;
+    const front = Math.exp(-Math.pow((x - frontX) / 5.2, 2));
+    const extent = smooth(clamp01((60 - Math.abs(y + 4)) / 14));
+    const passA = 1 - smooth(clamp01((Math.abs(y + 12) - 3) / 7));
+    const passB = 1 - smooth(clamp01((Math.abs(y - 22) - 4) / 7));
+    const passage = Math.max(passA, passB);
+    height = clamp01(height + front * extent * (1 - passage) * 0.47);
 
     // Do not strand the starter core or scripted early deposits on cliffs.
     const anchors = [{x:0,y:0,r:8}, {x:71,y:-24,r:8}, ...STARTER_VEINS.map(v=>({x:v.x,y:v.y,r:4}))];
