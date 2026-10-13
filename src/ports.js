@@ -22,6 +22,7 @@ export const ITEM_PORTS = Object.freeze({
   superconductorPlant: Object.freeze([0, 1, 2, 3].flatMap(side => [port(side, 'in'), port(side, 'out')])),
   smelter: Object.freeze([0, 1, 2, 3].flatMap(side => [port(side, 'in'), port(side, 'out')])),
   generator: Object.freeze([0, 1, 2, 3].map(side => port(side, 'in'))),
+  warehouse: Object.freeze([0, 1, 2, 3].flatMap(side => [port(side, 'in'), port(side, 'out')])),
 });
 
 export function rotateCell(x, y, width, height, rotation) {
