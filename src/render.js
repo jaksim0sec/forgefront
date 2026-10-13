@@ -460,7 +460,7 @@ export class BuildingRenderer {
       const operating = ['mining','processing','generating','transporting','receiving'].includes(structure.activity);
       const stateKey = `${blocked}:${operating}:${structure.ownerId}`;
       if (node._renderStateKey !== stateKey) {
-        const minor = structure.type === 'conveyor' || structure.type === 'junction' ||
+        const minor = ['conveyor','junction','tunnelEntrance','tunnelExit'].includes(structure.type) ||
           Boolean(STRUCTURES[structure.type].blocksGround);
         status.setAttribute('visibility', minor ? 'hidden' : 'visible');
         status.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
