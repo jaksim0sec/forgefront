@@ -68,7 +68,13 @@ export class DistantStructureRenderer {
       const image = new Image();
       image.onload = () => { this.needsPaint = true; if (this.active) this.draw(this.selectedId); };
       image.onerror = () => { this.needsPaint = true; if (this.active) this.draw(this.selectedId); };
-      image.src = spriteUrl(markup, def);
+      // LOD renders each building as one cached image: flatten the same
+      // gun geometry into the static base rather than using an external <use>.
+      // Close zoom still uses the independently rotating SVG gun element.
+      const barrel=templates[type+'Barrel'];
+      const gunShapes=barrel?.match(/<symbol[^>]*>([\s\S]*?)<\/symbol>/)?.[1];
+      const combined=gunShapes ? markup.replace('</symbol>',gunShapes+'\n</symbol>') : markup;
+      image.src = spriteUrl(combined, def);
       this.images.set(type, image);
     }
     this.canvas.hidden = true;

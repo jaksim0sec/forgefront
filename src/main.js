@@ -604,6 +604,14 @@ function setupBuildThumbnails() {
     use.setAttribute('width','100');
     use.setAttribute('height','100');
     sprite.appendChild(use);
+    // Static palette/last-used icon needs both halves of the gun artwork.
+    if(['turret','scatterTurret','heavyTurret'].includes(type)){
+      const gun=document.createElementNS('http://www.w3.org/2000/svg','use');
+      gun.setAttribute('href','#s-'+type+'-barrel');
+      gun.setAttribute('width','100');
+      gun.setAttribute('height','100');
+      sprite.appendChild(gun);
+    }
     button.prepend(sprite);
     const caption = document.createElement('span');
     caption.className='tool-label';

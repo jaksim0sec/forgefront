@@ -271,7 +271,7 @@ export class BuildingRenderer {
   aimTurrets(dt) {
     if(this.distantMode)return false;
     let turning=false;
-    const maxTurn=Math.min(.05,Math.max(0,dt))*7.5;
+    const maxTurn=Math.min(.05,Math.max(0,dt))*15;
     for(const node of this.elements.values()){
       const barrel=node._parts?.barrel;
       if(!barrel)continue;
