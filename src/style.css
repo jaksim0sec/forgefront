@@ -378,3 +378,30 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 /* M07: unit/projectile paint remains separate from interactive world SVG. */
 .combat-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; display:block; }
 #weapon-radius { vector-effect:non-scaling-stroke; }
+
+/* M07 mobile UX: no fixed bottom dashboard, one brief map context chip. */
+#world-telemetry[hidden] { display:none !important; }
+.floating-selection {
+  position:absolute; top:67px; right:18px; z-index:3;
+  max-width:min(45vw,320px); padding:7px 11px;
+  background:#101c27c4; border:1px solid #52677670; border-radius:9px;
+  color:#dfc59d; font-size:11px; line-height:1.3; text-align:right;
+  pointer-events:none; backdrop-filter:blur(8px);
+}
+#toolbox-panel .tool-list .tool-label { font-size:11px; line-height:1.15; min-height:0; }
+#toolbox-panel .tool-list kbd { right:4px; top:3px; }
+#toolbox-panel .tool-list button { gap:2px; padding:6px 3px; }
+#toolbox-panel .tool-list .build-mini { width:47px; height:43px; }
+@media(max-width:730px) {
+  .floating-selection { top:65px; right:10px; max-width:44vw; font-size:10px; padding:6px 8px; }
+  #toolbox-panel { width:170px; max-height:calc(100dvh - 78px); }
+  #toolbox-panel .tool-list button { padding:5px 2px; gap:3px; min-height:76px; }
+  #toolbox-panel .tool-list .build-mini { width:43px; height:40px; }
+  #toolbox-panel .tool-list .tool-label { font-size:10px; }
+  #toolbox-panel .tool-list kbd { font-size:9px; }
+  #toolbox-panel.panel-collapsed .tool-list button { min-height:0; }
+}
+@media(orientation:landscape) and (max-height:530px) {
+  .floating-selection { top:12px; right:12px; }
+  #toolbox-panel { top:49px; max-height:calc(100dvh - 56px); }
+}

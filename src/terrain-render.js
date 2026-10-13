@@ -21,7 +21,7 @@ export function terrainChunkBounds(camera) {
 }
 
 export function groundColor({ height, moisture, biome }, variation = 0) {
-  const base = biome === 'cliff' ? [31, 39, 44] : biome === 'ridge' ? [78, 84, 84] :
+  const base = biome === 'cliff' ? [55, 69, 75] : biome === 'ridge' ? [73, 85, 86] :
     biome === 'rock' ? [59, 76, 83] :
     biome === 'scrub' ? [49, 69, 62] :
     biome === 'basin' ? [34, 54, 62] : [47, 64, 69];
@@ -138,44 +138,31 @@ export class TerrainRenderer {
       ctx.fillStyle = (detail & 1) ? 'rgba(199,203,184,.13)' : 'rgba(6,16,24,.18)';
       ctx.fillRect(sx, sy, sample.biome === 'ridge' ? 5 : 3, 2);
       if (sample.biome === 'cliff') {
-        // Unlike regular hills, build-blocking cliff faces are unmistakable
-        // even at minimum zoom. Basalt wall, pale top lip and diagonal strata.
-        ctx.fillStyle = '#18252c';
-        ctx.fillRect(px + 1, py + 2, size - 2, size - 3);
-        if (above < sample.height || left < sample.height) {
-          ctx.fillStyle = '#a0adac';
-          ctx.fillRect(px + 1, py + 1, size - 2, 5);
-        } else {
-          ctx.fillStyle = '#576d75';
-          ctx.fillRect(px + 1, py + 1, size - 2, 3);
-        }
-        ctx.fillStyle = '#42535a';
-        ctx.fillRect(px + 3, py + 8, size - 6, 5);
-        ctx.fillStyle = '#101b23';
-        ctx.fillRect(px + 3, py + 22, size - 6, 6);
-        ctx.fillStyle = '#9ba59f';
+        // The same slate/sandstone palette as adjacent rock, with an
+        // understated top lip and only boundary-facing dark relief.
+        // Avoid the detached black stripe + giant triangle tile stamp.
+        const dropS = Math.max(0, sample.height - below);
+        const dropE = Math.max(0, sample.height - right);
+        ctx.fillStyle = 'rgba(19,30,37,.17)';
+        ctx.fillRect(px + 2,py + 2,size - 4,size - 4);
+        ctx.strokeStyle='rgba(185,201,197,.21)';
+        ctx.lineWidth=1.5;
         ctx.beginPath();
-        ctx.moveTo(px + 4, py + 8);
-        ctx.lineTo(px + 9, py + 8);
-        ctx.lineTo(px + 3, py + 18);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#52666d';
-        ctx.beginPath();
-        ctx.moveTo(px + 20, py + 9);
-        ctx.lineTo(px + 28, py + 9);
-        ctx.lineTo(px + 17, py + 27);
-        ctx.lineTo(px + 11, py + 27);
-        ctx.closePath();
-        ctx.fill();
-        // Extruded dark face on the side where terrain falls away.
-        if (right < sample.height - 0.035) {
-          ctx.fillStyle = '#0d171d';
-          ctx.fillRect(px + size - 5, py + 5, 5, size - 5);
+        ctx.moveTo(px+5,py+11);
+        ctx.lineTo(px+14,py+6);
+        ctx.lineTo(px+23,py+10);
+        ctx.stroke();
+        if(dropS>0.035) {
+          const depth=Math.min(9,3+Math.floor(dropS*58));
+          ctx.fillStyle='rgba(16,29,36,.62)';
+          ctx.fillRect(px,py+size-depth,size,depth);
+          ctx.fillStyle='rgba(154,174,173,.46)';
+          ctx.fillRect(px,py+size-depth-2,size,2);
         }
-        if (below < sample.height - 0.035) {
-          ctx.fillStyle = '#0d171d';
-          ctx.fillRect(px + 1, py + size - 6, size - 1, 6);
+        if(dropE>0.035) {
+          const depth=Math.min(7,2+Math.floor(dropE*50));
+          ctx.fillStyle='rgba(18,32,39,.48)';
+          ctx.fillRect(px+size-depth,py,depth,size);
         }
       } else if (sample.biome === 'rock' || sample.biome === 'ridge') {
         ctx.fillStyle = 'rgba(15,24,30,.22)';

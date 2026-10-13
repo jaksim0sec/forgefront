@@ -4,6 +4,7 @@ import { BuildingRenderer, installSprites } from './render.js';
 import { ItemConnections } from './connections.js';
 import { Industry } from './industry.js';
 import { extendRoute, planConveyorRoute, commitConveyorRoute } from './routes.js';
+import { startBuildStroke, buildStrokeStep } from './build-stroke.js';
 import { NATIONS, nationLabel, nationColor } from './nations.js';
 import { RESOURCES } from './resources.js';
 import { Terrain } from './terrain.js';
@@ -22,7 +23,7 @@ world.terrain = new Terrain();
 // Starting faction core offers only minimal power.
 world.place('tower', 0, -1, 0, 'north');
 // Rival command tower lays out a visible front line; AI combat is not active yet.
-world.place('tower', 31, -12, 0, 'south');
+world.place('tower', 70, -25, 0, 'south');
 world.place('leadCollector', -1, 0, 0, 'north');
 world.survival = true;
 const connections = new ItemConnections(world);
@@ -393,28 +394,28 @@ function startStroke(pointerId, point, isTouch) {
 }
 function paintStructure(point) {
   if (!paint || paint.kind === 'conveyor' || paint.kind === 'erase') return;
-  const anchor = snappedTile(hitTile(point), paint.kind);
-  const size = rotatedSize(STRUCTURES[paint.kind], rotation);
-  const previous = paint.lastTile ?? anchor;
-  const dx = anchor.x - previous.x, dy = anchor.y - previous.y;
-  const steps = Math.min(256, Math.max(Math.abs(dx), Math.abs(dy), 1));
+  const tile = hitTile(point);
+  if (!paint.grid) {
+    const size = rotatedSize(STRUCTURES[paint.kind], rotation);
+    paint.grid = startBuildStroke(tile, size.width, size.height);
+    paint.attempted = new Set();
+    placeAtGrid(paint.grid.origin);
+    return;
+  }
+  const anchors = buildStrokeStep(paint.grid, tile);
+  if (!anchors.length) return;
   world.batch(() => {
-    for (let i = 1; i <= steps; i++) {
-      const x = previous.x + Math.round(dx * i / steps);
-      const y = previous.y + Math.round(dy * i / steps);
-      const last = paint.lastPlaced;
-      // Avoid repeatedly attempting overlapping footprints during a drag.
-      if (last && Math.abs(x - last.x) < size.width && Math.abs(y - last.y) < size.height) continue;
-      const placed = world.build(paint.kind, x, y, rotation, activeOwner);
-      if (!placed.ok) {
-        if (!last || placed.reason !== 'occupied') notifyBuild(placed, paint.kind);
-      } else {
-        selectedId = placed.entity.id;
-        paint.lastPlaced = { x, y };
-      }
-    }
+    for (const anchor of anchors) placeAtGrid(anchor);
   });
-  paint.lastTile = anchor;
+}
+function placeAtGrid(anchor) {
+  if (!paint) return;
+  const key = anchor.x + ',' + anchor.y;
+  if (paint.attempted.has(key)) return;
+  paint.attempted.add(key);
+  const placed = world.build(paint.kind, anchor.x, anchor.y, rotation, activeOwner);
+  if (placed.ok) selectedId = placed.entity.id;
+  else if (placed.reason !== 'occupied') notifyBuild(placed, paint.kind);
 }
 
 function extendStroke(point) {
@@ -666,7 +667,21 @@ byId('example').addEventListener('click', () => {
   } finally { world.survival = oldSurvival; }
   camera.x = -4 * CAMERA_CONFIG.tileSize;
   camera.y = 4 * CAMERA_CONFIG.tileSize;
-  setTool('select');
+  // The Screen Orientation API is optional and only allowed in installed PWAs.
+const requestLandscape = () => {
+  if (!window.matchMedia?.('(display-mode: standalone)').matches) return;
+  try {
+    const requested = screen.orientation?.lock?.('landscape');
+    requested?.catch?.(() => {});
+  } catch { /* Some browsers require a gesture or do not permit locking. */ }
+};
+window.addEventListener('pageshow', requestLandscape);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) requestLandscape();
+});
+requestLandscape();
+
+setTool('select');
   ui.message.textContent = '철 채굴 예시를 배치했어 · 건설비 미차감';
   invalidate();
 });

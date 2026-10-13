@@ -43,12 +43,12 @@ export class Terrain {
     // Long folded ridge bands turn random hill noise into navigable valleys,
     // raised plateaus and continuous natural defensive walls.
     const ridgeWave = 1 - Math.abs(Math.sin(x * 0.048 + y * 0.021 + continents * 5));
-    const ridgePeak = smooth(clamp01((ridgeWave - 0.73) / 0.27));
+    const ridgePeak = smooth(clamp01((ridgeWave - 0.62) / 0.38));
     let height = clamp01(0.08 + continents * 0.43 + hills * 0.22 +
-      detail * 0.09 + fold * 0.25 + ridgePeak * 0.25);
+      detail * 0.09 + fold * 0.25 + ridgePeak * 0.33);
 
     // Do not strand the starter core or scripted early deposits on cliffs.
-    const anchors = [{x:0,y:0,r:7}, ...STARTER_VEINS.map(v=>({x:v.x,y:v.y,r:4}))];
+    const anchors = [{x:0,y:0,r:8}, {x:71,y:-24,r:8}, ...STARTER_VEINS.map(v=>({x:v.x,y:v.y,r:4}))];
     for (const a of anchors) {
       const distance = Math.hypot(x - a.x, y - a.y);
       if (distance < a.r) {

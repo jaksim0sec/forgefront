@@ -53,6 +53,7 @@
       <div class="brand"><span class="brand-mark" aria-hidden="true">⬡</span><strong>FORGEFRONT</strong><span class="version">WORLD / 07</span></div>
       <div class="phase">TERRITORY / DEFENSE <span class="live-dot"></span> ACTIVE</div>
     </header>
+    <div id="selected-info" class="floating-selection" aria-live="polite">타일 또는 건물을 선택해 봐</div>
     <div class="side-label" aria-hidden="true">INDUSTRIAL TERRITORY / FOUNDATION</div>
     <div class="center-crosshair" aria-hidden="true"></div>
     <aside id="toolbox-panel" class="toolbox" aria-label="구조물 설치 도구">
@@ -82,6 +83,7 @@
         <button id="touch-draw" type="button" aria-pressed="false">✎ 터치 경로 건설 OFF</button>
         <button id="example" type="button">＋ 철 채굴라인 예시</button>
         <button id="simulate-raid" type="button">◈ 적 정찰 드론 시험</button>
+        <button id="reset" type="button" aria-label="카메라 초기화">↺ 카메라 초기화</button>
       </div>
       <div class="owner-heading">국가 비축 물자</div>
       <p class="economy-hint">타워에 전달된 자원으로 시설을 건설해</p>
@@ -114,22 +116,16 @@
         <button type="button" id="damage-building">-25 HP 시험</button>
       </div>
     </section>
-    <footer id="game-hud" class="hud">
-      <section class="status-panel" aria-label="월드 상태">
-        <div class="status-item"><span>CAMERA X / Y</span><div><output id="cam-x">0.0</output><span class="separator"> / </span><output id="cam-y">0.0</output></div></div>
-        <div class="status-item"><span>ZOOM</span><output id="zoom">100%</output></div>
-        <div class="status-item"><span>TILE</span><output id="tile-coords">—</output></div>
-        <div class="status-item"><span>OBJECTS / CHUNKS</span><div><output id="structure-count">0</output><span class="separator"> / </span><output id="chunk-count">0</output></div></div>
-        <div class="status-item"><span>ITEM LINKS</span><output id="link-count">0</output></div>
-        <div class="status-item"><span>POWER</span><output id="power-summary">3 / 0</output></div>
-      </section>
-      <section class="control-panel" aria-label="조작 안내">
-        <div class="selection-info" id="selected-info">타일 또는 건물을 선택해 봐</div>
-        <div class="desktop-hint">방향키 이동 · 휠 확대 · 컨베이어 드래그 건설 · X 선택 후 드래그 범위 철거</div>
-        <div class="mobile-hint">한 손가락 이동 · 길게 누른 뒤 드래그 건설 · 두 손가락 확대</div>
-        <button id="reset" class="reset" type="button" aria-label="카메라 위치와 확대율 초기화">↺ 초기화</button>
-      </section>
-    </footer>
+    <div id="world-telemetry" hidden aria-hidden="true">
+      <output id="cam-x"></output>
+      <output id="cam-y"></output>
+      <output id="zoom"></output>
+      <output id="tile-coords"></output>
+      <output id="structure-count"></output>
+      <output id="chunk-count"></output>
+      <output id="link-count"></output>
+      <output id="power-summary"></output>
+    </div>
   </main>
   <script type="module" src="./src/main.js"></script>
   <script>
