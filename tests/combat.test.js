@@ -110,12 +110,11 @@ test('rear targets are acquired and tracked throughout reload, then fired upon',
   const turret=world.place('turret',0,0,0,'north').entity;
   turret.powered=true;
   const combat=new Combat(world);
-  const front=world.units.spawn({x:5,y:1,ownerId:'south',health:100,speed:0,
+  const front=world.units.spawn({x:8,y:1,ownerId:'south',health:100,speed:0,
     targetId:tower.id,hitPower:0});
   combat.step(0.1);
   assert.equal(world.projectiles.entities.size,1);
   // Enemy moves behind the turret while it is still reloading.
-  world.units.entities.delete(front.id);
   const rear=world.units.spawn({x:-4,y:1,ownerId:'south',health:100,speed:0,
     targetId:tower.id,hitPower:0});
   combat.step(0.1);
