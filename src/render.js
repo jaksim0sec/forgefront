@@ -468,13 +468,29 @@ export class BuildingRenderer {
         Object.keys(structure.inventory ?? {}).find(id => structure.inventory[id] > 0);
       const amount = (structure.type === 'conveyor' || structure.type === 'junction') ? structure.itemCount : (structure.inventory?.[firstItem] ?? 0);
       const resource = RESOURCES[firstItem];
-      const cargoVisible = Boolean(resource && amount && camera.zoom >= .68);
+      // Conveyor cargo in transit is shown by CargoRenderer, not this overlay.
+      // Only a blocked belt gets a stationary inventory badge.
+      const isBelt = structure.type === 'conveyor';
+      const cargoVisible = Boolean(resource && amount && camera.zoom >= .68 &&
+        (!isBelt || structure.activity === 'blocked'));
       if (node._cargoVisible !== cargoVisible) {
         cargo.setAttribute('visibility', cargoVisible ? 'visible' : 'hidden');
         node._cargoVisible = cargoVisible;
       }
       if (cargoVisible) {
         if (resourceIcon.getAttribute('href') !== resource.icon) resourceIcon.setAttribute('href', resource.icon);
+        // Put the parked cargo and count on one edge, away from the belt path.
+        if (isBelt && !node._stackBadge) {
+          resourceIcon.setAttribute('width','16');
+          resourceIcon.setAttribute('height','16');
+          resourceIcon.setAttribute('x','0');
+          resourceIcon.setAttribute('y','0');
+          resourceAmount.setAttribute('x','20');
+          resourceAmount.setAttribute('y','12');
+          resourceAmount.setAttribute('text-anchor','start');
+          cargo.setAttribute('transform','translate(28 31)');
+          node._stackBadge = true;
+        }
         const label = amount > 99 ? '99+' : String(amount);
         if (resourceAmount.textContent !== label) resourceAmount.textContent = label;
       }
