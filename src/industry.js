@@ -185,7 +185,8 @@ export class Industry {
       const targets = [...this.connections.outputs(id).keys()];
       const itemId = from.type === 'warehouse'
         ? Object.keys(from.inventory).find(item => from.inventory[item] > 0 &&
-            targets.some(target => this.canReceive(this.world.structures.get(target), item)))
+            targets.some(target => (targets.length === 1 || target !== from.lastSourceId) &&
+              this.canReceive(this.world.structures.get(target), item)))
         : this.exportResource(from);
       if (!itemId || !this.stockCount(from, itemId)) continue;
       const throughput = STRUCTURES[from.type]?.itemsPerSecond ?? 3;
@@ -197,13 +198,14 @@ export class Industry {
       }
       let moved = false;
       for (const targetId of targets) {
-        if (from.type === 'junction' && targets.length > 1 && targetId === from.lastSourceId) continue;
+        if ((from.type === 'junction' || from.type === 'warehouse') &&
+            targets.length > 1 && targetId === from.lastSourceId) continue;
         const to = this.world.structures.get(targetId);
         if (!this.canReceive(to, itemId)) continue;
         this.take(from, itemId);
         this.insert(to, itemId);
         this.world.changed('transfer', { fromId: id, toId: targetId, itemId });
-        if (to.type === 'junction') to.lastSourceId = from.id;
+        if (to.type === 'junction' || to.type === 'warehouse') to.lastSourceId = from.id;
         if (from.type === 'junction') from.routeCursor = (from.routeCursor ?? 0) + 1;
         from.moveProgress = 0;
         this.activity(from, 'transporting');
