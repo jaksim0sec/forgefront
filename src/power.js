@@ -17,7 +17,8 @@ export class PowerGrid {
         this.sources.delete(entity.id);
         this.consumers.delete(entity.id);
       }
-      if (type === 'place' || type === 'remove' || type === 'owner' || type === 'state') this.dirty = true;
+      if (type === 'place' || type === 'remove' || type === 'owner' ||
+          (type === 'state' && (this.sources.has(entity?.id) || this.consumers.has(entity?.id)))) this.dirty = true;
     });
   }
 
