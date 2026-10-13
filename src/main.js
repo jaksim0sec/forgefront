@@ -349,6 +349,7 @@ function render() {
 const BUILD_DESCRIPTIONS = Object.freeze({
   conveyor:'단방향 자원 운송 벨트. 드래그로 연속 설치하고 모서리는 자동으로 연결돼.',
   junction:'서로 다른 벨트 경로의 자원을 기계에도 분배해.',
+  tunnelEntrance:'매설 수송 통로. 시작과 끝을 지정해 지상 시설 아래로 물자를 운반해.' ,
   leadCollector:'지표에서 납을 채집하는 기본 시설. 전기가 필요 없어.',
   drill:'철·석탄 광맥에서 자원을 채굴하는 기본 드릴.',
   smelter:'납과 철을 제련해 발전 설비 제작에 필요한 금속 부품을 생산해.',
