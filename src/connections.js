@@ -103,6 +103,14 @@ export class ItemConnections {
         this.rebuildPair(neighbor, live);
       }
     }
+    // Reinstating a pair is local even if another building replaces an endpoint.
+    if (live?.type==='tunnelEntrance' && live.pairId) {
+      const end=this.world.structures.get(live.pairId);
+      if(end) this.linkTunnel(live,end);
+    } else if (live?.type==='tunnelExit' && live.pairId) {
+      const start=this.world.structures.get(live.pairId);
+      if(start) this.linkTunnel(start,live);
+    }
     this.revision++;
   }
 
@@ -119,6 +127,15 @@ export class ItemConnections {
       if (!input.has(`${x},${y},${opposite(port.side)}`)) continue;
       this.appendContact(source, target, { x: port.x, y: port.y, side: port.side });
     }
+  }
+
+  /** Pair link is virtual: no intermediate tile occupation or ports. */
+  linkTunnel(entrance, exit) {
+    if (!entrance || !exit || entrance.type!=='tunnelEntrance' || exit.type!=='tunnelExit') return false;
+    if (entrance.pairId!==exit.id || exit.pairId!==entrance.id) return false;
+    this.appendContact(entrance,exit,{x:entrance.x,y:entrance.y,side:entrance.rotation,underground:true});
+    this.revision++;
+    return true;
   }
 
   /** Explore directed reachability. Called for inspection only, not every frame. */
