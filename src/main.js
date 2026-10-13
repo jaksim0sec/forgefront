@@ -5,7 +5,7 @@ import { ItemConnections } from './connections.js';
 import { Industry } from './industry.js';
 import { extendRoute, planConveyorRoute, commitConveyorRoute } from './routes.js';
 import { startBuildStroke, buildStrokeStep } from './build-stroke.js';
-import { NATIONS, nationLabel, nationColor } from './nations.js';
+import { nationLabel } from './nations.js';
 import { RESOURCES } from './resources.js';
 import { Terrain } from './terrain.js';
 import { TerrainRenderer } from './terrain-render.js';
@@ -175,25 +175,6 @@ function refreshRecentShortcut(){
 }
 
 
-const ownerSwatches = byId('owner-swatches');
-for (const nation of Object.values(NATIONS)) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'owner-swatch';
-  button.dataset.owner = nation.id;
-  button.style.setProperty('--nation-color', nation.color);
-  button.setAttribute('aria-pressed', 'false');
-  button.innerHTML = `<svg class="swatch-rune" viewBox="0 0 16 16" aria-hidden="true"><path d="${nation.sigil}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg> ${nation.label}`;
-  ownerSwatches.appendChild(button);
-}
-const ownerButtons = [...ownerSwatches.querySelectorAll('[data-owner]')];
-for (const ownerButton of ownerButtons) {
-  const active = ownerButton.dataset.owner === activeOwner;
-  ownerButton.classList.toggle('active', active);
-  ownerButton.setAttribute('aria-pressed', String(active));
-}
-byId('nation-status').textContent = nationLabel(activeOwner);
-byId('nation-status').style.setProperty('--nation-color', nationColor(activeOwner));
 const resourceList = byId('resource-list');
 for (const r of Object.values(RESOURCES)) {
   const chip = document.createElement('span');
@@ -368,7 +349,7 @@ const BUILD_DESCRIPTIONS = Object.freeze({
   drill:'철·석탄 광맥에서 자원을 채굴하는 기본 드릴.',
   smelter:'납과 철을 제련해 발전 설비 제작에 필요한 금속 부품을 생산해.',
   generator:'석탄을 태워 주변 고전력 산업 시설에 전기를 공급해.',
-  turret:'전기 2를 소비해 사거리 9칸 안의 적 정찰 드론을 자동 추적하는 방어 포탑.',
+  turret:'전력 0.5를 소비해 사거리 9칸 안의 적 정찰 드론을 자동 추적하는 방어 포탑.',
   poweredDrill:'석탄과 전기를 소비해 티타늄 광맥을 채굴하는 고급 장비.',
   siliconPlant:'철과 석탄을 가공해 실리콘을 생산해.',
   superconductorPlant:'철·석탄·실리콘과 전력으로 초전도체를 합성해.',
@@ -468,14 +449,16 @@ function showBuildInfo(type) {
   effect.hidden = !description;
 }
 const TOOL_GROUPS = Object.freeze([
-  {label:'물류', icon:'<path d="M3 7h12l-3-3m3 3-3 3M5 13h12l-3-3m3 3-3 3"/>',
+  {label:'물류', icon:'<path d="M4 8h13m-4-4 4 4-4 4M7 16h13m-4-4 4 4-4 4"/>',
     types:['conveyor','junction']},
-  {label:'채굴', icon:'<path d="M4 17 17 4M4 4l6 6m2-6 6 6M3 19h18"/>',
+  {label:'방어', icon:'<path d="M12 3 20 6v6c0 5-3 8-8 9-5-1-8-4-8-9V6l8-3Z"/><path d="m9 12 2 2 4-4"/>',
+    types:['turret']},
+  {label:'채굴', icon:'<path d="m5 19 13-13M9 5l10 10M4 19h16"/>',
     types:['leadCollector','drill','poweredDrill']},
-  {label:'생산', icon:'<path d="M3 19V9l6 4V9l6 4V6h5v13ZM4 19h16"/>',
+  {label:'생산', icon:'<path d="M3 20V9l6 4V9l6 4V5h6v15Z"/><path d="M7 17h2m3 0h2m3 0h2"/>',
     types:['smelter','siliconPlant','superconductorPlant']},
-  {label:'전력·방어', icon:'<path d="m13 2-8 11h7l-1 9 8-12h-7l1-8Z"/>',
-    types:['generator','turret']},
+  {label:'전력', icon:'<path d="m13 2-8 11h7l-1 9 8-12h-7l1-8Z"/>',
+    types:['generator']},
 ]);
 function setBuildCategory(grid) {
   if (!grid) return;
@@ -507,6 +490,10 @@ function setupBuildThumbnails() {
     tab.setAttribute('tabindex',index===0?'0':'-1');
     const svgIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svgIcon.setAttribute('viewBox','0 0 24 24');
+    svgIcon.setAttribute('fill','none');
+    svgIcon.setAttribute('stroke','currentColor');
+    svgIcon.setAttribute('stroke-linecap','round');
+    svgIcon.setAttribute('stroke-linejoin','round');
     svgIcon.setAttribute('aria-hidden','true');
     svgIcon.innerHTML=icon;
     const name=document.createElement('span');
@@ -522,7 +509,7 @@ function setupBuildThumbnails() {
     grids.push(grid);
     types.forEach(type=>groups.set(type,grid));
   });
-  // Keyboard users can move between the four category tabs without jumping
+  // Keyboard users can move between the category tabs without jumping
   // focus into the map; mouse/touch use the same buttons.
   tabs.addEventListener('keydown', event => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -864,18 +851,6 @@ new ResizeObserver(() => {
 }).observe(svg);
 
 toolButtons.forEach(button => button.addEventListener('click', () => setTool(button.dataset.tool)));
-ownerButtons.forEach(button => button.addEventListener('click', () => {
-  activeOwner = button.dataset.owner === 'neutral' ? null : button.dataset.owner;
-  if (selectedId !== null) world.setOwner(selectedId, activeOwner);
-  for (const element of ownerButtons) {
-    const active = element.dataset.owner === (activeOwner ?? 'neutral');
-    element.classList.toggle('active',active);
-    element.setAttribute('aria-pressed',String(active));
-  }
-  byId('nation-status').textContent = nationLabel(activeOwner);
-  byId('nation-status').style.setProperty('--nation-color', nationColor(activeOwner));
-  invalidate();
-}));
 byId('show-territory').addEventListener('click', event => {
   const visible = event.currentTarget.getAttribute('aria-pressed') !== 'true';
   event.currentTarget.setAttribute('aria-pressed', String(visible));
