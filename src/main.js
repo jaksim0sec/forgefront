@@ -365,19 +365,70 @@ function fillCost(container, cost) {
   for (const [id, amount] of Object.entries(cost))
     container.appendChild(resourceCostNode(id,amount,wallet[id] ?? 0));
 }
+function previewResourceChip(id, amount, context) {
+  const resource = RESOURCES[id];
+  if (!resource) return null;
+  const chip = document.createElement('span');
+  chip.className = 'preview-resource-chip';
+  chip.title = resource.label + (amount ? ' · ' + amount : '') + (context ? ' · ' + context : '');
+  chip.setAttribute('aria-label', chip.title);
+  const image = document.createElement('img');
+  image.src = resource.icon;
+  image.alt = resource.label;
+  chip.appendChild(image);
+  if (amount) {
+    const number = document.createElement('strong');
+    number.textContent = String(amount);
+    chip.appendChild(number);
+  }
+  return chip;
+}
+function fillPreviewFlow(id, rowId, items) {
+  const container = byId(id);
+  container.replaceChildren();
+  for (const item of items) {
+    const node = previewResourceChip(item.id, item.amount, item.context);
+    if (node) container.appendChild(node);
+  }
+  byId(rowId).hidden = !container.childElementCount;
+}
 function showBuildInfo(type) {
   const panel = byId('build-inspector');
   if (!STRUCTURES[type]) { panel.hidden = true; return; }
-  const def = STRUCTURES[type], cost = BUILD_COSTS[type];
+  const def = STRUCTURES[type], recipe = RECIPES[type];
   panel.hidden = false;
   byId('build-preview-sprite').setAttribute('href','#s-' + type);
   byId('build-preview-name').textContent = def.label;
   byId('build-preview-description').textContent = BUILD_DESCRIPTIONS[type] ?? '산업용 구조물';
-  byId('build-preview-size').textContent = def.width + ' × ' + def.height;
-  byId('build-preview-health').textContent = String(def.maxHealth);
-  fillCost(byId('build-preview-cost'),cost);
-  byId('build-preview-power').textContent = def.powerUse ? def.powerUse + ' 필요' :
-    def.powerOutput ? def.powerOutput + ' 공급' : '불필요';
+  byId('build-preview-size').textContent = def.width + '×' + def.height;
+  byId('build-preview-health').textContent = 'HP ' + def.maxHealth;
+  fillCost(byId('build-preview-cost'), BUILD_COSTS[type]);
+
+  let inputs = recipe ? Object.entries(recipe.inputs).map(([id, amount]) => ({ id, amount })) : [];
+  let outputs = recipe ? [{ id:recipe.output, amount:recipe.amount + '/' + recipe.seconds + '초' }] : [];
+  if (type === 'generator') inputs = [{id:'coal',amount:'1/8초'}];
+  if (type === 'poweredDrill') inputs = [{id:'coal',amount:'1/3회'}];
+  if (type === 'leadCollector') outputs = [{id:'lead',amount:def.itemsPerSecond + '/초'}];
+  if (type === 'drill') outputs = [
+    {id:'iron',context:'광맥에 따라 선택'},
+    {id:'coal',context:'광맥에 따라 선택'}
+  ];
+  if (type === 'poweredDrill') outputs = [{id:'titanium',amount:def.itemsPerSecond + '/초'}];
+  fillPreviewFlow('build-preview-inputs','build-preview-input-row',inputs);
+  fillPreviewFlow('build-preview-outputs','build-preview-output-row',outputs);
+
+  const usesPower = !!def.powerUse, producesPower = !!def.powerOutput;
+  const powerRow = byId('build-preview-power-row');
+  powerRow.hidden = !usesPower && !producesPower;
+  byId('build-preview-power').textContent = usesPower ? '⚡ ' + def.powerUse + ' 소비' : producesPower ? '⚡ +' + def.powerOutput + ' 공급' : '';
+
+  const effect = byId('build-preview-effect');
+  const description = type === 'turret' ? '사거리 ' + TURRET.range + '칸 · 피해 ' + TURRET.damage + ' / ' + TURRET.secondsPerShot + '초'
+    : type === 'drill' ? '광맥별 철 또는 석탄 · ' + def.itemsPerSecond + '/초'
+    : type === 'conveyor' ? '단방향 자원 이동'
+    : '';
+  effect.textContent = description;
+  effect.hidden = !description;
 }
 const TOOL_GROUPS = Object.freeze([
   {label:'물류', icon:'<path d="M3 7h12l-3-3m3 3-3 3M5 13h12l-3-3m3 3-3 3"/>',
