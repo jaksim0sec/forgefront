@@ -133,6 +133,7 @@ export class ItemConnections {
   linkTunnel(entrance, exit) {
     if (!entrance || !exit || entrance.type!=='tunnelEntrance' || exit.type!=='tunnelExit') return false;
     if (entrance.pairId!==exit.id || exit.pairId!==entrance.id) return false;
+    if (this.link(entrance.id,exit.id)?.contacts.some(contact=>contact.underground)) return true;
     this.appendContact(entrance,exit,{x:entrance.x,y:entrance.y,side:entrance.rotation,underground:true});
     this.revision++;
     return true;
