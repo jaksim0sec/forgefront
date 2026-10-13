@@ -11,7 +11,7 @@ import { Terrain } from './terrain.js';
 import { TerrainRenderer } from './terrain-render.js';
 import { Territory } from './territory.js';
 import { TerritoryRenderer } from './territory-render.js';
-import { Combat, TURRET } from './combat.js';
+import { Combat } from './combat.js';
 import { WEAPONS, isWall } from './defense.js';
 import { CombatRenderer } from './combat-render.js';
 import { CargoRenderer } from './cargo-renderer.js';
