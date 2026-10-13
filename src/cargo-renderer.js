@@ -42,6 +42,8 @@ export class CargoRenderer {
     const { fromId, toId, itemId } = change.entity;
     const from = world.structures.get(fromId);
     const to = world.structures.get(toId);
+    // Underground transfer is hidden; the exit emits the visible next hop.
+    if (from?.type === 'tunnelEntrance' && to?.type === 'tunnelExit') return;
     const resource = this.resources[itemId];
     if (!from || !to || !resource) return;
 
