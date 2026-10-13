@@ -198,8 +198,8 @@ export class Industry {
       }
       let moved = false;
       for (const targetId of targets) {
-        if ((from.type === 'junction' || from.type === 'warehouse') &&
-            targets.length > 1 && targetId === from.lastSourceId) continue;
+        if (from.type === 'warehouse' && targetId === from.lastSourceId) continue;
+        if (from.type === 'junction' && targets.length > 1 && targetId === from.lastSourceId) continue;
         const to = this.world.structures.get(targetId);
         if (!this.canReceive(to, itemId)) continue;
         this.take(from, itemId);
