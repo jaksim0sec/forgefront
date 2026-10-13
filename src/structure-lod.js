@@ -157,7 +157,7 @@ export class DistantStructureRenderer {
         ['no-power', 'no-coal', 'no-ore', 'blocked'].includes(structure.activity);
       const operating = ['mining', 'processing', 'generating', 'transporting', 'receiving']
         .includes(structure.activity);
-      if (structure.type !== 'conveyor' && structure.type !== 'junction' &&
+      if (!['conveyor','junction','tunnelEntrance','tunnelExit'].includes(structure.type) &&
           !STRUCTURES[structure.type].blocksGround) {
         ctx.beginPath();
         ctx.arc(w - 8, 8, 3.3, 0, Math.PI * 2);
