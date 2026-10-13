@@ -259,7 +259,7 @@ function render() {
   byId('zoom').textContent = Math.round(camera.zoom * 100) + '%';
   const hoverTile = hoverPoint ? (STRUCTURES[tool] && tool !== 'conveyor' ? snappedTile(hitTile(hoverPoint)) : hitTile(hoverPoint)) : null;
   terrainVisual.draw();
-  territoryVisual.draw();
+  if (territoryVisual.layer.getAttribute('visibility') !== 'hidden') territoryVisual.draw();
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
   const buildPreview=byId('build-line-preview');
   if(paint?.grid && paint.kind!=='conveyor' && paint.kind!=='erase' && paint.kind!=='tunnelEntrance'){
@@ -639,8 +639,10 @@ function setTool(next) {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  const cost = BUILD_COSTS[tool];
-  ui.message.textContent = cost != null
+  const cost = tool === 'tunnelEntrance' ? {lead:6,iron:2} : BUILD_COSTS[tool];
+  ui.message.textContent = tool === 'tunnelEntrance'
+    ? '지하 이송관 · 시작과 끝을 두 번 탭하거나 드래그하세요 · 직선 2~7칸'
+    : cost != null
     ? (Object.keys(cost).length
       ? '건설비: ' + Object.entries(cost).map(([id, qty]) => `${RESOURCES[id]?.label ?? id} ${qty}`).join(' · ')
       : '기본 건설비 없음')
@@ -672,7 +674,10 @@ function actionAt(point, alternate = false) {
     const entity = world.getAt(tile.x, tile.y);
     if (entity) { world.remove(entity.id); if (selectedId === entity.id) selectedId = null; }
   } else if (tool === 'tunnelEntrance') {
-    if (!pendingTunnel) pendingTunnel=tile;
+    if (!pendingTunnel) {
+      pendingTunnel=tile;
+      ui.message.textContent='지하 이송관 시작점 선택됨 · 직선 2~7칸 안에서 출구를 선택하세요';
+    }
     else {
       const result=buildTunnel(world,connections,pendingTunnel,tile,activeOwner);
       notifyBuild(result,'tunnelEntrance');
@@ -739,7 +744,10 @@ function finishStroke(commit) {
   }
   if (commit && paint.kind === 'tunnelEntrance') {
     const start=paint.route[0],end=paint.route.at(-1);
-    if(start.x===end.x && start.y===end.y) pendingTunnel=start;
+    if(start.x===end.x && start.y===end.y) {
+      pendingTunnel=start;
+      ui.message.textContent='지하 이송관 시작점 선택됨 · 출구를 선택하거나 길게 눌러 드래그하세요';
+    }
     else {
       const result=buildTunnel(world,connections,start,end,activeOwner);
       notifyBuild(result,'tunnelEntrance');
