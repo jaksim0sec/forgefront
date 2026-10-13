@@ -481,14 +481,16 @@ export class BuildingRenderer {
         if (resourceIcon.getAttribute('href') !== resource.icon) resourceIcon.setAttribute('href', resource.icon);
         // Put the parked cargo and count on one edge, away from the belt path.
         if (isBelt && !node._stackBadge) {
-          resourceIcon.setAttribute('width','16');
-          resourceIcon.setAttribute('height','16');
+          // A stopped item and its quantity share a small inset badge.
+          // Keep both inside 48px; the center remains clear for flowing cargo.
+          resourceIcon.setAttribute('width','15');
+          resourceIcon.setAttribute('height','15');
           resourceIcon.setAttribute('x','0');
           resourceIcon.setAttribute('y','0');
-          resourceAmount.setAttribute('x','20');
-          resourceAmount.setAttribute('y','12');
+          resourceAmount.setAttribute('x','17');
+          resourceAmount.setAttribute('y','11');
           resourceAmount.setAttribute('text-anchor','start');
-          cargo.setAttribute('transform','translate(28 31)');
+          cargo.setAttribute('transform','translate(7 31)');
           node._stackBadge = true;
         }
         const label = amount > 99 ? '99+' : String(amount);
