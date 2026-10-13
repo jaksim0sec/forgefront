@@ -1,9 +1,8 @@
 /** Bounded, world-space combat simulation; no SVG/DOM nodes per moving entity.
  * Coordinates are tile units. Weapon stats are intentionally early-game values.
  */
-export const TURRET = Object.freeze({
-  range: 9, secondsPerShot: 0.72, damage: 14, shotSpeed: 23,
-});
+import { WEAPONS } from './defense.js';
+export const TURRET = WEAPONS.turret;
 const MAX_SCOUTS = 24;
 const MAX_SHOTS = 64;
 
@@ -18,9 +17,9 @@ export class Combat {
     this.turrets = new Set();
     this.cooldowns = new Map();
     this.lastTick = 0;
-    for (const e of world.structures.values()) if (e.type === 'turret') this.turrets.add(e.id);
+    for (const e of world.structures.values()) if (WEAPONS[e.type]) this.turrets.add(e.id);
     this.unsubscribe = world.subscribe(({type,entity})=>{
-      if (entity?.type !== 'turret') return;
+      if (!WEAPONS[entity?.type]) return;
       if (type==='place') this.turrets.add(entity.id);
       if (type==='remove') {this.turrets.delete(entity.id);this.cooldowns.delete(entity.id);}
     });
@@ -38,7 +37,7 @@ export class Combat {
       const x = target.x + 7.5 + i*0.5;
       this.world.units.spawn({
         x,y,ownerId:hostile, health:34, speed:1.7, targetId:base.id,
-        prevX:x,prevY:y, hitPower:10, age:0,
+        prevX:x,prevY:y, hitPower:10, age:0, mobility:'ground',
       });
     }
     return true;
@@ -75,6 +74,13 @@ export class Combat {
       const travel=shot.speed*delta;
       if(d<=travel+0.32){
         world.units.damage(target.id,shot.damage);
+        if (shot.splashRadius && shot.splashDamage) {
+          const radius2=shot.splashRadius*shot.splashRadius;
+          for (const other of scouts.values()) {
+            if (other.id===target.id || other.ownerId===shot.ownerId) continue;
+            if (distance2(other,target)<=radius2) world.units.damage(other.id,shot.splashDamage);
+          }
+        }
         shots.delete(id);
       } else if(d>0){
         shot.x+=(target.x-shot.x)/d*travel;
@@ -106,6 +112,20 @@ export class Combat {
       const travel=desired*Math.max(0.55,1-uphill*5);
       const nx=scout.x+(to.x-scout.x)/d*travel;
       const ny=scout.y+(to.y-scout.y)/d*travel;
+      if(scout.mobility !== 'air'){
+        const obstacle=world.getAt(Math.floor(nx),Math.floor(ny));
+        if(obstacle && obstacle.ownerId!==scout.ownerId &&
+            obstacle.health>0 && obstacle.type &&
+            world.getAt(Math.floor(nx),Math.floor(ny))?.id===obstacle.id &&
+            obstacle.blocksGround!==false && obstacle.type.endsWith('Wall')){
+          scout.attackTimer=(scout.attackTimer??0)-delta;
+          if(scout.attackTimer<=0){
+            world.damageStructure(obstacle.id,scout.hitPower||10);
+            scout.attackTimer=.85;
+          }
+          continue;
+        }
+      }
       if(!world.terrain?.isCliffAt(Math.floor(nx),Math.floor(ny))){
         scout.x=nx;scout.y=ny;
       }
@@ -127,15 +147,16 @@ export class Combat {
     if(active) for(const id of this.turrets){
       const turret=world.structures.get(id);
       if(!turret||!turret.enabled||!turret.powered||!turret.ownerId)continue;
+      const weapon=WEAPONS[turret.type];
       const cooldown=Math.max(0,(this.cooldowns.get(id)??0)-delta);
       if(cooldown>0){this.cooldowns.set(id,cooldown);continue;}
       const source=center(turret);
-      let chosen=null,nearest=TURRET.range*TURRET.range;
+      let chosen=null,nearest=weapon.range*weapon.range;
       for(const scout of scouts.values()){
         if(scout.ownerId===turret.ownerId || scout.health<=0)continue;
         const d2=distance2(source,scout);
         if(d2>=nearest)continue;
-        const eta=Math.sqrt(d2)/TURRET.shotSpeed;
+        const eta=Math.sqrt(d2)/weapon.shotSpeed;
         let damageBeforeArrival=0;
         for(const hit of incoming.get(scout.id)??[])
           if(hit.eta<=eta+0.04)damageBeforeArrival+=hit.damage;
@@ -148,12 +169,13 @@ export class Combat {
         world.projectiles.spawn({
           x:source.x,y:source.y,prevX:source.x,prevY:source.y,
           health:1,ownerId:turret.ownerId,targetId:chosen.id,
-          speed:TURRET.shotSpeed,damage:TURRET.damage,
+          speed:weapon.shotSpeed,damage:weapon.damage,
+          splashRadius:weapon.splashRadius??0,splashDamage:weapon.splashDamage??0,
         });
         let arrival=incoming.get(chosen.id);
         if(!arrival) incoming.set(chosen.id, arrival=[]);
-        arrival.push({eta:Math.sqrt(nearest)/TURRET.shotSpeed,damage:TURRET.damage});
-        this.cooldowns.set(id,TURRET.secondsPerShot);
+        arrival.push({eta:Math.sqrt(nearest)/weapon.shotSpeed,damage:weapon.damage});
+        this.cooldowns.set(id,weapon.secondsPerShot);
       }
     }
     return true;
