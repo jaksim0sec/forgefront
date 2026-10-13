@@ -827,3 +827,28 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
   .build-inspector .build-hero {width:48px;height:48px;}
   .build-inspector .build-name {font-size:13px;}
 }
+
+/* Airier, slightly smaller floating information card. */
+.build-inspector {
+  width:260px;
+  max-width:calc(100vw - 280px);
+  padding:9px 10px;
+  background:rgba(16,28,38,.78);
+  border-color:#78909c82;
+  box-shadow:0 9px 25px #03090f72;
+  backdrop-filter:blur(8px);
+}
+.build-inspector .build-head {grid-template-columns:49px minmax(0,1fr);gap:8px;}
+.build-inspector .build-hero {width:49px;height:49px;}
+.build-inspector .build-description {margin:6px 0 7px;}
+.build-inspector .build-flow {gap:5px;padding-top:6px;}
+.build-inspector .build-effect {margin-top:6px;padding-top:5px;}
+@media(max-width:730px) {
+  .build-inspector {
+    width:min(225px,calc(100vw - 244px));
+    max-width:calc(100vw - 244px);
+    padding:8px;
+  }
+  .build-inspector .build-head {grid-template-columns:43px minmax(0,1fr);gap:6px;}
+  .build-inspector .build-hero {width:43px;height:43px;}
+}
