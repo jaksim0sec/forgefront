@@ -276,6 +276,11 @@ export class World {
   remove(id) {
     const entity = this.structures.get(id);
     if (!entity) return false;
+    if (entity.pairId) {
+      const other=this.structures.get(entity.pairId);
+      entity.pairId=null;
+      if (other) {other.pairId=null;this.remove(other.id);}
+    }
     const touched = new Set();
     for (let dy = 0; dy < entity.height; dy++) {
       for (let dx = 0; dx < entity.width; dx++) {
