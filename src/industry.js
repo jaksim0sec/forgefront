@@ -2,7 +2,7 @@ import { STRUCTURES } from './world.js';
 import { RECIPES } from './progression.js';
 import { PowerGrid } from './power.js';
 
-const BELTS = new Set(['conveyor', 'junction']);
+const BELTS = new Set(['conveyor', 'junction', 'tunnelEntrance', 'tunnelExit']);
 const MINERS = new Set(['leadCollector', 'drill', 'poweredDrill']);
 const PROCESSORS = new Set(['smelter', 'siliconPlant', 'superconductorPlant']);
 const ACCEPTS = Object.freeze({
