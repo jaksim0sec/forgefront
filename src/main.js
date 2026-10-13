@@ -668,18 +668,18 @@ byId('example').addEventListener('click', () => {
   camera.x = -4 * CAMERA_CONFIG.tileSize;
   camera.y = 4 * CAMERA_CONFIG.tileSize;
   // The Screen Orientation API is optional and only allowed in installed PWAs.
-const requestLandscape = () => {
+const requestPortrait = () => {
   if (!window.matchMedia?.('(display-mode: standalone)').matches) return;
   try {
-    const requested = screen.orientation?.lock?.('landscape');
+    const requested = screen.orientation?.lock?.('portrait');
     requested?.catch?.(() => {});
   } catch { /* Some browsers require a gesture or do not permit locking. */ }
 };
-window.addEventListener('pageshow', requestLandscape);
+window.addEventListener('pageshow', requestPortrait);
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) requestLandscape();
+  if (!document.hidden) requestPortrait();
 });
-requestLandscape();
+requestPortrait();
 
 setTool('select');
   ui.message.textContent = '철 채굴 예시를 배치했어 · 건설비 미차감';
