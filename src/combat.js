@@ -149,21 +149,28 @@ export class Combat {
       if(!turret||!turret.enabled||!turret.powered||!turret.ownerId)continue;
       const weapon=WEAPONS[turret.type];
       const cooldown=Math.max(0,(this.cooldowns.get(id)??0)-delta);
-      if(cooldown>0){this.cooldowns.set(id,cooldown);continue;}
+      this.cooldowns.set(id,cooldown);
       const source=center(turret);
+      let tracking=null,trackDistance=weapon.range*weapon.range;
       let chosen=null,nearest=weapon.range*weapon.range;
       for(const scout of scouts.values()){
         if(scout.ownerId===turret.ownerId || scout.health<=0)continue;
         const d2=distance2(source,scout);
-        if(d2>=nearest)continue;
+        if(d2>=weapon.range*weapon.range || !this.lineClear(source,scout))continue;
+        // Tracking is independent of reload and projectile reservations.
+        // atan2 covers all four quadrants, including enemies behind the turret.
+        if(d2<trackDistance){tracking=scout;trackDistance=d2;}
+        if(cooldown>0 || d2>=nearest)continue;
         const eta=Math.sqrt(d2)/weapon.shotSpeed;
         let damageBeforeArrival=0;
         for(const hit of incoming.get(scout.id)??[])
           if(hit.eta<=eta+0.04)damageBeforeArrival+=hit.damage;
-        if(damageBeforeArrival>=scout.health || !this.lineClear(source,scout))continue;
+        if(damageBeforeArrival>=scout.health)continue;
         chosen=scout;nearest=d2;
       }
-      if(!chosen){this.cooldowns.set(id,0);continue;}
+      if(tracking) turret.aimAngle=Math.atan2(tracking.y-source.y,tracking.x-source.x);
+      if(cooldown>0 || !chosen)continue;
+      // When reservations pick a different target, align the shot as well.
       turret.aimAngle=Math.atan2(chosen.y-source.y,chosen.x-source.x);
       if(shots.size<MAX_SHOTS){
         world.projectiles.spawn({

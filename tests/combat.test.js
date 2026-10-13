@@ -103,3 +103,27 @@ test('nearby turrets can fire before slow pre-reserved shots arrive',()=>{
   assert.ok(shots.some(shot=>shot.x===7 && shot.targetId===scout.id));
   combat.dispose();
 });
+
+test('rear targets are acquired and tracked throughout reload, then fired upon',()=>{
+  const world=new World();
+  const tower=world.place('tower',15,15,0,'north').entity;
+  const turret=world.place('turret',0,0,0,'north').entity;
+  turret.powered=true;
+  const combat=new Combat(world);
+  const front=world.units.spawn({x:5,y:1,ownerId:'south',health:100,speed:0,
+    targetId:tower.id,hitPower:0});
+  combat.step(0.1);
+  assert.equal(world.projectiles.entities.size,1);
+  // Enemy moves behind the turret while it is still reloading.
+  world.units.entities.delete(front.id);
+  const rear=world.units.spawn({x:-4,y:1,ownerId:'south',health:100,speed:0,
+    targetId:tower.id,hitPower:0});
+  combat.step(0.1);
+  assert.ok(Math.abs(Math.abs(turret.aimAngle)-Math.PI)<.001,
+    'gun tracks directly behind even with cooldown remaining');
+  assert.equal(world.projectiles.entities.size,1,'reload still limits firing');
+  for(let n=0;n<8;n++)combat.step(.1);
+  assert.ok([...world.projectiles.entities.values()].some(shot=>shot.targetId===rear.id),
+    'rear enemy can be hit after cooldown');
+  combat.dispose();
+});
