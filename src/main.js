@@ -46,7 +46,7 @@ const territoryVisual = new TerritoryRenderer(svg, territory, camera);
 // Cargo visuals use one transparent Canvas, with the original SVG fallback.
 const cargoRenderer = new CargoRenderer(svg, camera, RESOURCES);
 world.subscribe(change => cargoRenderer.transfer(change, world));
-const combatVisual = new CombatRenderer(svg, camera, world, combat);
+const combatVisual = new CombatRenderer(svg, camera, world, combat, dt=>buildings.aimTurrets(dt));
 attachDraftAutosave(world,draftStorage);
 
 const byId = id => document.getElementById(id);

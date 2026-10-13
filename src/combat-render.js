@@ -1,11 +1,11 @@
 import { CAMERA_CONFIG } from './camera.js';
 import { nationColor } from './nations.js';
 
-/** A single passive Canvas2D layer for moving scouts, shots and barrel aim.
+/** A single passive Canvas2D layer for moving scouts, shots and brief impacts.
  * All positions come from World units/projectiles; no per-entity DOM.
  */
 export class CombatRenderer {
-  constructor(svg,camera,world,combat) {
+  constructor(svg,camera,world,combat,aimTurrets=null) {
     this.camera=camera;this.world=world;this.combat=combat;
     this.canvas=document.createElement('canvas');
     this.canvas.className='combat-canvas';
@@ -14,7 +14,8 @@ export class CombatRenderer {
     catch {this.ctx=null;}
     this.frame=0;
     this.flashes=[];
-    this.aimAngles=new Map();
+    this.aimTurrets=aimTurrets;
+    this.previousFrame=0;
     this.animate=this.animate.bind(this);
     if(this.ctx){
       const previous=svg.parentElement.querySelector('.cargo-canvas')
@@ -37,51 +38,16 @@ export class CombatRenderer {
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,camera.width,camera.height);
     const units=this.world.units.entities,shots=this.world.projectiles.entities;
+    const dt=this.previousFrame?Math.min(.05,(now-this.previousFrame)/1000):.016;
+    this.previousFrame=now;
+    const turning=this.aimTurrets?.(dt)??false;
     const events=this.combat.visualEvents.splice(0);
     for(const effect of events) this.flashes.push({...effect,born:now});
     if(this.flashes.length>48)this.flashes.splice(0,this.flashes.length-48);
     this.flashes=this.flashes.filter(e=>now-e.born<240);
-    if(!units.size&&!shots.size&&!this.flashes.length)return;
+    if(!units.size&&!shots.size&&!this.flashes.length&&!turning)return;
     const alpha=Math.max(0,Math.min(1,(now-this.combat.lastTick)/200));
     const scale=camera.zoom*CAMERA_CONFIG.tileSize;
-    // The actual gun axis follows the simulation aim, not a decorative spin.
-    // Only render while a fight is active; no per-structure animation callbacks.
-    if(units.size && camera.zoom>=.48) for(const id of this.combat.turrets){
-      const turret=this.world.structures.get(id);
-      if(!turret || !Number.isFinite(turret.aimAngle))continue;
-      const cx=(turret.x+turret.width/2)*CAMERA_CONFIG.tileSize;
-      const cy=(turret.y+turret.height/2)*CAMERA_CONFIG.tileSize;
-      const point=camera.worldToScreen(cx,cy);
-      if(point.x<-50||point.y<-50||point.x>camera.width+50||point.y>camera.height+50)continue;
-      const len=Math.min(31,Math.max(10,scale*(turret.type==='heavyTurret'?.72:.52)));
-      const width=Math.max(3,Math.min(10,scale*.13));
-      ctx.save();
-      ctx.translate(point.x,point.y);
-      const previousAngle=this.aimAngles.get(id)??-Math.PI/2;
-      const difference=Math.atan2(Math.sin(turret.aimAngle-previousAngle),
-        Math.cos(turret.aimAngle-previousAngle));
-      const nextAngle=previousAngle+Math.sign(difference)*Math.min(Math.abs(difference),.11);
-      this.aimAngles.set(id,nextAngle);
-      ctx.rotate(nextAngle);
-      ctx.fillStyle='#26373c';
-      ctx.strokeStyle='#aeb5a8';
-      ctx.lineWidth=Math.max(1.2,Math.min(2.5,camera.zoom*2));
-      ctx.beginPath();
-      ctx.roundRect?.(0,-width*.5,len,width,Math.min(3,width*.3));
-      if(!ctx.roundRect){ctx.rect(0,-width*.5,len,width);}
-      ctx.fill();ctx.stroke();
-      ctx.fillStyle='#b6a181';
-      ctx.fillRect(len-4,-width*.5,4,width);
-      if(turret.type==='scatterTurret'){
-        ctx.strokeStyle='#b7a993';
-        ctx.lineWidth=Math.max(1,camera.zoom*1.7);
-        ctx.beginPath();
-        ctx.moveTo(5,-width*.26);ctx.lineTo(len,-width*.26);
-        ctx.moveTo(5,width*.26);ctx.lineTo(len,width*.26);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
     for(const unit of units.values()){
       const x=(unit.prevX??unit.x)+(unit.x-(unit.prevX??unit.x))*alpha;
       const y=(unit.prevY??unit.y)+(unit.y-(unit.prevY??unit.y))*alpha;
@@ -138,6 +104,6 @@ export class CombatRenderer {
       }
       ctx.globalAlpha=1;
     }
-    if(units.size||shots.size||this.flashes.length)this.wake();
+    if(units.size||shots.size||this.flashes.length||turning)this.wake();
   }
 }

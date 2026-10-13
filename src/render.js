@@ -69,11 +69,6 @@ Object.assign(templates, {
     </g>
     <circle cx="48" cy="48" r="31" fill="#425560" stroke="#a8b5bc" stroke-width="3"/>
     <circle cx="48" cy="48" r="24" fill="#202f38" stroke="#718a97" stroke-width="3"/>
-    <path d="M38 20V39L31 51 42 63H54L65 51 58 39V20Z" fill="#74858c" stroke="#c5cdd0" stroke-width="3"/>
-    <path d="M42 13V39H54V13" fill="#b6a68c" stroke="#d9d5c7" stroke-width="2.5"/>
-    <rect x="38" y="9" width="20" height="8" rx="2" fill="#44565e" stroke="#a9b7bc" stroke-width="2"/>
-    <circle cx="48" cy="48" r="10" fill="#273b46" stroke="#b7c4c6" stroke-width="3"/>
-    <circle cx="48" cy="48" r="3" fill="#d3b988"/>
   </symbol>`,
   poweredDrill: `<symbol id="s-poweredDrill" viewBox="0 0 96 96">
     <rect x="2" y="2" width="92" height="92" rx="8" fill="#3e505c" stroke="#b4c1c7" stroke-width="4"/>
@@ -138,9 +133,6 @@ Object.assign(templates, {
     <rect x="11" y="11" width="74" height="74" rx="8" fill="#1d2c30" stroke="#617775" stroke-width="2.5"/>
     <circle cx="48" cy="49" r="29" fill="#54615c" stroke="#a5aa98" stroke-width="3"/>
     <circle cx="48" cy="49" r="20" fill="#25383a" stroke="#869997" stroke-width="3"/>
-    <path d="M35 47V17h8v30M45 47V14h8v33M55 47V17h8v30" fill="#6d7774" stroke="#b9baa7" stroke-width="3"/>
-    <path d="M35 21h8M45 18h8M55 21h8" stroke="#c6ab81" stroke-width="4"/>
-    <circle cx="48" cy="49" r="9" fill="#425557" stroke="#c7c5ac" stroke-width="3"/>
   </symbol>`,
   heavyTurret: `<symbol id="s-heavyTurret" viewBox="0 0 144 144">
     <rect x="3" y="3" width="138" height="138" rx="14" fill="#42494b" stroke="#abb5ae" stroke-width="5"/>
@@ -148,6 +140,20 @@ Object.assign(templates, {
     <path d="M22 22h30M92 22h30M22 122h30M92 122h30" stroke="#958e7e" stroke-width="6"/>
     <circle cx="72" cy="77" r="47" fill="#4e5f63" stroke="#a4b2ad" stroke-width="5"/>
     <circle cx="72" cy="77" r="33" fill="#273c42" stroke="#8b9f9e" stroke-width="5"/>
+  </symbol>`,
+  turretBarrel: `<symbol id="s-turret-barrel" viewBox="0 0 96 96">
+    <path d="M38 20V39L31 51 42 63H54L65 51 58 39V20Z" fill="#74858c" stroke="#c5cdd0" stroke-width="3"/>
+    <path d="M42 13V39H54V13" fill="#b6a68c" stroke="#d9d5c7" stroke-width="2.5"/>
+    <rect x="38" y="9" width="20" height="8" rx="2" fill="#44565e" stroke="#a9b7bc" stroke-width="2"/>
+    <circle cx="48" cy="48" r="10" fill="#273b46" stroke="#b7c4c6" stroke-width="3"/>
+    <circle cx="48" cy="48" r="3" fill="#d3b988"/>
+  </symbol>`,
+  scatterTurretBarrel: `<symbol id="s-scatterTurret-barrel" viewBox="0 0 96 96">
+    <path d="M35 47V17h8v30M45 47V14h8v33M55 47V17h8v30" fill="#6d7774" stroke="#b9baa7" stroke-width="3"/>
+    <path d="M35 21h8M45 18h8M55 21h8" stroke="#c6ab81" stroke-width="4"/>
+    <circle cx="48" cy="49" r="9" fill="#425557" stroke="#c7c5ac" stroke-width="3"/>
+  </symbol>`,
+  heavyTurretBarrel: `<symbol id="s-heavyTurret-barrel" viewBox="0 0 144 144">
     <path d="M59 67V14H85V67Z" fill="#687678" stroke="#c6c5b5" stroke-width="5"/>
     <path d="M59 27h26M59 47h26" stroke="#bca17d" stroke-width="6"/>
     <rect x="55" y="9" width="34" height="12" rx="4" fill="#3d4b4d" stroke="#adbcb9" stroke-width="4"/>
@@ -259,6 +265,32 @@ export class BuildingRenderer {
     this.lastLinkVisible = new Set();
     this.distant = new DistantStructureRenderer(svg, world, camera, connections, templates);
     this.distantMode = false;
+  }
+
+  /** Animate only the gun SVG group. No canvas duplicate or per-frame DOM creation. */
+  aimTurrets(dt) {
+    if(this.distantMode)return false;
+    let turning=false;
+    const maxTurn=Math.min(.05,Math.max(0,dt))*7.5;
+    for(const node of this.elements.values()){
+      const barrel=node._parts?.barrel;
+      if(!barrel)continue;
+      const structure=this.world.structures.get(node._structureId);
+      if(!structure || !Number.isFinite(structure.aimAngle))continue;
+      const base=-Math.PI/2+structure.rotation*Math.PI/2;
+      const previous=node._aimAngle??base;
+      const difference=Math.atan2(Math.sin(structure.aimAngle-previous),
+        Math.cos(structure.aimAngle-previous));
+      const amount=Math.sign(difference)*Math.min(Math.abs(difference),maxTurn);
+      const next=previous+amount;
+      if(Math.abs(difference)>0.008)turning=true;
+      if(Math.abs(amount)<0.00001)continue;
+      node._aimAngle=next;
+      const cx=structure.type==='heavyTurret'?72:48;
+      const cy=structure.type==='heavyTurret'?77:structure.type==='scatterTurret'?49:48;
+      barrel.setAttribute('transform',`rotate(${((next-base)*180/Math.PI).toFixed(2)} ${cx} ${cy})`);
+    }
+    return turning;
   }
 
   drawLinks(visible, selectedId, showLinks) {
@@ -373,10 +405,23 @@ export class BuildingRenderer {
       let node = this.elements.get(structure.id);
       if (!node) {
         node = document.createElementNS(NS, 'g');
+        node._structureId=structure.id;
         node._connections = this.connections;
         const use = document.createElementNS(NS, 'use');
         use.setAttribute('href', `#s-${structure.type}`);
         node.appendChild(use);
+        // Real rotating gun assembly, separate from the static chassis.
+        let barrel=null;
+        if (['turret','scatterTurret','heavyTurret'].includes(structure.type)) {
+          barrel=document.createElementNS(NS,'g');
+          barrel.setAttribute('class','turret-barrel');
+          const art=document.createElementNS(NS,'use');
+          art.setAttribute('href',`#s-${structure.type}-barrel`);
+          art.setAttribute('width',STRUCTURES[structure.type].width*CAMERA_CONFIG.tileSize);
+          art.setAttribute('height',STRUCTURES[structure.type].height*CAMERA_CONFIG.tileSize);
+          barrel.appendChild(art);
+          node.appendChild(barrel);
+        }
         if (STRUCTURES[structure.type].blocksGround) {
           const health = document.createElementNS(NS, 'g');
           health.setAttribute('class', 'structure-health');
@@ -439,7 +484,7 @@ export class BuildingRenderer {
         health.setAttribute('class', 'structure-health');
         health.innerHTML = '<rect height="3.1" rx="1" fill="#141c22" /><rect height="3.1" rx="1" fill="#9eb5ad" />';
         node.appendChild(health);
-        node._parts = { use, bend, seam, cargo, resourceIcon, resourceAmount, status, insignia,
+        node._parts = { use, barrel, bend, seam, cargo, resourceIcon, resourceAmount, status, insignia,
           rune: insignia.querySelector('.insignia-rune'), health };
         this.layer.appendChild(node);
         this.elements.set(structure.id, node);
