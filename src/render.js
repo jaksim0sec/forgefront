@@ -479,7 +479,7 @@ export class BuildingRenderer {
         health.setAttribute('visibility', healthVisibility);
         node._healthVisibility = healthVisibility;
       }
-      const firstItem = (structure.type === 'conveyor' || structure.type === 'junction') ? structure.itemId :
+      const firstItem = (['conveyor','junction','tunnelEntrance','tunnelExit'].includes(structure.type)) ? structure.itemId :
         Object.keys(structure.inventory ?? {}).find(id => structure.inventory[id] > 0);
       const amount = (structure.type === 'conveyor' || structure.type === 'junction') ? structure.itemCount : (structure.inventory?.[firstItem] ?? 0);
       const resource = RESOURCES[firstItem];
