@@ -118,7 +118,7 @@ export class Combat {
             obstacle.health>0 && isWall(obstacle.type)){
           scout.attackTimer=(scout.attackTimer??0)-delta;
           if(scout.attackTimer<=0){
-            world.damageStructure(obstacle.id,scout.hitPower||10);
+            world.damageStructure(obstacle.id,scout.hitPower??10);
             scout.attackTimer=.85;
           }
           continue;
