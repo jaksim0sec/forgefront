@@ -7,6 +7,8 @@ export const WORLD_CONFIG = Object.freeze({ width: 2048, height: 2048, chunkSize
 export const STRUCTURES = Object.freeze({
   conveyor: Object.freeze({ label: '컨베이어', width: 1, height: 1, maxHealth: 55, itemCapacity: 3, itemsPerSecond: 5 }),
   junction: Object.freeze({ label: '분배기', width: 1, height: 1, maxHealth: 75, itemCapacity: 3, itemsPerSecond: 5 }),
+  tunnelEntrance: Object.freeze({ label: '지하 이송관 입구', width: 1, height: 1, maxHealth: 110, itemCapacity: 2, itemsPerSecond: 3 }),
+  tunnelExit: Object.freeze({ label: '지하 이송관 출구', width: 1, height: 1, maxHealth: 110, itemCapacity: 2, itemsPerSecond: 5 }),
   drill: Object.freeze({ label: '기본 채굴기', width: 2, height: 2, maxHealth: 180, itemCapacity: 12, itemsPerSecond: 1 }),
   leadCollector: Object.freeze({ label: '납 채집기', width: 1, height: 1, maxHealth: 100, itemCapacity: 10, itemsPerSecond: 0.9 }),
   tower: Object.freeze({ label: '중앙 타워', width: 2, height: 2, maxHealth: 700, itemCapacity: Infinity, powerOutput: 3 }),
