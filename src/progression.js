@@ -8,6 +8,8 @@ export const BUILD_COSTS = Object.freeze({
   leadCollector: Object.freeze({}),
   conveyor: Object.freeze({ lead: 1 }),
   junction: Object.freeze({ lead: 2 }),
+  tunnelEntrance: Object.freeze({ lead: 3, iron: 1 }),
+  tunnelExit: Object.freeze({ lead: 3, iron: 1 }),
   drill: Object.freeze({ lead: 8 }),
   smelter: Object.freeze({ lead: 14 }),
   generator: Object.freeze({ lead: 4, parts: 6 }),
