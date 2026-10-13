@@ -14,6 +14,8 @@ const port = (side, mode) => Object.freeze({ side, mode });
 export const ITEM_PORTS = Object.freeze({
   conveyor: Object.freeze([port(0, 'in'), port(1, 'in'), port(3, 'in'), port(2, 'out')]),
   junction: Object.freeze([0, 1, 2, 3].flatMap(side => [port(side, 'in'), port(side, 'out')])),
+  tunnelEntrance: Object.freeze([port(2,'in')]),
+  tunnelExit: Object.freeze([port(0,'out')]),
   drill: Object.freeze([0, 1, 2, 3].map(side => port(side, 'out'))),
   leadCollector: Object.freeze([0, 1, 2, 3].map(side => port(side, 'out'))),
   tower: Object.freeze([0, 1, 2, 3].map(side => port(side, 'in'))),
