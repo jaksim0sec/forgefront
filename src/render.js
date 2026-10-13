@@ -352,8 +352,8 @@ export class BuildingRenderer {
           bend = document.createElementNS(NS, 'path');
           bend.setAttribute('class', 'conveyor-bend');
           bend.setAttribute('fill', 'none');
-          bend.setAttribute('stroke', '#b0a38f');
-          bend.setAttribute('stroke-width', '5');
+          bend.setAttribute('stroke', '#797469');
+          bend.setAttribute('stroke-width', '3.5');
           bend.setAttribute('stroke-linejoin', 'round');
           bend.setAttribute('visibility', 'hidden');
           node.appendChild(bend);
@@ -409,15 +409,16 @@ export class BuildingRenderer {
       const operating = ['mining','processing','generating','transporting','receiving'].includes(structure.activity);
       const stateKey = `${blocked}:${operating}:${structure.ownerId}`;
       if (node._renderStateKey !== stateKey) {
-        status.setAttribute('visibility',
-          structure.type === 'conveyor' || structure.type === 'junction' ? 'hidden' : 'visible');
+        const minor = structure.type === 'conveyor' || structure.type === 'junction' ||
+          Boolean(STRUCTURES[structure.type].blocksGround);
+        status.setAttribute('visibility', minor ? 'hidden' : 'visible');
         status.setAttribute('fill', blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3');
         node.classList.toggle('machine-operating', operating);
         node.classList.toggle('machine-blocked', blocked);
         node.style.setProperty('--blade-play', operating ? 'running' : 'paused');
         node.style.setProperty('--nation-color', nationColor(structure.ownerId));
         const sigil = nationSigil(structure.ownerId);
-        insignia.setAttribute('visibility', sigil ? 'visible' : 'hidden');
+        insignia.setAttribute('visibility', sigil && !minor ? 'visible' : 'hidden');
         if (sigil) rune.setAttribute('d', sigil);
         node._renderStateKey = stateKey;
       }
