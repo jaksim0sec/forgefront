@@ -173,7 +173,7 @@ export class BuildingRenderer {
   }
 
   drawLinks(visible, selectedId, showLinks) {
-    const enabled = showLinks && this.camera.zoom >= 0.58;
+    const enabled = showLinks && this.camera.zoom >= 0.92;
     const sameVisible = visible.size === this.lastLinkVisible.size
       && [...visible].every(id => this.lastLinkVisible.has(id));
     if (sameVisible && this.lastLinkRevision === this.connections.revision &&
@@ -188,6 +188,10 @@ export class BuildingRenderer {
       for (const sourceId of visible) {
         for (const link of this.connections.outputs(sourceId).values()) {
           if (!visible.has(link.to)) continue;
+          const source = this.world.structures.get(sourceId);
+          const destination = this.world.structures.get(link.to);
+          if (source?.type === 'conveyor' && destination?.type === 'conveyor' &&
+              selectedId !== sourceId && selectedId !== link.to) continue;
           link.contacts.forEach((contact, index) => {
             const key = `${link.from}-${link.to}-${index}`;
             keep.add(key);
