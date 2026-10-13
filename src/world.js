@@ -247,7 +247,7 @@ export class World {
       moveProgress: 0,
       itemId: null, // one-item-type fast lane for conveyor
       itemCount: 0,
-      inventory: type === 'conveyor' || type === 'junction' ? null : Object.create(null),
+      inventory: ['conveyor','junction','tunnelEntrance','tunnelExit'].includes(type) ? null : Object.create(null),
       resourceId: type === 'leadCollector' ? 'lead' : type === 'poweredDrill' ? 'titanium' : type === 'drill' ? (this.terrain?.depositFor(x, y, check.width, check.height, ['iron', 'coal']) ?? 'iron') : null,
       powered: false,
       powerUse: STRUCTURES[type].powerUse ?? 0,
