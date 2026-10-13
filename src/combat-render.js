@@ -14,6 +14,7 @@ export class CombatRenderer {
     catch {this.ctx=null;}
     this.frame=0;
     this.flashes=[];
+    this.aimAngles=new Map();
     this.animate=this.animate.bind(this);
     if(this.ctx){
       const previous=svg.parentElement.querySelector('.cargo-canvas')
@@ -56,7 +57,12 @@ export class CombatRenderer {
       const width=Math.max(3,Math.min(10,scale*.13));
       ctx.save();
       ctx.translate(point.x,point.y);
-      ctx.rotate(turret.aimAngle);
+      const previousAngle=this.aimAngles.get(id)??-Math.PI/2;
+      const difference=Math.atan2(Math.sin(turret.aimAngle-previousAngle),
+        Math.cos(turret.aimAngle-previousAngle));
+      const nextAngle=previousAngle+Math.sign(difference)*Math.min(Math.abs(difference),.11);
+      this.aimAngles.set(id,nextAngle);
+      ctx.rotate(nextAngle);
       ctx.fillStyle='#26373c';
       ctx.strokeStyle='#aeb5a8';
       ctx.lineWidth=Math.max(1.2,Math.min(2.5,camera.zoom*2));
@@ -66,6 +72,14 @@ export class CombatRenderer {
       ctx.fill();ctx.stroke();
       ctx.fillStyle='#b6a181';
       ctx.fillRect(len-4,-width*.5,4,width);
+      if(turret.type==='scatterTurret'){
+        ctx.strokeStyle='#b7a993';
+        ctx.lineWidth=Math.max(1,camera.zoom*1.7);
+        ctx.beginPath();
+        ctx.moveTo(5,-width*.26);ctx.lineTo(len,-width*.26);
+        ctx.moveTo(5,width*.26);ctx.lineTo(len,width*.26);
+        ctx.stroke();
+      }
       ctx.restore();
     }
     for(const unit of units.values()){
