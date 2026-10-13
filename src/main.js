@@ -4,6 +4,7 @@ import { BuildingRenderer, installSprites } from './render.js';
 import { ItemConnections } from './connections.js';
 import { Industry } from './industry.js';
 import { extendRoute, planConveyorRoute, commitConveyorRoute } from './routes.js';
+import { buildTunnel, tunnelGeometry } from './underground.js';
 import { startBuildStroke, buildStrokeStep } from './build-stroke.js';
 import { nationLabel } from './nations.js';
 import { RESOURCES } from './resources.js';
