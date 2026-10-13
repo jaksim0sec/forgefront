@@ -7,6 +7,7 @@ const CORE_ASSETS = [
   "./src/style.css",
   "./src/camera.js",
   "./src/build-stroke.js",
+  "./src/local-draft.js",
   "./src/combat.js",
   "./src/defense.js",
   "./src/combat-render.js",
