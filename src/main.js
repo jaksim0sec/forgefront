@@ -431,7 +431,7 @@ function showBuildInfo(type) {
   byId('build-preview-description').textContent = BUILD_DESCRIPTIONS[type] ?? '산업용 구조물';
   byId('build-preview-size').textContent = def.width + '×' + def.height;
   byId('build-preview-health').textContent = 'HP ' + def.maxHealth;
-  fillCost(byId('build-preview-cost'), BUILD_COSTS[type]);
+  fillCost(byId('build-preview-cost'), type==='tunnelEntrance'?{lead:6,iron:2}:BUILD_COSTS[type]);
 
   let inputs = recipe ? Object.entries(recipe.inputs).map(([id, amount]) => ({ id, amount })) : [];
   let outputs = recipe ? [{ id:recipe.output, amount:recipe.amount + '/' + recipe.seconds + '초' }] : [];
