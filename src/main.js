@@ -12,6 +12,7 @@ import { TerrainRenderer } from './terrain-render.js';
 import { Territory } from './territory.js';
 import { TerritoryRenderer } from './territory-render.js';
 import { Combat, TURRET } from './combat.js';
+import { WEAPONS, isWall } from './defense.js';
 import { CombatRenderer } from './combat-render.js';
 import { CargoRenderer } from './cargo-renderer.js';
 import { RECIPES, BUILD_COSTS } from './progression.js';
@@ -282,12 +283,12 @@ function render() {
   const selected = world.structures.get(selectedId);
   const powerRadius = byId('power-radius');
   const weaponRadius = byId('weapon-radius');
-  if (selected?.type === 'turret') {
+  if (selected && WEAPONS[selected.type]) {
     const origin = camera.worldToScreen((selected.x + selected.width / 2) * CAMERA_CONFIG.tileSize,
       (selected.y + selected.height / 2) * CAMERA_CONFIG.tileSize);
     weaponRadius.setAttribute('cx', origin.x);
     weaponRadius.setAttribute('cy', origin.y);
-    weaponRadius.setAttribute('r', TURRET.range * CAMERA_CONFIG.tileSize * camera.zoom);
+    weaponRadius.setAttribute('r', WEAPONS[selected.type].range * CAMERA_CONFIG.tileSize * camera.zoom);
     weaponRadius.setAttribute('visibility', 'visible');
   } else weaponRadius.setAttribute('visibility','hidden');
   const source = selected && (selected.type === 'tower' || selected.type === 'generator' ? selected : world.structures.get(selected.powerSourceId));
@@ -327,7 +328,9 @@ function render() {
   ui.production.textContent = !selected ? '—' :
     recipe ? `${RESOURCES[recipe.output].label} · ${Math.min(100, Math.floor(100 * (selected.progress ?? 0) / recipe.seconds))}% ${finishedCount ? '· 완성품 ' + finishedCount + '개' : ''}` :
     selected.resourceId ? `${RESOURCES[selected.resourceId].label} 채집` :
-    selected.type === 'turret' ? `사거리 ${TURRET.range}칸 · 피해 ${TURRET.damage} · ${selected.powered ? '방어 준비' : '전력 대기'}` : '—';
+    WEAPONS[selected.type] ? `사거리 ${WEAPONS[selected.type].range}칸 · 피해 ${WEAPONS[selected.type].damage} · ${selected.powered ? '방어 준비' : '전력 대기'}` :
+    isWall(selected.type) ? '지상 침입자 차단 · 내구도 기반' :
+    selected.type === 'warehouse' ? `저장 ${Object.values(selected.inventory??{}).reduce((a,b)=>a+b,0)}/${STRUCTURES.warehouse.itemCapacity}` : '—';
   const stocked = (selected?.type === 'conveyor' || selected?.type === 'junction') ?
     (selected.itemId ? [[selected.itemId, selected.itemCount]] : []) :
     Object.entries(selected?.type === 'tower' ? world.walletFor(selected.ownerId) :
@@ -349,7 +352,13 @@ const BUILD_DESCRIPTIONS = Object.freeze({
   drill:'철·석탄 광맥에서 자원을 채굴하는 기본 드릴.',
   smelter:'납과 철을 제련해 발전 설비 제작에 필요한 금속 부품을 생산해.',
   generator:'석탄을 태워 주변 고전력 산업 시설에 전기를 공급해.',
-  turret:'전력 0.5를 소비해 사거리 9칸 안의 적 정찰 드론을 자동 추적하는 방어 포탑.',
+  turret:'정밀 구동 포탑. 전력을 공급받아 일정 거리의 적을 추적해.',
+  scatterTurret:'근거리 광역 방어 장치. 넓은 탄착으로 밀집한 적을 제압해.',
+  heavyTurret:'고하중 포신과 정밀 구동축으로 멀리 있는 적에 강한 타격을 가해.',
+  wall:'간단한 조립식 차단벽. 지상 침입자의 이동을 막아.',
+  ironWall:'주철로 보강한 중형 방벽. 장시간 방어에 적합해.',
+  reinforcedWall:'복합 장갑판을 적용한 고내구 방벽.',
+  warehouse:'여러 종류의 자원을 한곳에 보관하고 컨베이어에 다시 공급해.',
   poweredDrill:'석탄과 전기를 소비해 티타늄 광맥을 채굴하는 고급 장비.',
   siliconPlant:'철과 석탄을 가공해 실리콘을 생산해.',
   superconductorPlant:'철·석탄·실리콘과 전력으로 초전도체를 합성해.',
@@ -441,18 +450,20 @@ function showBuildInfo(type) {
   byId('build-preview-power').textContent = usesPower ? '⚡ ' + def.powerUse + ' 소비' : producesPower ? '⚡ +' + def.powerOutput + ' 공급' : '';
 
   const effect = byId('build-preview-effect');
-  const description = type === 'turret' ? '사거리 ' + TURRET.range + '칸 · 피해 ' + TURRET.damage + ' / ' + TURRET.secondsPerShot + '초'
+  const description = WEAPONS[type] ? '사거리 ' + WEAPONS[type].range + '칸 · 피해 ' + WEAPONS[type].damage + ' / ' + WEAPONS[type].secondsPerShot + '초'
     : type === 'drill' ? '광맥별 철 또는 석탄 · ' + def.itemsPerSecond + '/초'
     : type === 'conveyor' ? '단방향 자원 이동'
+    : type === 'warehouse' ? '보관 한도 ' + def.itemCapacity + ' · 자동 입출고'
+    : isWall(type) ? '지상 침입자 차단 · 내구도 ' + def.maxHealth
     : '';
   effect.textContent = description;
   effect.hidden = !description;
 }
 const TOOL_GROUPS = Object.freeze([
   {label:'물류', icon:'<path d="M4 8h13m-4-4 4 4-4 4M7 16h13m-4-4 4 4-4 4"/>',
-    types:['conveyor','junction']},
+    types:['conveyor','junction','warehouse']},
   {label:'방어', icon:'<path d="M12 3 20 6v6c0 5-3 8-8 9-5-1-8-4-8-9V6l8-3Z"/><path d="m9 12 2 2 4-4"/>',
-    types:['turret']},
+    types:['turret','scatterTurret','heavyTurret','wall','ironWall','reinforcedWall']},
   {label:'채굴', icon:'<path d="m5 19 13-13M9 5l10 10M4 19h16"/>',
     types:['leadCollector','drill','poweredDrill']},
   {label:'생산', icon:'<path d="M3 20V9l6 4V9l6 4V5h6v15Z"/><path d="M7 17h2m3 0h2m3 0h2"/>',
@@ -507,7 +518,24 @@ function setupBuildThumbnails() {
     grid.hidden=index!==0;
     tab.addEventListener('click',()=>setBuildCategory(grid));
     grids.push(grid);
-    types.forEach(type=>groups.set(type,grid));
+    if (label === '방어') {
+      for (const [sectionName, sectionTypes] of [
+        ['포탑',['turret','scatterTurret','heavyTurret']],
+        ['방벽',['wall','ironWall','reinforcedWall']],
+      ]) {
+        const section = document.createElement('section');
+        section.className = 'defense-section';
+        const heading = document.createElement('div');
+        heading.className = 'defense-heading';
+        heading.textContent = sectionName;
+        const items = document.createElement('div');
+        items.className = 'defense-section-items';
+        section.append(heading,items);
+        grid.appendChild(section);
+        sectionTypes.forEach(type=>groups.set(type,items));
+      }
+    }
+    types.forEach(type=>{ if(!groups.has(type)) groups.set(type,grid); });
   });
   // Keyboard users can move between the category tabs without jumping
   // focus into the map; mouse/touch use the same buttons.
