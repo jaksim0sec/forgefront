@@ -5,7 +5,8 @@ import { ItemConnections } from './connections.js';
 import { Industry } from './industry.js';
 import { extendRoute, planConveyorRoute, commitConveyorRoute } from './routes.js';
 import { buildTunnel, tunnelGeometry } from './underground.js';
-import { startBuildStroke, buildStrokeStep } from './build-stroke.js';
+import { startBuildStroke, normalizedBuildLine } from './build-stroke.js';
+import { restoreDraft, attachDraftAutosave } from './local-draft.js';
 import { nationLabel } from './nations.js';
 import { RESOURCES } from './resources.js';
 import { Terrain } from './terrain.js';
@@ -22,11 +23,16 @@ const svg = document.getElementById('world');
 const camera = new Camera();
 const world = new World();
 world.terrain = new Terrain();
-// Starting faction core offers only minimal power.
-world.place('tower', 0, -1, 0, 'north');
-// Rival command tower lays out a visible front line; AI combat is not active yet.
-world.place('tower', 70, -25, 0, 'south');
-world.place('leadCollector', -1, 0, 0, 'north');
+// Preserve the locally placed world across reloads and PWA updates.
+// The starter layout is created only when there is no compatible draft.
+let draftStorage=null;
+try { draftStorage=window.localStorage; } catch {}
+const draft=restoreDraft(world,draftStorage);
+if(!draft.restored){
+  world.place('tower',0,-1,0,'north');
+  world.place('tower',70,-25,0,'south');
+  world.place('leadCollector',-1,0,0,'north');
+}
 world.survival = true;
 const connections = new ItemConnections(world);
 const industry = new Industry(world, connections);
@@ -41,6 +47,7 @@ const territoryVisual = new TerritoryRenderer(svg, territory, camera);
 const cargoRenderer = new CargoRenderer(svg, camera, RESOURCES);
 world.subscribe(change => cargoRenderer.transfer(change, world));
 const combatVisual = new CombatRenderer(svg, camera, world, combat);
+attachDraftAutosave(world,draftStorage);
 
 const byId = id => document.getElementById(id);
 // The main toolbox retains its three essential tools while collapsed.
@@ -254,6 +261,18 @@ function render() {
   terrainVisual.draw();
   territoryVisual.draw();
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
+  const buildPreview=byId('build-line-preview');
+  if(paint?.grid && paint.kind!=='conveyor' && paint.kind!=='erase' && paint.kind!=='tunnelEntrance'){
+    const positions=paint.anchors??[paint.grid.origin];
+    const first=positions[0],last=positions.at(-1);
+    const scale=CAMERA_CONFIG.tileSize;
+    const def=rotatedSize(STRUCTURES[paint.kind],rotation);
+    const a=camera.worldToScreen((first.x+def.width/2)*scale,(first.y+def.height/2)*scale);
+    const b=camera.worldToScreen((last.x+def.width/2)*scale,(last.y+def.height/2)*scale);
+    buildPreview.setAttribute('d',`M${a.x} ${a.y}L${b.x} ${b.y}`);
+    buildPreview.setAttribute('stroke-width',Math.max(3,Math.min(def.width,def.height)*scale*camera.zoom*.7));
+    buildPreview.setAttribute('visibility','visible');
+  } else buildPreview.setAttribute('visibility','hidden');
   const tunnelPreview=byId('tunnel-preview');
   const route=paint?.kind==='tunnelEntrance' ? paint.route
     : pendingTunnel ? [pendingTunnel,hoverPoint ? hitTile(hoverPoint) : pendingTunnel] : null;
@@ -672,45 +691,37 @@ function actionAt(point, alternate = false) {
   }
   invalidate();
 }
-function startStroke(pointerId, point, isTouch) {
+function startStroke(pointerId,point,isTouch){
   const start=hitTile(point);
-  paint = { pointerId, route: tool === 'tunnelEntrance' ? [pendingTunnel??start,start] : [start], isTouch, kind: tool, lastAnchor: null };
-  if (tool !== 'conveyor' && tool !== 'erase' && tool !== 'tunnelEntrance') paintStructure(point);
+  paint={pointerId,route:tool==='tunnelEntrance'?[pendingTunnel??start,start]:[start],
+    isTouch,kind:tool,lastAnchor:null};
+  if(STRUCTURES[tool] && tool!=='conveyor' && tool!=='tunnelEntrance'){
+    const size=rotatedSize(STRUCTURES[tool],rotation);
+    paint.grid=startBuildStroke(start,size.width,size.height);
+    paint.anchors=[paint.grid.origin];
+  }else if(tool==='conveyor'){
+    paint.grid=startBuildStroke(start,1,1);
+  }
   invalidate();
 }
-function paintStructure(point) {
-  if (!paint || paint.kind === 'conveyor' || paint.kind === 'erase' || paint.kind==='tunnelEntrance') return;
-  const tile = hitTile(point);
-  if (!paint.grid) {
-    const size = rotatedSize(STRUCTURES[paint.kind], rotation);
-    paint.grid = startBuildStroke(tile, size.width, size.height);
-    paint.attempted = new Set();
-    placeAtGrid(paint.grid.origin);
-    return;
-  }
-  const anchors = buildStrokeStep(paint.grid, tile);
-  if (!anchors.length) return;
-  world.batch(() => {
-    for (const anchor of anchors) placeAtGrid(anchor);
-  });
-}
-function placeAtGrid(anchor) {
-  if (!paint) return;
-  const key = anchor.x + ',' + anchor.y;
-  if (paint.attempted.has(key)) return;
-  paint.attempted.add(key);
-  const placed = world.build(paint.kind, anchor.x, anchor.y, rotation, activeOwner);
-  if (placed.ok) selectedId = placed.entity.id;
-  else if (placed.reason !== 'occupied') notifyBuild(placed, paint.kind);
+function placeAtGrid(anchor,attempted){
+  const key=anchor.x+','+anchor.y;
+  if(attempted.has(key))return;
+  attempted.add(key);
+  const placed=world.build(paint.kind,anchor.x,anchor.y,rotation,activeOwner);
+  if(placed.ok)selectedId=placed.entity.id;
+  else if(placed.reason!=='occupied')notifyBuild(placed,paint.kind);
 }
 
 function extendStroke(point) {
   if (!paint) return;
   if (paint.kind === 'erase' || paint.kind === 'tunnelEntrance') { paint.route[1] = hitTile(point); invalidate(); return; }
-  if (paint.kind !== 'conveyor') { paintStructure(point); invalidate(); return; }
-  const tile = hitTile(point), last = paint.route.at(-1);
-  if (last?.x === tile.x && last?.y === tile.y) return;
-  extendRoute(paint.route, tile);
+  const tile=hitTile(point);
+  if(paint.grid){
+    const straight=normalizedBuildLine(paint.grid,tile);
+    if(paint.kind==='conveyor')paint.route=straight;
+    else paint.anchors=straight;
+  }
   invalidate();
 }
 function finishStroke(commit) {
@@ -735,6 +746,11 @@ function finishStroke(commit) {
       if(result.ok){selectedId=result.entity.id;pendingTunnel=null;}
       else pendingTunnel=start;
     }
+  }
+  if(commit && paint.grid && paint.kind!=='conveyor' &&
+      paint.kind!=='erase' && paint.kind!=='tunnelEntrance'){
+    const attempted=new Set();
+    world.batch(()=>{for(const anchor of paint.anchors)placeAtGrid(anchor,attempted);});
   }
   if (commit && paint.kind === 'conveyor') {
     notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation, activeOwner), activeOwner), 'conveyor');
