@@ -89,6 +89,42 @@ const ui = {
 let tool = 'select', rotation = 0, selectedId = null;
 let activeOwner = 'north', hoverPoint = null, showLinks = true;
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
+let recentStructure = 'drill';
+const quickSelect = document.createElement('button');
+quickSelect.type='button';
+quickSelect.className='quick-select';
+quickSelect.textContent='⌖ 선택';
+quickSelect.setAttribute('aria-label','선택 도구');
+quickSelect.addEventListener('click',()=>setTool('select'));
+const quickBar=document.createElement('div');
+quickBar.className='collapsed-top-row';
+quickBar.append(quickSelect,byId('toolbox-panel').querySelector('.panel-fold-toggle'));
+byId('toolbox-panel').prepend(quickBar);
+const shortcuts=document.createElement('div');
+shortcuts.className='collapsed-shortcuts';
+const recentButton=document.createElement('button');
+recentButton.type='button';recentButton.className='recent-tool-shortcut';
+recentButton.addEventListener('click',()=>setTool(recentStructure));
+shortcuts.append(recentButton);
+for(const [id,label] of [['conveyor','컨베이어'],['erase','철거']]){
+  const button=document.createElement('button');
+  button.type='button';button.className='shortcut-'+id;
+  button.innerHTML='<span class="shortcut-symbol">'+(id==='erase'?'×':'⇥')+'</span><span>'+label+'</span>';
+  button.addEventListener('click',()=>setTool(id));
+  shortcuts.append(button);
+}
+byId('toolbox-panel').querySelector('.tool-list').before(shortcuts);
+function refreshRecentShortcut(){
+  recentButton.replaceChildren();
+  const original=toolButtons.find(button=>button.dataset.tool===recentStructure);
+  const icon=original?.querySelector('.build-mini');
+  if(icon)recentButton.append(icon.cloneNode(true));
+  const label=document.createElement('span');
+  label.textContent=STRUCTURES[recentStructure]?.label??'최근 건물';
+  recentButton.append(label);
+  recentButton.setAttribute('aria-label','최근 건물: '+label.textContent);
+}
+
 
 const ownerSwatches = byId('owner-swatches');
 for (const nation of Object.values(NATIONS)) {
@@ -234,7 +270,7 @@ function render() {
   } else powerRadius.setAttribute('visibility','hidden');
   ui.selected.textContent = selected ?
     `${STRUCTURES[selected.type].label} #${selected.id} · ${nationLabel(selected.ownerId)}` :
-    (tool === 'select' ? '타일 또는 건물을 선택해 봐' : tool === 'erase' ? '건물 철거 모드' :
+    (tool === 'select' ? '타일 또는 건물을 선택하세요.' : tool === 'erase' ? '건물 철거 모드' :
       `${STRUCTURES[tool].label} 설치 모드`);
   ui.hp.textContent = selected ? `${selected.health} / ${selected.maxHealth}` : '—';
   const recipeState = selected && RECIPES[selected.type];
@@ -343,11 +379,22 @@ function setupBuildThumbnails() {
   for (const {label,types} of TOOL_GROUPS) {
     const group = document.createElement('div');
     group.className = 'tool-group';
-    const title = document.createElement('div');
+    const title = document.createElement('button');
+    title.type = 'button';
     title.className = 'tool-group-title';
     title.textContent = label;
+    title.setAttribute('aria-expanded', label === '기본 조작' ? 'true' : 'false');
     const grid = document.createElement('div');
     grid.className = 'tool-group-grid';
+    grid.hidden = label !== '기본 조작';
+    title.addEventListener('click', () => {
+      const open = grid.hidden;
+      for (const other of list.querySelectorAll('.tool-group-grid')) other.hidden = true;
+      for (const button of list.querySelectorAll('.tool-group-title'))
+        button.setAttribute('aria-expanded','false');
+      grid.hidden = !open;
+      title.setAttribute('aria-expanded', String(open));
+    });
     group.append(title,grid);
     list.append(group);
     for (const type of types) groups.set(type,grid);
@@ -389,10 +436,26 @@ function setupBuildThumbnails() {
   }
 }
 setupBuildThumbnails();
+refreshRecentShortcut();
 
 function setTool(next) {
   if (next !== 'select' && next !== 'erase' && !STRUCTURES[next]) return;
   tool = next;
+  if(STRUCTURES[next] && next!=='conveyor'){
+    recentStructure=next;
+    refreshRecentShortcut();
+  }
+  quickSelect.classList.toggle('active',next==='select');
+  recentButton.classList.toggle('active',next===recentStructure);
+  shortcuts.querySelector('.shortcut-conveyor').classList.toggle('active',next==='conveyor');
+  shortcuts.querySelector('.shortcut-erase').classList.toggle('active',next==='erase');
+  const activeButton = [...toolButtons].find(button => button.dataset.tool === next);
+  const activeGrid = activeButton?.closest('.tool-group-grid');
+  if (activeGrid && activeGrid.hidden) {
+    document.querySelectorAll('.tool-group-grid').forEach(grid => { grid.hidden = grid !== activeGrid; });
+    document.querySelectorAll('.tool-group-title').forEach(button =>
+      button.setAttribute('aria-expanded',String(button.nextElementSibling === activeGrid)));
+  }
   showBuildInfo(next);
   paint = null;
   selectedId = null;
@@ -412,20 +475,20 @@ function setTool(next) {
 function notifyBuild(result, type) {
   if (result?.ok) { ui.message.textContent = ''; return; }
   const reasons = {
-    ore: '해당 자원 광맥 위에 설치해야 해',
-    territory: '자기 국가 영토 안에서만 건설할 수 있어',
-    terrain: '경사가 가파르거나 너무 높은 지형이라 건설할 수 없어',
-    bounds: '맵 범위 밖이야',
-    occupied: '건물이 이미 점유한 공간이야',
-    restricted: '전기 타워는 점령으로만 확보할 수 있어',
-    materials: '국가 비축 물자가 부족해',
+    ore: '해당 광맥 위에 설치해야 합니다.',
+    territory: '자국 영토에만 건설할 수 있습니다.',
+    terrain: '경사가 가파르거나 높은 지형에는 건설할 수 없습니다.',
+    bounds: '지도 범위 밖입니다.',
+    occupied: '이미 건물이 설치된 위치입니다.',
+    restricted: '중앙 타워는 점령으로만 확보할 수 있습니다.',
+    materials: '국가 비축 물자가 부족합니다.',
   };
   const cost = result?.cost ?? BUILD_COSTS[type];
   const wallet = world.walletFor(activeOwner);
   const missing = result?.reason === 'materials' && cost ?
     Object.entries(cost).filter(([id,amount]) => (wallet[id] ?? 0) < amount)
       .map(([id,amount])=>`${RESOURCES[id]?.label ?? id} ${amount - (wallet[id] ?? 0)}`).join(', ') : '';
-  ui.message.textContent = (reasons[result?.reason] ?? '설치할 수 없는 위치야') +
+  ui.message.textContent = (reasons[result?.reason] ?? '설치할 수 없는 위치입니다.') +
     (missing ? ' · 부족: ' + missing : '');
 }
 function actionAt(point, alternate = false) {
@@ -701,14 +764,14 @@ byId('show-links').addEventListener('click',event => {
 });
 byId('simulate-raid').addEventListener('click', () => {
   const ok = combat.spawnRaid(activeOwner);
-  ui.message.textContent = ok ? '적 정찰 드론 3기 접근 중 · 포탑으로 방어해 봐'
-    : '정찰 시험을 시작할 수 없어 · 해당 국가의 중앙 타워를 확인해';
+  ui.message.textContent = ok ? '적 정찰 드론 3기 접근 중 · 포탑으로 방어하세요.'
+    : '정찰 시험을 시작할 수 없습니다. 해당 국가의 중앙 타워를 확인하세요.';
   if (ok) { combatVisual.wake(); invalidate(); }
 });
 byId('example').addEventListener('click', () => {
   // This no-cost tutorial shortcut must not silently construct in rival territory.
   if (activeOwner !== 'north') {
-    ui.message.textContent = '철 채굴 예시는 북부 시작 영토에서만 사용할 수 있어';
+    ui.message.textContent = '철 채굴 예시는 북부 시작 영토에서만 사용할 수 있습니다.';
     return;
   }
   // Developer sample, not charged against the active faction's stockpile.
@@ -741,7 +804,7 @@ document.addEventListener('visibilitychange', () => {
 requestPortrait();
 
 setTool('select');
-  ui.message.textContent = '철 채굴 예시를 배치했어 · 건설비 미차감';
+  ui.message.textContent = '철 채굴 예시를 설치했습니다 · 건설비 미차감';
   invalidate();
 });
 byId('rotate').addEventListener('click',()=>{rotation=(rotation+1)%4;finishStroke(false);invalidate();});

@@ -73,6 +73,13 @@ The unit movement here is a local training scenario, not yet full pathfinding or
 - A deterministic winding escarpment rises between the factions around the map's midfront, but has two open passages. The height function determines both collision and appearance; original tutorial resources and both starting towers remain reachable.
 - The portrait-mode PWA orientation setting remains unchanged.
 
+## Conveyor seams, distant rendering and compact build palette
+- Adjacent conveyor sprites only visually join on sides confirmed by actual directed item links. Border bridge decals respect belt turns, rotations and faction separation. The gameplay connection graph is unchanged.
+- The distant building canvas caps pixel density to reduce zoomed-out fill rate; it retains the existing sprite artwork and seam decals. This is a targeted rendering adjustment, not a verified device FPS improvement.
+- The construction palette now uses collapsible category buttons; only one group is expanded at a time.
+- When the main drawer is collapsed, its upper row has Select beside the expansion control; the lower row offers the most recently selected building, Conveyor, and Demolish. The recent-building shortcut never expands the drawer.
+- New on-screen building feedback and messages use concise, polite Korean.
+
 ## Controls
 
 | Input | Result |

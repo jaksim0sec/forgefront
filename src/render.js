@@ -3,6 +3,7 @@ import { STRUCTURES, tileToWorld, worldToTile } from './world.js';
 import { nationColor, nationSigil } from './nations.js';
 import { RESOURCES } from './resources.js';
 import { DIRECTIONS } from './ports.js';
+import { conveyorOpenSides, conveyorSeamPath } from './conveyor-visual.js';
 import { DistantStructureRenderer } from './structure-lod.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -109,7 +110,7 @@ export function structureWorldTransform(structure) {
   return `translate(${translate[0]} ${translate[1]}) rotate(${structure.rotation * 90})`;
 }
 
-function moveSprite(element, structure, connections) {
+function moveSprite(element, structure, connections, world) {
   const def = STRUCTURES[structure.type];
   const parts = element._parts;
   const placement = `${structure.x},${structure.y},${structure.rotation},${structure.type}`;
@@ -134,6 +135,13 @@ function moveSprite(element, structure, connections) {
     parts.bend.setAttribute('visibility', path ? 'visible' : 'hidden');
     parts.bend.setAttribute('d', path);
     element._bendRevision = connections.revision;
+  }
+  if (parts.seam && element._seamRevision !== connections.revision) {
+    const sides = conveyorOpenSides(structure, connections, world);
+    const path = conveyorSeamPath(sides);
+    parts.seam.setAttribute('visibility', path ? 'visible' : 'hidden');
+    if (path) parts.seam.setAttribute('d', path);
+    element._seamRevision = connections.revision;
   }
   if (element._health !== structure.health || element._maxHealth !== structure.maxHealth) {
     parts.health.lastElementChild.setAttribute('width',
@@ -275,6 +283,7 @@ export class BuildingRenderer {
         const use = document.createElementNS(NS, 'use');
         use.setAttribute('href', `#s-${structure.type}`);
         node.appendChild(use);
+        let seam = null;
         let bend = null;
         if (structure.type === 'conveyor') {
           bend = document.createElementNS(NS, 'path');
@@ -285,6 +294,14 @@ export class BuildingRenderer {
           bend.setAttribute('stroke-linejoin', 'round');
           bend.setAttribute('visibility', 'hidden');
           node.appendChild(bend);
+          seam = document.createElementNS(NS,'path');
+          seam.setAttribute('class','conveyor-seam');
+          seam.setAttribute('fill','none');
+          seam.setAttribute('stroke','#27343a');
+          seam.setAttribute('stroke-width','7');
+          seam.setAttribute('stroke-linecap','butt');
+          seam.setAttribute('visibility','hidden');
+          node.appendChild(seam);
         }
         const cargo = document.createElementNS(NS, 'g');
         cargo.setAttribute('class','cargo-overlay');
@@ -318,12 +335,12 @@ export class BuildingRenderer {
         health.setAttribute('class', 'structure-health');
         health.innerHTML = '<rect height="3.1" rx="1" fill="#141c22" /><rect height="3.1" rx="1" fill="#9eb5ad" />';
         node.appendChild(health);
-        node._parts = { use, bend, cargo, resourceIcon, resourceAmount, status, insignia,
+        node._parts = { use, bend, seam, cargo, resourceIcon, resourceAmount, status, insignia,
           rune: insignia.querySelector('.insignia-rune'), health };
         this.layer.appendChild(node);
         this.elements.set(structure.id, node);
       }
-      moveSprite(node, structure, this.connections);
+      moveSprite(node, structure, this.connections, world);
       const { status, insignia, rune, health, cargo, resourceIcon, resourceAmount } = node._parts;
       const blocked = !structure.enabled || ['no-power','no-coal','no-ore','blocked'].includes(structure.activity);
       const operating = ['mining','processing','generating','transporting','receiving'].includes(structure.activity);

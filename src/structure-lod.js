@@ -1,6 +1,7 @@
 import { CAMERA_CONFIG } from './camera.js';
 import { STRUCTURES, worldToTile } from './world.js';
 import { nationColor } from './nations.js';
+import { conveyorOpenSides } from './conveyor-visual.js';
 
 // Keep the expensive interactive SVG details at close zoom. Below the
 // connection-arrow threshold, draw the same machine art on ONE Canvas surface.
@@ -40,6 +41,9 @@ export class DistantStructureRenderer {
     this.context = null;
     this.canvas = null;
     this.images = new Map();
+    this.seams = new Map();
+    this.seamRevision = -1;
+    this.lastPaint = 0;
     try {
       this.canvas = document.createElement('canvas');
       this.canvas.className = 'structure-lod-canvas';
@@ -75,7 +79,8 @@ export class DistantStructureRenderer {
     this.canvas.hidden = false;
     const ctx = this.context;
     const camera = this.camera;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Distance view is icon-sized; full retina resolution costs many pixels with no benefit.
+    const dpr = Math.min(window.devicePixelRatio || 1, camera.zoom < .48 ? 1 : 1.35);
     const width = Math.max(1, Math.round(camera.width * dpr));
     const height = Math.max(1, Math.round(camera.height * dpr));
     if (this.canvas.width !== width || this.canvas.height !== height) {
@@ -85,6 +90,10 @@ export class DistantStructureRenderer {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
+    if (this.seamRevision !== this.connections.revision) {
+      this.seams.clear();
+      this.seamRevision = this.connections.revision;
+    }
     const scale = camera.zoom * dpr;
     const ox = dpr * (camera.width / 2 - camera.x * camera.zoom);
     const oy = dpr * (camera.height / 2 - camera.y * camera.zoom);
@@ -111,7 +120,10 @@ export class DistantStructureRenderer {
         ctx.fillRect(2, 2, w - 4, h - 4);
       }
 
-      if (structure.type === 'conveyor') this.drawBend(ctx, structure);
+      if (structure.type === 'conveyor') {
+        this.drawBend(ctx, structure);
+        this.drawSeams(ctx, structure);
+      }
 
       const blocked = !structure.enabled ||
         ['no-power', 'no-coal', 'no-ore', 'blocked'].includes(structure.activity);
@@ -138,6 +150,27 @@ export class DistantStructureRenderer {
       }
     }
     return true;
+  }
+
+  drawSeams(ctx, structure) {
+    let sides = this.seams.get(structure.id);
+    if (!sides) {
+      sides = conveyorOpenSides(structure, this.connections, this.world);
+      this.seams.set(structure.id, sides);
+    }
+    if (!sides.length) return;
+    ctx.strokeStyle = '#27343a';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    for (const side of sides) {
+      switch(side) {
+        case 0:ctx.moveTo(17,1);ctx.lineTo(31,1);break;
+        case 1:ctx.moveTo(47,17);ctx.lineTo(47,31);break;
+        case 2:ctx.moveTo(17,47);ctx.lineTo(31,47);break;
+        case 3:ctx.moveTo(1,17);ctx.lineTo(1,31);break;
+      }
+    }
+    ctx.stroke();
   }
 
   drawBend(ctx, structure) {

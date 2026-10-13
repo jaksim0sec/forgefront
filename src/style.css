@@ -456,3 +456,67 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
  .build-inspector {top:14px;max-height:calc(100dvh - 28px); overflow-y:auto;}
  .build-inspector .build-hero {display:none;}
 }
+
+/* Tab-like build categories: one compact list open at a time. */
+#toolbox-panel .tool-group-title {
+ display:flex;align-items:center;justify-content:space-between;
+ width:100%;padding:9px 11px;margin:0 0 3px;cursor:pointer;text-align:left;
+ background:#22333e;border:1px solid #405764a0;border-radius:7px;
+ font:inherit;font-size:11px;font-weight:700;letter-spacing:.035em;color:#b9cbd3;
+}
+#toolbox-panel .tool-group-title::after{content:'⌄';font-size:16px;color:#8caab7;transition:transform .13s;}
+#toolbox-panel .tool-group-title[aria-expanded="true"]{background:#304550;color:#f0f6f8;border-color:#8eb9c36b;}
+#toolbox-panel .tool-group-title[aria-expanded="true"]::after{transform:rotate(180deg);}
+#toolbox-panel .tool-group-grid[hidden]{display:none !important;}
+#toolbox-panel .tool-group-grid{margin:3px 0 5px;}
+#toolbox-panel .tool-list{gap:4px;}
+#toolbox-panel .tool-group-grid button{min-height:69px;}
+#toolbox-panel .tool-group-grid .build-mini{width:40px;height:37px;}
+#toolbox-panel.panel-collapsed .tool-group-grid[hidden]{display:contents !important;}
+@media(max-width:730px){
+ #toolbox-panel .tool-group-grid button{min-height:62px;}
+ #toolbox-panel .tool-group-grid .build-mini{width:37px;height:33px;}
+ #toolbox-panel .tool-group-title{padding:8px 10px;font-size:10px;}
+}
+
+/* Collapsed compact controls: selection and unfold share the header;
+   the former Select slot is a one-tap recently used building. */
+.collapsed-top-row,.collapsed-shortcuts {display:none;}
+#toolbox-panel.panel-collapsed {width:245px !important; padding:7px !important;}
+#toolbox-panel.panel-collapsed .collapsed-top-row {
+ display:flex;align-items:center;gap:6px;margin-bottom:7px;
+}
+#toolbox-panel.panel-collapsed .collapsed-top-row .quick-select {
+ flex:1;display:flex;align-items:center;justify-content:center;min-height:35px;
+ border:1px solid #526a79;border-radius:7px;background:#243743;color:#dfebef;font-size:12px;
+}
+#toolbox-panel.panel-collapsed .collapsed-top-row .quick-select.active,
+#toolbox-panel.panel-collapsed .collapsed-shortcuts button.active {
+ background:#37535f;border-color:#9bc9d2;
+}
+#toolbox-panel.panel-collapsed .collapsed-top-row .panel-fold-toggle {
+ position:static;float:none;margin:0;width:38px;min-width:38px;height:35px;
+}
+#toolbox-panel.panel-collapsed .collapsed-shortcuts {
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
+}
+#toolbox-panel.panel-collapsed .collapsed-shortcuts button {
+ min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:3px;min-height:70px;padding:5px 2px;border:1px solid #435b69;
+ border-radius:7px;background:#1d2e39;color:#cbdce4;font-size:10px;
+}
+#toolbox-panel.panel-collapsed .collapsed-shortcuts .build-mini{width:36px;height:36px;}
+#toolbox-panel.panel-collapsed .collapsed-shortcuts .shortcut-symbol {
+ height:36px;display:flex;align-items:center;font-size:27px;color:#a5c2d0;
+}
+#toolbox-panel.panel-collapsed .tool-list {display:none !important;}
+#toolbox-panel.panel-collapsed > .toolbox-heading {display:none !important;}
+#toolbox-panel:not(.panel-collapsed) .collapsed-top-row {display:contents;}
+#toolbox-panel:not(.panel-collapsed) .collapsed-top-row .quick-select {display:none;}
+#toolbox-panel:not(.panel-collapsed) .collapsed-top-row .panel-fold-toggle {
+ position:sticky;top:0;float:right;
+}
+@media(max-width:730px){
+ #toolbox-panel.panel-collapsed {width:230px !important;}
+ #toolbox-panel.panel-collapsed .collapsed-shortcuts button{min-height:64px;}
+}
