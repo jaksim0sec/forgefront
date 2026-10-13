@@ -61,3 +61,45 @@ test('drone exercise is explicitly triggered, bounded and targets the real tower
   assert.equal(combat.spawnRaid('north'),false);
   combat.dispose();
 });
+
+
+test('more powered turrets shorten actual elimination time',()=>{
+  function clearTime(count) {
+    const world = new World();
+    const tower = world.place('tower',0,0,0,'north').entity;
+    for (const [x,y] of [[2,0],[2,2],[4,0]].slice(0,count))
+      assert.equal(world.place('turret',x,y,0,'north').ok,true);
+    const power = new PowerGrid(world);
+    power.update();
+    const combat = new Combat(world);
+    const scout = world.units.spawn({x:8,y:1,ownerId:'south',
+      health:34,speed:0,targetId:tower.id,hitPower:0});
+    let time=0;
+    while(world.units.get(scout.id) && time<5) {
+      combat.step(0.05);
+      time+=0.05;
+    }
+    combat.dispose();power.dispose();
+    return time;
+  }
+  const one=clearTime(1), three=clearTime(3);
+  assert.ok(three<one*0.6,`three turrets should kill faster (${three} vs ${one})`);
+});
+
+test('nearby turrets can fire before slow pre-reserved shots arrive',()=>{
+  const world = new World();
+  const tower = world.place('tower',-10,-10,0,'north').entity;
+  for(const [x,y] of [[0,-2],[0,0],[0,2],[6,0]]) {
+    const placed=world.place('turret',x,y,0,'north');
+    assert.equal(placed.ok,true);
+    placed.entity.powered=true;
+  }
+  const combat=new Combat(world);
+  const scout=world.units.spawn({x:8,y:1,health:34,speed:0,
+    ownerId:'south',targetId:tower.id,hitPower:0});
+  combat.step(0.016);
+  const shots=[...world.projectiles.entities.values()];
+  assert.equal(shots.length,4);
+  assert.ok(shots.some(shot=>shot.x===7 && shot.targetId===scout.id));
+  combat.dispose();
+});
