@@ -136,7 +136,7 @@ export class TerrainRenderer {
       const sx = px + 3 + ((detail >>> 5) % (size - 8));
       const sy = py + 3 + ((detail >>> 14) % (size - 8));
       ctx.fillStyle = (detail & 1) ? 'rgba(199,203,184,.13)' : 'rgba(6,16,24,.18)';
-      ctx.fillRect(sx, sy, sample.biome === 'ridge' ? 5 : 3, 2);
+      if ((detail & 3) === 0) ctx.fillRect(sx, sy, sample.biome === 'ridge' ? 5 : 3, 2);
       if (sample.biome === 'cliff') {
         // The same slate/sandstone palette as adjacent rock, with an
         // understated top lip and only boundary-facing dark relief.
@@ -151,7 +151,7 @@ export class TerrainRenderer {
         ctx.moveTo(px+5,py+11);
         ctx.lineTo(px+14,py+6);
         ctx.lineTo(px+23,py+10);
-        ctx.stroke();
+        if ((detail & 3) === 0) ctx.stroke();
         if(dropS>0.035) {
           const depth=Math.min(9,3+Math.floor(dropS*58));
           ctx.fillStyle='rgba(16,29,36,.62)';
@@ -164,7 +164,7 @@ export class TerrainRenderer {
           ctx.fillStyle='rgba(18,32,39,.48)';
           ctx.fillRect(px+size-depth,py,depth,size);
         }
-      } else if (sample.biome === 'rock' || sample.biome === 'ridge') {
+      } else if ((sample.biome === 'rock' || sample.biome === 'ridge') && (detail & 3) === 0) {
         ctx.fillStyle = 'rgba(15,24,30,.22)';
         ctx.beginPath();
         ctx.moveTo(px + 5, py + size - 5);
@@ -208,7 +208,7 @@ export class TerrainRenderer {
       if (!ore || !RESOURCES[ore]) continue;
       count++;
       const jitter = this.terrain.hash(x * 13, y * 13);
-      const scale = .61 + ((jitter >>> 3) % 11) / 100;
+      const scale = .53 + ((jitter >>> 3) % 10) / 100;
       const size = cell * scale;
       const px = tx * cell + (cell - size) / 2;
       const py = ty * cell + (cell - size) / 2;
