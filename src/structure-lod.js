@@ -3,10 +3,10 @@ import { STRUCTURES, worldToTile } from './world.js';
 import { nationColor } from './nations.js';
 import { conveyorOpenSides } from './conveyor-visual.js';
 
-// Keep the expensive interactive SVG details at close zoom. Below the
-// connection-arrow threshold, draw the same machine art on ONE Canvas surface.
+// Keep the expensive interactive SVG details at close zoom. At medium/distant
+// zoom, draw the same machine art on ONE Canvas surface.
 // There is no SVG DOM node per visible structure in this mode.
-export const DISTANT_ZOOM = 0.58;
+export const DISTANT_ZOOM = 0.72;
 
 export function structureCanvasPlacement(structure, tileSize = CAMERA_CONFIG.tileSize) {
   const def = STRUCTURES[structure.type];
@@ -44,6 +44,8 @@ export class DistantStructureRenderer {
     this.seams = new Map();
     this.seamRevision = -1;
     this.lastPaint = 0;
+    this.lastView = null;
+    this.needsPaint = true;
     try {
       this.canvas = document.createElement('canvas');
       this.canvas.className = 'structure-lod-canvas';
@@ -54,13 +56,18 @@ export class DistantStructureRenderer {
       this.context = null;
     }
     if (!this.context) return;
+    // Only occupancy and visible state changes invalidate a static distant frame.
+    this.unsubscribe = world.subscribe?.(({ type }) => {
+      if (type === 'place' || type === 'remove' || type === 'rotate' ||
+          type === 'state' || type === 'owner') this.needsPaint = true;
+    });
 
     for (const [type, markup] of Object.entries(templates)) {
       const def = STRUCTURES[type];
       if (!def) continue;
       const image = new Image();
-      image.onload = () => { if (this.active) this.draw(this.selectedId); };
-      image.onerror = () => { if (this.active) this.draw(this.selectedId); };
+      image.onload = () => { this.needsPaint = true; if (this.active) this.draw(this.selectedId); };
+      image.onerror = () => { this.needsPaint = true; if (this.active) this.draw(this.selectedId); };
       image.src = spriteUrl(markup, def);
       this.images.set(type, image);
     }
@@ -71,14 +78,23 @@ export class DistantStructureRenderer {
   draw(selectedId) {
     if (!shouldDrawDistant(this.camera.zoom, !!this.context)) {
       this.active = false;
+      this.lastView = null;
       if (this.context) this.canvas.hidden = true;
       return false;
     }
     this.active = true;
     this.selectedId = selectedId;
     this.canvas.hidden = false;
-    const ctx = this.context;
     const camera = this.camera;
+    const view = [camera.x,camera.y,camera.zoom,camera.width,camera.height,selectedId].join(',');
+    const now = typeof performance === 'undefined' ? Date.now() : performance.now();
+    // Camera motion renders immediately. A stationary frame refreshes at most
+    // eight times per second to reflect activity, not every animation tick.
+    if (!this.needsPaint && this.lastView === view && now-this.lastPaint < 125) return true;
+    this.needsPaint = false;
+    this.lastView = view;
+    this.lastPaint = now;
+    const ctx = this.context;
     // Distance view is icon-sized; full retina resolution costs many pixels with no benefit.
     const dpr = Math.min(window.devicePixelRatio || 1, camera.zoom < .48 ? 1 : 1.35);
     const width = Math.max(1, Math.round(camera.width * dpr));
