@@ -34,9 +34,11 @@ export function restoreDraft(world,storage) {
     const stage=new World(world.config);
     stage.terrain=world.terrain;
     const remap=new Map();
+    const savedById=new Map(); // Also resolves reciprocal tunnel pairs in O(1).
     for(const old of snapshot.structures){
-      if(!old||!Number.isSafeInteger(old.id)||remap.has(old.id)||!STRUCTURES[old.type])
+      if(!old||!Number.isSafeInteger(old.id)||savedById.has(old.id)||!STRUCTURES[old.type])
         throw Error('invalid');
+      savedById.set(old.id,old);
       const placed=stage.place(old.type,old.x,old.y,old.rotation,old.ownerId,old.inputSide);
       if(!placed.ok)throw Error('conflict');
       const e=placed.entity;
@@ -62,7 +64,7 @@ export function restoreDraft(world,storage) {
           (e.type==='tunnelEntrance'&&other.type==='tunnelExit')||
           (e.type==='tunnelExit'&&other.type==='tunnelEntrance')
         ))throw Error('pair');
-        const reciprocal=snapshot.structures.find(item=>item.id===old.pairId);
+        const reciprocal=savedById.get(old.pairId);
         if(reciprocal?.pairId!==old.id)throw Error('pair');
         e.pairId=other.id;
       }else if(e.type==='tunnelEntrance'||e.type==='tunnelExit')throw Error('pair');

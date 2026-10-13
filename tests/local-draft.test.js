@@ -38,3 +38,18 @@ test('an invalid overlapping draft is discarded without partial world mutation',
   assert.equal(world.structures.size,0);
   assert.equal(storage.getItem(DRAFT_KEY),null);
 });
+
+test('paired tunnel references survive deleted ID gaps in a restored draft',()=>{
+  const storage=memoryStorage(),old=new World();
+  const removed=old.place('wall',20,20,0,'north').entity;
+  const entrance=old.place('tunnelEntrance',0,0,1,'north').entity;
+  const exit=old.place('tunnelExit',4,0,1,'north').entity;
+  entrance.pairId=exit.id;exit.pairId=entrance.id;
+  old.remove(removed.id);
+  assert.equal(saveDraft(old,storage),true);
+  const restored=new World();
+  assert.equal(restoreDraft(restored,storage).restored,true);
+  const a=restored.getAt(0,0),b=restored.getAt(4,0);
+  assert.equal(a.pairId,b.id);
+  assert.equal(b.pairId,a.id);
+});

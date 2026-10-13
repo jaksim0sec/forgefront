@@ -63,3 +63,17 @@ test('drill -> conveyor -> smelter transfers SVG-defined iron inventory independ
   world.effects.emit(0,0,1);
   assert.equal('health' in world.effects.items[0],false);
 });
+
+test('long conveyor strokes trim revisited loops without leaving duplicate tiles',()=>{
+  const route=[];
+  extendRoute(route,{x:0,y:0});
+  extendRoute(route,{x:0,y:800});
+  extendRoute(route,{x:30,y:800});
+  extendRoute(route,{x:0,y:400});
+  assert.deepEqual(route.at(-1),{x:0,y:400});
+  assert.equal(route.length,401);
+  assert.equal(new Set(route.map(p=>p.x+','+p.y)).size,route.length);
+  extendRoute(route,{x:5,y:400});
+  assert.equal(route.length,406);
+  assert.deepEqual(route.at(-1),{x:5,y:400});
+});

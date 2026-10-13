@@ -12,15 +12,32 @@ export function directionBetween(a, b) {
 export function extendRoute(route, target) {
   if (!Number.isInteger(target?.x) || !Number.isInteger(target?.y)) return route;
   if (!route.length) { route.push({ x: target.x, y: target.y }); return route; }
+  // Track tile indices once per extension rather than rescanning the entire
+  // route for every tile traversed during a long pointer jump.
+  const indices = new Map(route.map((point, i) => [point.x + ',' + point.y, i]));
   let { x, y } = route.at(-1);
   const walk = (axis, destination) => {
     while (route.length < ROUTE_LIMIT && (axis === 'x' ? x : y) !== destination) {
       if (axis === 'x') x += Math.sign(destination - x);
       else y += Math.sign(destination - y);
       const prev = route.at(-2);
-      if (prev && prev.x === x && prev.y === y) { route.pop(); continue; }
-      const seen = route.findIndex(p => p.x === x && p.y === y);
-      if (seen >= 0) { route.splice(seen + 1); continue; }
+      if (prev && prev.x === x && prev.y === y) {
+        const removed = route.pop();
+        indices.delete(removed.x + ',' + removed.y);
+        continue;
+      }
+      const key = x + ',' + y;
+      const seen = indices.get(key);
+      if (seen !== undefined) {
+        // Every removed tile is visited at most once during this extension.
+        for (let i = route.length - 1; i > seen; i--) {
+          const removed = route[i];
+          indices.delete(removed.x + ',' + removed.y);
+        }
+        route.length = seen + 1;
+        continue;
+      }
+      indices.set(key, route.length);
       route.push({ x, y });
     }
   };

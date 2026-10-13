@@ -13,6 +13,12 @@ const STARTER_VEINS = Object.freeze([
   { type: 'coal', x: 10, y: -4, rx: 4.9, ry: 4.4 },
   { type: 'titanium', x: 18, y: 8, rx: 4.9, ry: 4.4 },
 ]);
+// heightAt is queried per visible ground sample: never rebuild these objects
+// for every tile, and avoid square roots outside their influence radii.
+const STARTER_ANCHORS = Object.freeze([
+  {x:0,y:0,r:8}, {x:71,y:-24,r:8},
+  ...STARTER_VEINS.map(v=>({x:v.x,y:v.y,r:4}))
+]);
 
 export class Terrain {
   constructor(seed = 2841) { this.seed = seed | 0; }
@@ -58,9 +64,10 @@ export class Terrain {
     height = clamp01(height + front * extent * (1 - passage) * 0.47);
 
     // Do not strand the starter core or scripted early deposits on cliffs.
-    const anchors = [{x:0,y:0,r:8}, {x:71,y:-24,r:8}, ...STARTER_VEINS.map(v=>({x:v.x,y:v.y,r:4}))];
-    for (const a of anchors) {
-      const distance = Math.hypot(x - a.x, y - a.y);
+    for (const a of STARTER_ANCHORS) {
+      const dx = x - a.x, dy = y - a.y;
+      if (Math.abs(dx) >= a.r || Math.abs(dy) >= a.r) continue;
+      const distance = Math.hypot(dx, dy);
       if (distance < a.r) {
         const weight = smooth(clamp01((a.r - distance) / a.r));
         height = height * (1 - weight * 0.9) + 0.46 * weight * 0.9;
