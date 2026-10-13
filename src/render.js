@@ -485,7 +485,7 @@ export class BuildingRenderer {
       const resource = RESOURCES[firstItem];
       // Conveyor cargo in transit is shown by CargoRenderer, not this overlay.
       // Only a blocked belt gets a stationary inventory badge.
-      const isBelt = structure.type === 'conveyor';
+      const isBelt = ['conveyor','tunnelEntrance','tunnelExit'].includes(structure.type);
       const cargoVisible = Boolean(resource && amount && camera.zoom >= .68 &&
         (!isBelt || structure.activity === 'blocked'));
       if (node._cargoVisible !== cargoVisible) {
