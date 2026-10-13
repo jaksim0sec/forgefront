@@ -1,7 +1,7 @@
 /** Bounded, world-space combat simulation; no SVG/DOM nodes per moving entity.
  * Coordinates are tile units. Weapon stats are intentionally early-game values.
  */
-import { WEAPONS } from './defense.js';
+import { WEAPONS, isWall } from './defense.js';
 export const TURRET = WEAPONS.turret;
 const MAX_SCOUTS = 24;
 const MAX_SHOTS = 64;
@@ -115,9 +115,7 @@ export class Combat {
       if(scout.mobility !== 'air'){
         const obstacle=world.getAt(Math.floor(nx),Math.floor(ny));
         if(obstacle && obstacle.ownerId!==scout.ownerId &&
-            obstacle.health>0 && obstacle.type &&
-            world.getAt(Math.floor(nx),Math.floor(ny))?.id===obstacle.id &&
-            obstacle.blocksGround!==false && obstacle.type.endsWith('Wall')){
+            obstacle.health>0 && isWall(obstacle.type)){
           scout.attackTimer=(scout.attackTimer??0)-delta;
           if(scout.attackTimer<=0){
             world.damageStructure(obstacle.id,scout.hitPower||10);
