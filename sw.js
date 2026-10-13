@@ -24,6 +24,7 @@ const CORE_ASSETS = [
   "./src/structure-lod.js",
   "./src/resources.js",
   "./src/routes.js",
+  "./src/underground.js",
   "./src/terrain-render.js",
   "./src/territory-render.js",
   "./src/territory.js",
