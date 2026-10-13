@@ -145,13 +145,15 @@ export class DistantStructureRenderer {
         ['no-power', 'no-coal', 'no-ore', 'blocked'].includes(structure.activity);
       const operating = ['mining', 'processing', 'generating', 'transporting', 'receiving']
         .includes(structure.activity);
-      if (structure.type !== 'conveyor' && structure.type !== 'junction') {
+      if (structure.type !== 'conveyor' && structure.type !== 'junction' &&
+          !STRUCTURES[structure.type].blocksGround) {
         ctx.beginPath();
         ctx.arc(w - 8, 8, 3.3, 0, Math.PI * 2);
         ctx.fillStyle = blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3';
         ctx.fill();
       }
-      if (structure.ownerId) {
+      if (structure.ownerId && structure.type !== 'conveyor' && structure.type !== 'junction' &&
+          !STRUCTURES[structure.type].blocksGround) {
         ctx.fillStyle = '#18232b';
         ctx.fillRect(4, 4, 13, 13);
         ctx.fillStyle = nationColor(structure.ownerId);
@@ -176,7 +178,7 @@ export class DistantStructureRenderer {
     }
     if (!sides.length) return;
     ctx.strokeStyle = '#27343a';
-    ctx.lineWidth = 7;
+    ctx.lineWidth = 5;
     ctx.beginPath();
     for (const side of sides) {
       switch(side) {
@@ -204,8 +206,8 @@ export class DistantStructureRenderer {
       ctx.lineTo(24, 24);
       ctx.lineTo(24, 44);
     }
-    ctx.strokeStyle = '#b0a38f';
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#797469';
+    ctx.lineWidth = 3.5;
     ctx.lineJoin = 'round';
     ctx.stroke();
   }
