@@ -164,7 +164,7 @@ export class DistantStructureRenderer {
         ctx.fillStyle = blocked ? '#e69b79' : operating ? '#8ac9ad' : '#8697a3';
         ctx.fill();
       }
-      if (structure.ownerId && structure.type !== 'conveyor' && structure.type !== 'junction' &&
+      if (structure.ownerId && !['conveyor','junction','tunnelEntrance','tunnelExit'].includes(structure.type) &&
           !STRUCTURES[structure.type].blocksGround) {
         ctx.fillStyle = '#18232b';
         ctx.fillRect(4, 4, 13, 13);
