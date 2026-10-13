@@ -17,6 +17,7 @@ export class Combat {
     this.turrets = new Set();
     this.cooldowns = new Map();
     this.lastTick = 0;
+    this.visualEvents = [];
     for (const e of world.structures.values()) if (WEAPONS[e.type]) this.turrets.add(e.id);
     this.unsubscribe = world.subscribe(({type,entity})=>{
       if (!WEAPONS[entity?.type]) return;
@@ -73,6 +74,7 @@ export class Combat {
       const d=Math.sqrt(distance2(shot,target));
       const travel=shot.speed*delta;
       if(d<=travel+0.32){
+        this.visualEvents.push({type:'hit',x:target.x,y:target.y,heavy:shot.damage>=40});
         world.units.damage(target.id,shot.damage);
         if (shot.splashRadius && shot.splashDamage) {
           const radius2=shot.splashRadius*shot.splashRadius;
@@ -173,9 +175,11 @@ export class Combat {
         let arrival=incoming.get(chosen.id);
         if(!arrival) incoming.set(chosen.id, arrival=[]);
         arrival.push({eta:Math.sqrt(nearest)/weapon.shotSpeed,damage:weapon.damage});
+        this.visualEvents.push({type:'fire',x:source.x,y:source.y,angle:turret.aimAngle,heavy:weapon.damage>=40});
         this.cooldowns.set(id,weapon.secondsPerShot);
       }
     }
+    if(this.visualEvents.length>48)this.visualEvents.splice(0,this.visualEvents.length-48);
     return true;
   }
 
