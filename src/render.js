@@ -173,6 +173,22 @@ function moveSprite(element, structure, connections, world) {
   const def = STRUCTURES[structure.type];
   const parts = element._parts;
   const placement = `${structure.x},${structure.y},${structure.rotation},${structure.type}`;
+  if (parts.wall) {
+    if (element._placement !== placement) {
+      element.setAttribute('transform', structureWorldTransform(structure));
+      parts.use.setAttribute('width', def.width * CAMERA_CONFIG.tileSize);
+      parts.use.setAttribute('height', def.height * CAMERA_CONFIG.tileSize);
+      parts.health.setAttribute('transform', `translate(5 ${def.height * 48 - 7})`);
+      parts.health.firstElementChild.setAttribute('width', def.width * 48 - 10);
+      element._placement = placement;
+    }
+    if (element._health !== structure.health) {
+      parts.health.lastElementChild.setAttribute('width',
+        (def.width * 48 - 10) * structure.health / structure.maxHealth);
+      element._health = structure.health;
+    }
+    return;
+  }
   if (element._placement !== placement) {
     element.setAttribute('transform', structureWorldTransform(structure));
     parts.use.setAttribute('width', def.width * CAMERA_CONFIG.tileSize);
@@ -346,6 +362,16 @@ export class BuildingRenderer {
         const use = document.createElementNS(NS, 'use');
         use.setAttribute('href', `#s-${structure.type}`);
         node.appendChild(use);
+        if (STRUCTURES[structure.type].blocksGround) {
+          const health = document.createElementNS(NS, 'g');
+          health.setAttribute('class', 'structure-health');
+          health.setAttribute('visibility', 'hidden');
+          health.innerHTML = '<rect height="3.1" rx="1" fill="#141c22" /><rect height="3.1" rx="1" fill="#9eb5ad" />';
+          node.appendChild(health);
+          node._parts = {use,health,wall:true};
+          this.layer.appendChild(node);
+          this.elements.set(structure.id,node);
+        } else {
         let seam = null;
         let bend = null;
         if (structure.type === 'conveyor') {
@@ -402,8 +428,18 @@ export class BuildingRenderer {
           rune: insignia.querySelector('.insignia-rune'), health };
         this.layer.appendChild(node);
         this.elements.set(structure.id, node);
+        }
       }
       moveSprite(node, structure, this.connections, world);
+      if (STRUCTURES[structure.type].blocksGround) {
+        const health = node._parts.health;
+        const visibility = selectedId === structure.id || structure.health < structure.maxHealth ? 'visible' : 'hidden';
+        if (node._healthVisibility !== visibility) {
+          health.setAttribute('visibility', visibility);
+          node._healthVisibility = visibility;
+        }
+        continue;
+      }
       const { status, insignia, rune, health, cargo, resourceIcon, resourceAmount } = node._parts;
       const blocked = !structure.enabled || ['no-power','no-coal','no-ore','blocked'].includes(structure.activity);
       const operating = ['mining','processing','generating','transporting','receiving'].includes(structure.activity);
