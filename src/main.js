@@ -463,7 +463,7 @@ function showBuildInfo(type) {
 }
 const TOOL_GROUPS = Object.freeze([
   {label:'물류', icon:'<path d="M4 8h13m-4-4 4 4-4 4M7 16h13m-4-4 4 4-4 4"/>',
-    types:['conveyor','junction','warehouse']},
+    types:['conveyor','junction','tunnelEntrance','warehouse']},
   {label:'방어', icon:'<path d="M12 3 20 6v6c0 5-3 8-8 9-5-1-8-4-8-9V6l8-3Z"/><path d="m9 12 2 2 4-4"/>',
     types:['turret','scatterTurret','heavyTurret','wall','ironWall','reinforcedWall']},
   {label:'채굴', icon:'<path d="m5 19 13-13M9 5l10 10M4 19h16"/>',
