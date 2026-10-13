@@ -2,7 +2,7 @@
  * Coordinates are tile units. Weapon stats are intentionally early-game values.
  */
 export const TURRET = Object.freeze({
-  range: 9, secondsPerShot: 0.72, damage: 14, shotSpeed: 15,
+  range: 9, secondsPerShot: 0.72, damage: 14, shotSpeed: 23,
 });
 const MAX_SCOUTS = 24;
 const MAX_SHOTS = 64;
@@ -111,12 +111,18 @@ export class Combat {
       }
     }
 
-    // Existing projectiles already promise damage. Avoid several turrets
-    // wasting volleys on one scout while other enemies go untouched.
-    const committed = new Map();
+    // Do not wait for a far-away projectile when a closer turret can finish
+    // the same scout sooner. Reservations are ordered by estimated impact time.
+    const incoming = new Map();
     for (const shot of shots.values()) {
-      if (!scouts.has(shot.targetId)) continue;
-      committed.set(shot.targetId, (committed.get(shot.targetId) ?? 0) + shot.damage);
+      const target = scouts.get(shot.targetId);
+      if (!target || target.ownerId === shot.ownerId) continue;
+      let arrival = incoming.get(target.id);
+      if (!arrival) incoming.set(target.id, arrival = []);
+      arrival.push({
+        eta: Math.sqrt(distance2(shot, target)) / Math.max(1, shot.speed),
+        damage: shot.damage
+      });
     }
     if(active) for(const id of this.turrets){
       const turret=world.structures.get(id);
@@ -127,9 +133,13 @@ export class Combat {
       let chosen=null,nearest=TURRET.range*TURRET.range;
       for(const scout of scouts.values()){
         if(scout.ownerId===turret.ownerId || scout.health<=0)continue;
-        if((committed.get(scout.id)??0)>=scout.health)continue;
         const d2=distance2(source,scout);
-        if(d2>=nearest || !this.lineClear(source,scout))continue;
+        if(d2>=nearest)continue;
+        const eta=Math.sqrt(d2)/TURRET.shotSpeed;
+        let damageBeforeArrival=0;
+        for(const hit of incoming.get(scout.id)??[])
+          if(hit.eta<=eta+0.04)damageBeforeArrival+=hit.damage;
+        if(damageBeforeArrival>=scout.health || !this.lineClear(source,scout))continue;
         chosen=scout;nearest=d2;
       }
       if(!chosen){this.cooldowns.set(id,0);continue;}
@@ -140,7 +150,9 @@ export class Combat {
           health:1,ownerId:turret.ownerId,targetId:chosen.id,
           speed:TURRET.shotSpeed,damage:TURRET.damage,
         });
-        committed.set(chosen.id,(committed.get(chosen.id)??0)+TURRET.damage);
+        let arrival=incoming.get(chosen.id);
+        if(!arrival) incoming.set(chosen.id, arrival=[]);
+        arrival.push({eta:Math.sqrt(nearest)/TURRET.shotSpeed,damage:TURRET.damage});
         this.cooldowns.set(id,TURRET.secondsPerShot);
       }
     }
