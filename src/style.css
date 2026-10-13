@@ -573,3 +573,104 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
   .build-inspector {top:14px;max-height:calc(100dvh - 28px);}
   .build-inspector .build-hero {display:none;}
 }
+
+
+/* Right-hand compact construction palette (landscape and desktop). */
+#toolbox-panel,
+#toolbox-panel.panel-collapsed {
+  left:auto !important;
+  right:max(9px,env(safe-area-inset-right)) !important;
+  top:10px;
+  --palette-width:236px;
+  max-height:calc(100dvh - 20px);
+}
+#toolbox-panel>.collapsed-top-row {
+  grid-template-columns:minmax(0,1fr) 34px;
+  gap:5px;
+}
+#toolbox-panel .collapsed-top-row .quick-select {
+  min-height:35px;
+  padding:4px 7px;
+}
+#toolbox-panel .collapsed-top-row .panel-fold-toggle {
+  width:34px;min-width:34px;height:35px;
+  font-size:21px;
+}
+#toolbox-panel>.collapsed-shortcuts {
+  gap:4px;
+}
+#toolbox-panel>.collapsed-shortcuts button {
+  min-height:37px;
+  flex-direction:row;
+  gap:4px;
+  padding:3px 4px;
+  font-size:9px;
+}
+#toolbox-panel>.collapsed-shortcuts .build-mini {
+  width:20px;height:20px;
+}
+#toolbox-panel>.collapsed-shortcuts .shortcut-symbol {
+  width:19px;height:20px;
+  font-size:20px;
+}
+#toolbox-panel>.palette-details {
+  flex:1 1 auto;
+  min-height:0;
+  padding-top:5px;
+}
+#toolbox-panel>.palette-details .tool-list {gap:5px;}
+#toolbox-panel .tool-categories {gap:3px;}
+#toolbox-panel .tool-group-title {
+  min-height:32px;
+  height:32px;
+  display:flex;
+  flex-direction:row;
+  gap:3px;
+  padding:3px 2px;
+  white-space:nowrap;
+  font-size:9px;
+}
+#toolbox-panel .tool-group-title svg {
+  width:13px;height:13px;flex:none;
+  stroke-width:1.9;
+}
+#toolbox-panel .tool-group-grid button {min-height:66px;padding:3px 2px;}
+#toolbox-panel .tool-group-grid .build-mini {width:38px;height:34px;}
+#toolbox-panel .tool-group-grid .tool-label {font-size:9px;}
+/* The former top-right selection toast remains in DOM for JS state updates. */
+#selected-info.floating-selection {display:none !important;}
+/* Secondary detail panels open into the map, away from the right palette. */
+.build-inspector {
+  right:calc(max(9px,env(safe-area-inset-right)) + 248px) !important;
+  left:auto !important;
+  top:10px;
+  max-width:min(270px,calc(100vw - 275px));
+}
+#selected-detail.selection-panel {
+  right:calc(max(9px,env(safe-area-inset-right)) + 248px);
+  left:auto;
+}
+@media(max-width:730px) {
+  #toolbox-panel,#toolbox-panel.panel-collapsed {
+    --palette-width:226px;
+    right:max(7px,env(safe-area-inset-right)) !important;
+    top:7px;
+    max-height:calc(100dvh - 14px);
+  }
+  #toolbox-panel>.collapsed-top-row {grid-template-columns:minmax(0,1fr) 32px;}
+  #toolbox-panel .collapsed-top-row .quick-select {min-height:33px;}
+  #toolbox-panel .collapsed-top-row .panel-fold-toggle {width:32px;min-width:32px;height:33px;}
+  #toolbox-panel>.collapsed-shortcuts button {min-height:35px;}
+  #toolbox-panel .tool-group-title {min-height:30px;height:30px;font-size:8px;gap:2px;}
+  #toolbox-panel .tool-group-title svg {width:12px;height:12px;}
+  .build-inspector {
+    right:calc(max(7px,env(safe-area-inset-right)) + 234px) !important;
+    top:7px;
+    width:min(190px,calc(100vw - 255px));
+    max-width:calc(100vw - 255px);
+    max-height:calc(100dvh - 14px);
+  }
+  #selected-detail.selection-panel {
+    right:calc(max(7px,env(safe-area-inset-right)) + 234px);
+  }
+}
