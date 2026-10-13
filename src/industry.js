@@ -185,7 +185,7 @@ export class Industry {
       const targets = [...this.connections.outputs(id).keys()];
       const itemId = from.type === 'warehouse'
         ? Object.keys(from.inventory).find(item => from.inventory[item] > 0 &&
-            targets.some(target => (targets.length === 1 || target !== from.lastSourceId) &&
+            targets.some(target => target !== from.lastSourceId &&
               this.canReceive(this.world.structures.get(target), item)))
         : this.exportResource(from);
       if (!itemId || !this.stockCount(from, itemId)) continue;
