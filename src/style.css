@@ -482,7 +482,7 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
   padding:0;margin:0;
 }
 #toolbox-panel .tool-categories {
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;
 }
 #toolbox-panel .tool-group-title {
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -493,7 +493,7 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 }
 #toolbox-panel .tool-group-title svg {
   display:block;width:20px;height:20px;fill:none;stroke:currentColor;
-  stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;
+  stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
 }
 #toolbox-panel .tool-group-title[aria-selected="true"] {
   color:#eff6f8;border-color:#9cc6d0;background:#344e5b;
@@ -878,3 +878,14 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
     height:33px;
   }
 }
+
+/* Five compact, readable categories; shared round, bold SVG icon language. */
+#toolbox-panel .tool-group-title {
+  gap:2px;
+  padding-inline:0;
+  letter-spacing:-.035em;
+}
+#toolbox-panel .tool-group-title svg {stroke-width:2.35;stroke-linecap:round;stroke-linejoin:round;}
+#toolbox-panel .build-mini,#toolbox-panel .shortcut-symbol svg,
+.build-inspector .build-hero {stroke-linejoin:round;stroke-linecap:round;}
+#toolbox-panel>.collapsed-shortcuts button .shortcut-symbol {line-height:1;}
