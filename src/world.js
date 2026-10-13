@@ -163,7 +163,7 @@ export class World {
     if ((type === 'drill' || type === 'poweredDrill') && !ore) return { ok: false, reason: 'ore' };
     // Gameplay-height constraint only applies to built facilities. World.place()
     // stays an unrestricted sandbox primitive for tools and existing fixtures.
-    if (type !== 'conveyor' && type !== 'junction' && this.terrain?.canBuildFootprint &&
+    if (!['conveyor','junction','tunnelEntrance','tunnelExit'].includes(type) && this.terrain?.canBuildFootprint &&
         !this.terrain.canBuildFootprint(x, y, position.width, position.height))
       return { ok: false, reason: 'terrain' };
     const wallet = this.walletFor(ownerId);
