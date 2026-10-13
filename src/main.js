@@ -469,7 +469,7 @@ function showBuildInfo(type) {
 }
 const TOOL_GROUPS = Object.freeze([
   {label:'물류', icon:'<path d="M3 7h12l-3-3m3 3-3 3M5 13h12l-3-3m3 3-3 3"/>',
-    types:['junction']},
+    types:['conveyor','junction']},
   {label:'채굴', icon:'<path d="M4 17 17 4M4 4l6 6m2-6 6 6M3 19h18"/>',
     types:['leadCollector','drill','poweredDrill']},
   {label:'생산', icon:'<path d="M3 19V9l6 4V9l6 4V6h5v13ZM4 19h16"/>',
@@ -538,7 +538,7 @@ function setupBuildThumbnails() {
 
   for (const button of toolButtons) {
     const type = button.dataset.tool;
-    if (type==='select'||type==='conveyor'||type==='erase') {
+    if (type==='select'||type==='erase') {
       button.remove(); // These actions live in the always-visible quick bar.
       continue;
     }
