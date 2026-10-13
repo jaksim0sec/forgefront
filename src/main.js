@@ -455,6 +455,7 @@ function showBuildInfo(type) {
   const description = WEAPONS[type] ? '사거리 ' + WEAPONS[type].range + '칸 · 피해 ' + WEAPONS[type].damage + ' / ' + WEAPONS[type].secondsPerShot + '초'
     : type === 'drill' ? '광맥별 철 또는 석탄 · ' + def.itemsPerSecond + '/초'
     : type === 'conveyor' ? '단방향 자원 이동'
+    : type === 'tunnelEntrance' ? '입구·출구 한 쌍 · 직선 2~7칸 · 총 납 6 철 2'
     : type === 'warehouse' ? '보관 한도 ' + def.itemCapacity + ' · 자동 입출고'
     : isWall(type) ? '지상 침입자 차단 · 내구도 ' + def.maxHealth
     : '';
