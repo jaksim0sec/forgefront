@@ -26,6 +26,7 @@ export class Industry {
     this.processors = new Set();
     this.generators = new Set();
     this.movers = new Set();
+    this.storages = new Set(); // Only non-empty warehouses are simulated.
     this.dirty = false;
     for (const structure of world.structures.values()) this.track(structure);
     this.unsubscribe = world.subscribe(({type,entity}) => {
@@ -34,6 +35,7 @@ export class Industry {
         this.processors.delete(entity.id);
         this.generators.delete(entity.id);
         this.movers.delete(entity.id);
+        this.storages.delete(entity.id);
       } else if (type === 'place') this.track(entity);
     });
   }
@@ -44,6 +46,7 @@ export class Industry {
     if (PROCESSORS.has(entity.type)) this.processors.add(entity.id);
     if (entity.type === 'generator') this.generators.add(entity.id);
     if (BELTS.has(entity.type) && entity.itemCount) this.movers.add(entity.id);
+    if (entity.type === 'warehouse' && this.totalStock(entity)) this.storages.add(entity.id);
   }
 
   totalStock(entity) {
@@ -84,6 +87,7 @@ export class Industry {
       entity.itemCount += amount;
       this.movers.add(entity.id);
     } else entity.inventory[id] = (entity.inventory[id] ?? 0) + amount;
+    if (entity.type === 'warehouse') this.storages.add(entity.id);
     this.dirty = true;
     return true;
   }
@@ -95,6 +99,7 @@ export class Industry {
     } else {
       entity.inventory[id] -= amount;
       if (!entity.inventory[id]) delete entity.inventory[id];
+      if (entity.type === 'warehouse' && !this.totalStock(entity)) this.storages.delete(entity.id);
     }
     this.dirty = true;
     return true;
@@ -166,22 +171,26 @@ export class Industry {
     if (e.type === 'drill') return e.resourceId;
     if (e.type === 'poweredDrill') return 'titanium';
     if (PROCESSORS.has(e.type)) return RECIPES[e.type].output;
+    if (e.type === 'warehouse') return Object.keys(e.inventory).find(id => e.inventory[id] > 0) ?? null;
     return null;
   }
 
   transport(dt) {
     // Snapshot prevents new items from jumping across arbitrarily long belts
     // within a single simulation step.
-    const active = [...new Set([...this.movers, ...this.producers, ...this.processors])];
+    const active = [...new Set([...this.movers, ...this.producers, ...this.processors, ...this.storages])];
     for (const id of active) {
       const from = this.world.structures.get(id);
       if (!from || !from.enabled || from.health <= 0) continue;
-      const itemId = this.exportResource(from);
+      const targets = [...this.connections.outputs(id).keys()];
+      const itemId = from.type === 'warehouse'
+        ? Object.keys(from.inventory).find(item => from.inventory[item] > 0 &&
+            targets.some(target => this.canReceive(this.world.structures.get(target), item)))
+        : this.exportResource(from);
       if (!itemId || !this.stockCount(from, itemId)) continue;
       const throughput = STRUCTURES[from.type]?.itemsPerSecond ?? 3;
       from.moveProgress = Math.min(1, from.moveProgress + dt * throughput);
       if (from.moveProgress < 1) continue;
-      const targets = [...this.connections.outputs(id).keys()];
       if (from.type === 'junction' && targets.length) {
         const offset = (from.routeCursor ?? 0) % targets.length;
         targets.push(...targets.splice(0, offset));
