@@ -139,13 +139,17 @@ export class DistantStructureRenderer {
       if (structure.type === 'conveyor') {
         this.drawBend(ctx, structure);
         this.drawSeams(ctx, structure);
-        // One tiny badge only for a jammed belt. No extra elements or animation.
+        // Compact parked-stock badge. No per-belt SVG or animation.
         if (structure.activity === 'blocked' && structure.itemCount > 0 &&
-            typeof ctx.fillText === 'function') {
-          ctx.fillStyle = '#9da7a4';
-          ctx.font = 'bold 12px sans-serif';
-          ctx.textAlign = 'right';
-          ctx.fillText(String(Math.min(99, structure.itemCount)), 44, 41);
+            camera.zoom >= .46 && typeof ctx.fillText === 'function') {
+          ctx.fillStyle = '#17242b';
+          ctx.fillRect(6, 31, 35, 14);
+          ctx.fillStyle = '#ac977b';
+          ctx.fillRect(9, 34, 9, 8);
+          ctx.fillStyle = '#e4e9ec';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(String(Math.min(99, structure.itemCount)), 21, 42);
         }
       }
 
