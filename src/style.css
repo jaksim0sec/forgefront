@@ -852,3 +852,29 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
   .build-inspector .build-head {grid-template-columns:43px minmax(0,1fr);gap:6px;}
   .build-inspector .build-hero {width:43px;height:43px;}
 }
+
+/* Compact selection action; emphasize the expand / collapse handle. */
+#toolbox-panel>.collapsed-top-row {
+  grid-template-columns:76px minmax(0,1fr);
+}
+#toolbox-panel .collapsed-top-row .quick-select {
+  min-width:0;
+  font-size:11px;
+  padding:4px;
+}
+#toolbox-panel .collapsed-top-row .panel-fold-toggle {
+  width:100%;
+  min-width:0;
+  height:35px;
+  font-size:21px;
+}
+@media(max-width:730px) {
+  #toolbox-panel>.collapsed-top-row {
+    grid-template-columns:68px minmax(0,1fr);
+  }
+  #toolbox-panel .collapsed-top-row .panel-fold-toggle {
+    width:100%;
+    min-width:0;
+    height:33px;
+  }
+}
