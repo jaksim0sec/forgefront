@@ -71,10 +71,47 @@ function dismissAuxiliaryPanels() {
   byId('build-inspector').hidden = true;
   byId('selected-detail').hidden = true;
 }
+// Close auxiliary details only after an actual single-pointer outside tap.
+// A second touch marks the entire gesture as a pinch, even when fingers land
+// on different DOM targets. Panning / dragging does not dismiss panels.
+const outsidePointers = new Map();
+const activeOutsideTouches = new Set();
+let outsideTouchGesture = false;
 document.addEventListener('pointerdown', event => {
-  if (event.target.closest('.foldable-panel') || event.target.closest('button, select, input')) return;
+  if (event.pointerType === 'touch') {
+    activeOutsideTouches.add(event.pointerId);
+    if (activeOutsideTouches.size > 1) outsideTouchGesture = true;
+  }
+  outsidePointers.set(event.pointerId, {
+    x:event.clientX, y:event.clientY,
+    eligible:!event.target.closest('.foldable-panel, #build-inspector, #selected-detail, button, select, input'),
+    touch:event.pointerType === 'touch',
+    multi:outsideTouchGesture || activeOutsideTouches.size > 1,
+    button:event.button
+  });
+  if (activeOutsideTouches.size > 1)
+    for (const pointer of outsidePointers.values()) if (pointer.touch) pointer.multi = true;
+}, {capture:true});
+document.addEventListener('pointerup', event => {
+  const pointer = outsidePointers.get(event.pointerId);
+  outsidePointers.delete(event.pointerId);
+  if (pointer?.touch) {
+    activeOutsideTouches.delete(event.pointerId);
+    if (!activeOutsideTouches.size) outsideTouchGesture = false;
+  }
+  if (!pointer || !pointer.eligible || pointer.multi || (pointer.button !== 0 && !pointer.touch)) return;
+  if (Math.hypot(event.clientX-pointer.x,event.clientY-pointer.y) > 10) return;
   dismissAuxiliaryPanels();
 }, {capture:true});
+function cancelOutsidePointer(event) {
+  outsidePointers.delete(event.pointerId);
+  if (activeOutsideTouches.delete(event.pointerId) && !activeOutsideTouches.size)
+    outsideTouchGesture = false;
+}
+document.addEventListener('pointercancel',cancelOutsidePointer,{capture:true});
+window.addEventListener('blur',()=>{
+  outsidePointers.clear();activeOutsideTouches.clear();outsideTouchGesture=false;
+});
 const ui = {
   tile: byId('tile-coords'), count: byId('structure-count'),
   chunks: byId('chunk-count'), selected: byId('selected-info'),
