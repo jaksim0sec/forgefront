@@ -8,7 +8,12 @@ import { DistantStructureRenderer } from './structure-lod.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const templates = {
-  conveyor: `<symbol id="s-conveyor" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#343d41" stroke="#647177" stroke-width="1.7"/><rect x="8" y="8" width="32" height="32" rx="4" fill="#202a30"/><path d="M13 12H35M13 36H35" stroke="#66747a" stroke-width="1.5"/><path d="M19 18L24 23L29 18" fill="none" stroke="#9baaaa" stroke-width="1.6"/></symbol>`,
+  conveyor: `<symbol id="s-conveyor" viewBox="0 0 48 48">
+    <rect x="1" y="1" width="46" height="46" rx="5" fill="#2e3639" stroke="#586165" stroke-width="1.3"/>
+    <path d="M11 0H37V48H11Z" fill="#20292c"/>
+    <path d="M10 0V48M38 0V48" stroke="#71695d" stroke-width="2.2"/>
+    <path d="m20 22 4 4 4-4" fill="none" stroke="#929a97" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>`,
   junction: `<symbol id="s-junction" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="5" fill="#343d40" stroke="#687579" stroke-width="1.8"/><rect x="9" y="9" width="30" height="30" rx="4" fill="#202b30"/><path d="M24 6V42M6 24H42" stroke="#877e6e" stroke-width="5" stroke-linecap="round"/><circle cx="24" cy="24" r="8" fill="#4a5559" stroke="#a49478" stroke-width="1.4"/><path d="M20 24h8m-4-4v8" stroke="#bac5c5" stroke-width="1.8"/></symbol>`,
   drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#48413c" stroke="#9f8b78" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-opacity=".55"/><circle cx="48" cy="48" r="29" fill="#6c5c4f" stroke="#b29c85" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><g class="real-blades"><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/></g><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
   smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#3d4247" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#5d5147" stroke="#a99682" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#a08b70"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#98a4aa" stroke-width="3" stroke-opacity=".5"/></symbol>`,
@@ -84,6 +89,56 @@ Object.assign(templates, {
     <circle cx="72" cy="72" r="9" fill="#d4dfdf"/>
     <g stroke="#99aeb7" stroke-width="4" fill="none"><path d="M72 17V35M72 109V127M17 72H35M109 72H127"/></g>
     <path d="M24 24H44M100 24H120M24 120H44M100 120H120" stroke="#6ab8bb" stroke-width="3"/>
+  </symbol>`,
+});
+
+Object.assign(templates, {
+  warehouse: `<symbol id="s-warehouse" viewBox="0 0 96 96">
+    <rect x="3" y="3" width="90" height="90" rx="11" fill="#414849" stroke="#8b9793" stroke-width="4"/>
+    <rect x="10" y="10" width="76" height="76" rx="8" fill="#252f32" stroke="#556969" stroke-width="2.5"/>
+    <rect x="18" y="22" width="60" height="51" rx="6" fill="#49534d" stroke="#a1977b" stroke-width="3"/>
+    <path d="M18 40H78M38 22V73M58 22V73" stroke="#7c8b89" stroke-width="3"/>
+    <rect x="29" y="44" width="38" height="22" rx="4" fill="#2d3a3a" stroke="#b7a78a" stroke-width="2.5"/>
+    <path d="M40 55h16" stroke="#d0c6ae" stroke-width="3"/>
+  </symbol>`,
+  wall: `<symbol id="s-wall" viewBox="0 0 48 48">
+    <rect x="1.5" y="1.5" width="45" height="45" rx="5" fill="#4c5050" stroke="#8b9290" stroke-width="3"/>
+    <rect x="6" y="7" width="36" height="34" rx="4" fill="#454c4d" stroke="#677778" stroke-width="2"/>
+    <path d="M6 24H42M24 7V24M15 24V41M33 24V41" stroke="#89908b" stroke-width="2.5" opacity=".75"/>
+  </symbol>`,
+  ironWall: `<symbol id="s-ironWall" viewBox="0 0 48 48">
+    <rect x="1.5" y="1.5" width="45" height="45" rx="5" fill="#454b4c" stroke="#a0a9aa" stroke-width="3"/>
+    <rect x="7" y="7" width="34" height="34" rx="4" fill="#263236" stroke="#82928e" stroke-width="3.5"/>
+    <path d="M7 16H41M7 32H41" stroke="#758785" stroke-width="3"/>
+    <path d="M16 7V41M32 7V41" stroke="#657775" stroke-width="2"/>
+    <g fill="#c0ac89"><circle cx="11" cy="11" r="2"/><circle cx="37" cy="11" r="2"/><circle cx="11" cy="37" r="2"/><circle cx="37" cy="37" r="2"/></g>
+  </symbol>`,
+  reinforcedWall: `<symbol id="s-reinforcedWall" viewBox="0 0 48 48">
+    <rect x="1.5" y="1.5" width="45" height="45" rx="5" fill="#3e5155" stroke="#afc0bd" stroke-width="3"/>
+    <rect x="7" y="7" width="34" height="34" rx="5" fill="#24353b" stroke="#809a9c" stroke-width="3"/>
+    <path d="m12 12 24 24M36 12 12 36" stroke="#95a9a5" stroke-width="4"/>
+    <circle cx="24" cy="24" r="7" fill="#485e62" stroke="#c6ba9a" stroke-width="2.5"/>
+  </symbol>`,
+  scatterTurret: `<symbol id="s-scatterTurret" viewBox="0 0 96 96">
+    <rect x="3" y="3" width="90" height="90" rx="10" fill="#40484a" stroke="#8e9b99" stroke-width="4"/>
+    <rect x="11" y="11" width="74" height="74" rx="8" fill="#1d2c30" stroke="#617775" stroke-width="2.5"/>
+    <circle cx="48" cy="49" r="29" fill="#54615c" stroke="#a5aa98" stroke-width="3"/>
+    <circle cx="48" cy="49" r="20" fill="#25383a" stroke="#869997" stroke-width="3"/>
+    <path d="M35 47V17h8v30M45 47V14h8v33M55 47V17h8v30" fill="#6d7774" stroke="#b9baa7" stroke-width="3"/>
+    <path d="M35 21h8M45 18h8M55 21h8" stroke="#c6ab81" stroke-width="4"/>
+    <circle cx="48" cy="49" r="9" fill="#425557" stroke="#c7c5ac" stroke-width="3"/>
+  </symbol>`,
+  heavyTurret: `<symbol id="s-heavyTurret" viewBox="0 0 144 144">
+    <rect x="3" y="3" width="138" height="138" rx="14" fill="#42494b" stroke="#abb5ae" stroke-width="5"/>
+    <rect x="13" y="13" width="118" height="118" rx="10" fill="#1e3035" stroke="#627b7d" stroke-width="4"/>
+    <path d="M22 22h30M92 22h30M22 122h30M92 122h30" stroke="#958e7e" stroke-width="6"/>
+    <circle cx="72" cy="77" r="47" fill="#4e5f63" stroke="#a4b2ad" stroke-width="5"/>
+    <circle cx="72" cy="77" r="33" fill="#273c42" stroke="#8b9f9e" stroke-width="5"/>
+    <path d="M59 67V14H85V67Z" fill="#687678" stroke="#c6c5b5" stroke-width="5"/>
+    <path d="M59 27h26M59 47h26" stroke="#bca17d" stroke-width="6"/>
+    <rect x="55" y="9" width="34" height="12" rx="4" fill="#3d4b4d" stroke="#adbcb9" stroke-width="4"/>
+    <circle cx="72" cy="77" r="15" fill="#4e6467" stroke="#bfcac2" stroke-width="5"/>
+    <circle cx="72" cy="77" r="5" fill="#d1b68c"/>
   </symbol>`,
 });
 
