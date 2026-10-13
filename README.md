@@ -76,8 +76,9 @@ The unit movement here is a local training scenario, not yet full pathfinding or
 ## Conveyor seams, distant rendering and compact build palette
 - Adjacent conveyor sprites only visually join on sides confirmed by actual directed item links. Border bridge decals respect belt turns, rotations and faction separation. The gameplay connection graph is unchanged.
 - The distant building canvas caps pixel density to reduce zoomed-out fill rate; it retains the existing sprite artwork and seam decals. This is a targeted rendering adjustment, not a verified device FPS improvement.
-- The construction palette now uses collapsible category buttons; only one group is expanded at a time.
-- When the main drawer is collapsed, its upper row has Select beside the expansion control; the lower row offers the most recently selected building, Conveyor, and Demolish. The recent-building shortcut never expands the drawer.
+- The main palette now uses the **same permanent two-row layout when collapsed and expanded**: Select + expand control on top, and the most recently chosen building / Conveyor / Demolish below. Expanding only reveals additional content **under** these controls; the shortcuts do not shift, duplicate, or change location. Selecting the recent building never expands the palette.
+- Four compact, icon-backed category tabs (Logistics, Mining, Production, Power/Defense) replace the tall accordion; each category shows only its building tools. The rest of the faction/editor options scroll inside the expanded content area.
+- The palette starts folded on coarse-pointer/touch devices; desktop starts expanded. Its outer width stays constant during transitions.
 - New on-screen building feedback and messages use concise, polite Korean.
 
 ## Controls

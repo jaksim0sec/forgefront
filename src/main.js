@@ -96,10 +96,12 @@ quickSelect.className='quick-select';
 quickSelect.textContent='⌖ 선택';
 quickSelect.setAttribute('aria-label','선택 도구');
 quickSelect.addEventListener('click',()=>setTool('select'));
+// The same quick controls remain mounted whether the drawer is folded or open.
+const toolbox = byId('toolbox-panel');
 const quickBar=document.createElement('div');
 quickBar.className='collapsed-top-row';
-quickBar.append(quickSelect,byId('toolbox-panel').querySelector('.panel-fold-toggle'));
-byId('toolbox-panel').prepend(quickBar);
+quickBar.append(quickSelect,toolbox.querySelector('.panel-fold-toggle'));
+toolbox.prepend(quickBar);
 const shortcuts=document.createElement('div');
 shortcuts.className='collapsed-shortcuts';
 const recentButton=document.createElement('button');
@@ -113,7 +115,17 @@ for(const [id,label] of [['conveyor','컨베이어'],['erase','철거']]){
   button.addEventListener('click',()=>setTool(id));
   shortcuts.append(button);
 }
-byId('toolbox-panel').querySelector('.tool-list').before(shortcuts);
+toolbox.querySelector('.tool-list').before(shortcuts);
+// Keep the primary toolbar fixed. Only the content below it expands/scrolls.
+const paletteDetails = document.createElement('div');
+paletteDetails.className = 'palette-details';
+for (let child = shortcuts.nextSibling; child;) {
+  const next = child.nextSibling;
+  paletteDetails.appendChild(child);
+  child = next;
+}
+toolbox.appendChild(paletteDetails);
+toolbox.querySelector('.toolbox-heading')?.remove();
 function refreshRecentShortcut(){
   recentButton.replaceChildren();
   const original=toolButtons.find(button=>button.dataset.tool===recentStructure);
@@ -368,71 +380,102 @@ function showBuildInfo(type) {
     def.powerOutput ? def.powerOutput + ' 공급' : '불필요';
 }
 const TOOL_GROUPS = Object.freeze([
-  {label:'기본 조작',types:['select','conveyor','junction','erase']},
-  {label:'채굴 · 생산',types:['leadCollector','drill','smelter','poweredDrill','siliconPlant','superconductorPlant']},
-  {label:'전력 · 방어',types:['generator','turret']},
+  {label:'물류', icon:'<path d="M3 7h12l-3-3m3 3-3 3M5 13h12l-3-3m3 3-3 3"/>',
+    types:['junction']},
+  {label:'채굴', icon:'<path d="M4 17 17 4M4 4l6 6m2-6 6 6M3 19h18"/>',
+    types:['leadCollector','drill','poweredDrill']},
+  {label:'생산', icon:'<path d="M3 19V9l6 4V9l6 4V6h5v13ZM4 19h16"/>',
+    types:['smelter','siliconPlant','superconductorPlant']},
+  {label:'전력·방어', icon:'<path d="m13 2-8 11h7l-1 9 8-12h-7l1-8Z"/>',
+    types:['generator','turret']},
 ]);
-function setupBuildThumbnails() {
-  const list = document.querySelector('#toolbox-panel .tool-list');
-  // Keep original buttons/listeners: only move each tool to a named group.
-  const groups = new Map();
-  for (const {label,types} of TOOL_GROUPS) {
-    const group = document.createElement('div');
-    group.className = 'tool-group';
-    const title = document.createElement('button');
-    title.type = 'button';
-    title.className = 'tool-group-title';
-    title.textContent = label;
-    title.setAttribute('aria-expanded', label === '기본 조작' ? 'true' : 'false');
-    const grid = document.createElement('div');
-    grid.className = 'tool-group-grid';
-    grid.hidden = label !== '기본 조작';
-    title.addEventListener('click', () => {
-      const open = grid.hidden;
-      for (const other of list.querySelectorAll('.tool-group-grid')) other.hidden = true;
-      for (const button of list.querySelectorAll('.tool-group-title'))
-        button.setAttribute('aria-expanded','false');
-      grid.hidden = !open;
-      title.setAttribute('aria-expanded', String(open));
-    });
-    group.append(title,grid);
-    list.append(group);
-    for (const type of types) groups.set(type,grid);
+function setBuildCategory(grid) {
+  if (!grid) return;
+  const list = grid.closest('.tool-list');
+  if (!list) return;
+  for (const current of list.querySelectorAll('.tool-group-grid'))
+    current.hidden = current !== grid;
+  for (const tab of list.querySelectorAll('.tool-group-title')) {
+    const active = tab.getAttribute('aria-controls') === grid.id;
+    tab.setAttribute('aria-selected',String(active));
+    tab.setAttribute('tabindex', active ? '0' : '-1');
   }
+}
+function setupBuildThumbnails() {
+  const list = toolbox.querySelector('.tool-list');
+  const tabs = document.createElement('div');
+  tabs.className = 'tool-categories';
+  tabs.setAttribute('role','tablist');
+  tabs.setAttribute('aria-label','건설 종류');
+  const groups = new Map();
+  const grids = [];
+  TOOL_GROUPS.forEach(({label,icon,types},index) => {
+    const tab = document.createElement('button');
+    tab.type='button';
+    tab.className='tool-group-title';
+    tab.setAttribute('role','tab');
+    tab.setAttribute('aria-selected', String(index===0));
+    tab.setAttribute('aria-controls','build-category-'+index);
+    tab.setAttribute('tabindex',index===0?'0':'-1');
+    const svgIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svgIcon.setAttribute('viewBox','0 0 24 24');
+    svgIcon.setAttribute('aria-hidden','true');
+    svgIcon.innerHTML=icon;
+    const name=document.createElement('span');
+    name.textContent=label;
+    tab.append(svgIcon,name);
+    tabs.appendChild(tab);
+    const grid = document.createElement('div');
+    grid.className='tool-group-grid';
+    grid.id='build-category-'+index;
+    grid.setAttribute('role','tabpanel');
+    grid.hidden=index!==0;
+    tab.addEventListener('click',()=>setBuildCategory(grid));
+    grids.push(grid);
+    types.forEach(type=>groups.set(type,grid));
+  });
+  // Keyboard users can move between the four category tabs without jumping
+  // focus into the map; mouse/touch use the same buttons.
+  tabs.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    const buttons = [...tabs.querySelectorAll('.tool-group-title')];
+    const current = Math.max(0, buttons.indexOf(document.activeElement));
+    const next = (current + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[next].click();
+    buttons[next].focus();
+  });
+  list.appendChild(tabs);
+  grids.forEach(grid=>list.appendChild(grid));
+
   for (const button of toolButtons) {
     const type = button.dataset.tool;
+    if (type==='select'||type==='conveyor'||type==='erase') {
+      button.remove(); // These actions live in the always-visible quick bar.
+      continue;
+    }
     const legacy = button.querySelector('.tool-icon');
     const key = button.querySelector('kbd');
-    const original = [...button.childNodes].filter(node=>
-      node.nodeType === Node.TEXT_NODE).map(node=>node.textContent).join('').trim();
-    const name = STRUCTURES[type]?.label ?? (type === 'select' ? '선택' : '철거');
     if (legacy) legacy.remove();
-    // Existing markup already has a name span for some tools; strip it too.
     for (const child of [...button.children])
       if (child !== key && child.tagName !== 'svg') child.remove();
     for (const node of [...button.childNodes])
       if (node.nodeType === Node.TEXT_NODE) node.remove();
-    if (STRUCTURES[type]) {
-      const sprite = document.createElementNS('http://www.w3.org/2000/svg','svg');
-      sprite.setAttribute('viewBox','0 0 100 100');
-      sprite.setAttribute('class','build-mini');
-      const use = document.createElementNS('http://www.w3.org/2000/svg','use');
-      use.setAttribute('href','#s-' + type);
-      use.setAttribute('width','100');use.setAttribute('height','100');
-      sprite.appendChild(use);
-      button.prepend(sprite);
-    } else {
-      const glyph = document.createElement('span');
-      glyph.className = 'tool-glyph';
-      glyph.textContent = type === 'erase' ? '×' : '⌖';
-      button.prepend(glyph);
-    }
+    const sprite = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    sprite.setAttribute('viewBox','0 0 100 100');
+    sprite.setAttribute('class','build-mini');
+    const use = document.createElementNS('http://www.w3.org/2000/svg','use');
+    use.setAttribute('href','#s-'+type);
+    use.setAttribute('width','100');
+    use.setAttribute('height','100');
+    sprite.appendChild(use);
+    button.prepend(sprite);
     const caption = document.createElement('span');
-    caption.className = 'tool-label';
-    caption.textContent = name;
+    caption.className='tool-label';
+    caption.textContent=STRUCTURES[type]?.label??type;
     button.append(caption);
-    if (key) button.append(key);
-    groups.get(type)?.append(button);
+    if(key) button.append(key);
+    groups.get(type)?.appendChild(button);
   }
 }
 setupBuildThumbnails();
@@ -449,13 +492,9 @@ function setTool(next) {
   recentButton.classList.toggle('active',next===recentStructure);
   shortcuts.querySelector('.shortcut-conveyor').classList.toggle('active',next==='conveyor');
   shortcuts.querySelector('.shortcut-erase').classList.toggle('active',next==='erase');
-  const activeButton = [...toolButtons].find(button => button.dataset.tool === next);
+  const activeButton = toolButtons.find(button => button.dataset.tool === next);
   const activeGrid = activeButton?.closest('.tool-group-grid');
-  if (activeGrid && activeGrid.hidden) {
-    document.querySelectorAll('.tool-group-grid').forEach(grid => { grid.hidden = grid !== activeGrid; });
-    document.querySelectorAll('.tool-group-title').forEach(button =>
-      button.setAttribute('aria-expanded',String(button.nextElementSibling === activeGrid)));
-  }
+  if (activeGrid) setBuildCategory(activeGrid);
   showBuildInfo(next);
   paint = null;
   selectedId = null;
@@ -833,4 +872,7 @@ setInterval(() => {
   if (combatChanged) combatVisual.wake();
 }, 200);
 
+// A phone starts with the compact two-row palette. Expanding adds content below.
+if (window.matchMedia?.('(pointer: coarse)').matches)
+  setPanelCollapsed(toolbox,true);
 setTool('select');
