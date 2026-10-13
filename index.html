@@ -86,16 +86,24 @@
       <div id="resource-list" class="resource-list" aria-label="등록된 자원 6종"></div>
     </aside>
     <section class="build-inspector" id="build-inspector" aria-live="polite" hidden>
-      <svg class="build-hero" viewBox="0 0 100 100" aria-hidden="true"><use id="build-preview-sprite" href="#s-conveyor" width="100" height="100"/></svg>
-      <h2 class="build-name" id="build-preview-name"></h2>
-      <p class="build-description" id="build-preview-description"></p>
-      <div class="build-meta">
-        <span>크기</span><strong id="build-preview-size"></strong>
-        <span>내구도</span><strong id="build-preview-health"></strong>
-        <span>건설비</span><div id="build-preview-cost" class="cost-list"></div>
-        <span>전력</span><strong id="build-preview-power"></strong>
+      <div class="build-head">
+        <svg class="build-hero" viewBox="0 0 100 100" aria-hidden="true"><use id="build-preview-sprite" href="#s-conveyor" width="100" height="100"/></svg>
+        <div class="build-head-summary">
+          <h2 class="build-name" id="build-preview-name"></h2>
+          <div class="build-stats">
+            <span id="build-preview-size"></span>
+            <span id="build-preview-health"></span>
+          </div>
+        </div>
       </div>
-      <div class="build-hint">선택 후 맵에서 설치 · R 회전</div>
+      <p class="build-description" id="build-preview-description"></p>
+      <div class="build-flow">
+        <div class="build-flow-row"><span class="build-flow-label">건설비</span><div id="build-preview-cost" class="cost-list"></div></div>
+        <div class="build-flow-row" id="build-preview-input-row"><span class="build-flow-label">소비</span><div id="build-preview-inputs" class="build-flow-chips"></div></div>
+        <div class="build-flow-row" id="build-preview-output-row"><span class="build-flow-label">생산</span><div id="build-preview-outputs" class="build-flow-chips"></div></div>
+        <div class="build-flow-row" id="build-preview-power-row"><span class="build-flow-label">전력</span><strong id="build-preview-power" class="build-power"></strong></div>
+      </div>
+      <p id="build-preview-effect" class="build-effect" hidden></p>
     </section>
     <section class="selection-panel" id="selected-detail" hidden aria-label="선택 구조물 상태">
       <div class="inspector-heading">STRUCTURE STATUS</div>
