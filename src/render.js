@@ -276,6 +276,7 @@ export class BuildingRenderer {
       const tileSize = CAMERA_CONFIG.tileSize;
       for (const sourceId of visible) {
         for (const link of this.connections.outputs(sourceId).values()) {
+          if (link.contacts.some(contact => contact.underground)) continue;
           if (!visible.has(link.to)) continue;
           const source = this.world.structures.get(sourceId);
           const destination = this.world.structures.get(link.to);
