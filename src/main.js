@@ -222,6 +222,7 @@ function previewForStroke(stroke) {
 }
 
 let paint = null, renderPending = false;
+let pendingTunnel = null;
 function invalidate() {
   if (renderPending) return;
   renderPending = true;
@@ -253,6 +254,15 @@ function render() {
   terrainVisual.draw();
   territoryVisual.draw();
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
+  const tunnelPreview=byId('tunnel-preview');
+  const route=paint?.kind==='tunnelEntrance' ? paint.route
+    : pendingTunnel ? [pendingTunnel,hoverPoint ? hitTile(hoverPoint) : pendingTunnel] : null;
+  if(route && route.length>1 && tunnelGeometry(route[0],route.at(-1)).ok) {
+    const a=camera.worldToScreen((route[0].x+.5)*CAMERA_CONFIG.tileSize,(route[0].y+.5)*CAMERA_CONFIG.tileSize);
+    const b=camera.worldToScreen((route.at(-1).x+.5)*CAMERA_CONFIG.tileSize,(route.at(-1).y+.5)*CAMERA_CONFIG.tileSize);
+    tunnelPreview.setAttribute('d',`M${a.x} ${a.y}L${b.x} ${b.y}`);
+    tunnelPreview.setAttribute('visibility','visible');
+  }else tunnelPreview.setAttribute('visibility','hidden');
   const area = byId('erase-preview');
   if (paint?.kind === 'erase') {
     const a = paint.route[0], b = paint.route.at(-1);
@@ -590,6 +600,7 @@ refreshRecentShortcut();
 function setTool(next) {
   if (next !== 'select' && next !== 'erase' && !STRUCTURES[next]) return;
   tool = next;
+  pendingTunnel = null;
   if(STRUCTURES[next] && next!=='conveyor'){
     recentStructure=next;
     refreshRecentShortcut();
@@ -641,6 +652,13 @@ function actionAt(point, alternate = false) {
   if (alternate || tool === 'erase') {
     const entity = world.getAt(tile.x, tile.y);
     if (entity) { world.remove(entity.id); if (selectedId === entity.id) selectedId = null; }
+  } else if (tool === 'tunnelEntrance') {
+    if (!pendingTunnel) pendingTunnel=tile;
+    else {
+      const result=buildTunnel(world,connections,pendingTunnel,tile,activeOwner);
+      notifyBuild(result,'tunnelEntrance');
+      if(result.ok){selectedId=result.entity.id;pendingTunnel=null;}
+    }
   } else if (tool === 'conveyor') {
     notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, [tile], rotation, activeOwner), activeOwner), 'conveyor');
   } else if (STRUCTURES[tool]) {
@@ -655,12 +673,13 @@ function actionAt(point, alternate = false) {
   invalidate();
 }
 function startStroke(pointerId, point, isTouch) {
-  paint = { pointerId, route: [{ ...hitTile(point) }], isTouch, kind: tool, lastAnchor: null };
-  if (tool !== 'conveyor' && tool !== 'erase') paintStructure(point);
+  const start=hitTile(point);
+  paint = { pointerId, route: [pendingTunnel??start,start], isTouch, kind: tool, lastAnchor: null };
+  if (tool !== 'conveyor' && tool !== 'erase' && tool !== 'tunnelEntrance') paintStructure(point);
   invalidate();
 }
 function paintStructure(point) {
-  if (!paint || paint.kind === 'conveyor' || paint.kind === 'erase') return;
+  if (!paint || paint.kind === 'conveyor' || paint.kind === 'erase' || paint.kind==='tunnelEntrance') return;
   const tile = hitTile(point);
   if (!paint.grid) {
     const size = rotatedSize(STRUCTURES[paint.kind], rotation);
@@ -687,7 +706,7 @@ function placeAtGrid(anchor) {
 
 function extendStroke(point) {
   if (!paint) return;
-  if (paint.kind === 'erase') { paint.route[1] = hitTile(point); invalidate(); return; }
+  if (paint.kind === 'erase' || paint.kind === 'tunnelEntrance') { paint.route[1] = hitTile(point); invalidate(); return; }
   if (paint.kind !== 'conveyor') { paintStructure(point); invalidate(); return; }
   const tile = hitTile(point), last = paint.route.at(-1);
   if (last?.x === tile.x && last?.y === tile.y) return;
@@ -706,6 +725,16 @@ function finishStroke(commit) {
     }
     world.batch(() => { for (const id of victims) world.remove(id); });
     if (victims.has(selectedId)) selectedId = null;
+  }
+  if (commit && paint.kind === 'tunnelEntrance') {
+    const start=paint.route[0],end=paint.route.at(-1);
+    if(start.x===end.x && start.y===end.y) pendingTunnel=start;
+    else {
+      const result=buildTunnel(world,connections,start,end,activeOwner);
+      notifyBuild(result,'tunnelEntrance');
+      if(result.ok){selectedId=result.entity.id;pendingTunnel=null;}
+      else pendingTunnel=start;
+    }
   }
   if (commit && paint.kind === 'conveyor') {
     notifyBuild(commitConveyorRoute(world, planConveyorRoute(world, paint.route, rotation, activeOwner), activeOwner), 'conveyor');
