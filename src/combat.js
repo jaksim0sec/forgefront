@@ -111,6 +111,13 @@ export class Combat {
       }
     }
 
+    // Existing projectiles already promise damage. Avoid several turrets
+    // wasting volleys on one scout while other enemies go untouched.
+    const committed = new Map();
+    for (const shot of shots.values()) {
+      if (!scouts.has(shot.targetId)) continue;
+      committed.set(shot.targetId, (committed.get(shot.targetId) ?? 0) + shot.damage);
+    }
     if(active) for(const id of this.turrets){
       const turret=world.structures.get(id);
       if(!turret||!turret.enabled||!turret.powered||!turret.ownerId)continue;
@@ -119,7 +126,8 @@ export class Combat {
       const source=center(turret);
       let chosen=null,nearest=TURRET.range*TURRET.range;
       for(const scout of scouts.values()){
-        if(scout.ownerId===turret.ownerId)continue;
+        if(scout.ownerId===turret.ownerId || scout.health<=0)continue;
+        if((committed.get(scout.id)??0)>=scout.health)continue;
         const d2=distance2(source,scout);
         if(d2>=nearest || !this.lineClear(source,scout))continue;
         chosen=scout;nearest=d2;
@@ -132,6 +140,7 @@ export class Combat {
           health:1,ownerId:turret.ownerId,targetId:chosen.id,
           speed:TURRET.shotSpeed,damage:TURRET.damage,
         });
+        committed.set(chosen.id,(committed.get(chosen.id)??0)+TURRET.damage);
         this.cooldowns.set(id,TURRET.secondsPerShot);
       }
     }
