@@ -983,6 +983,12 @@ byId('example').addEventListener('click', () => {
   } finally { world.survival = oldSurvival; }
   camera.x = -4 * CAMERA_CONFIG.tileSize;
   camera.y = 4 * CAMERA_CONFIG.tileSize;
+setTool('select');
+  ui.message.textContent = '철 채굴 예시를 설치했습니다 · 건설비 미차감';
+  invalidate();
+});
+
+// Request landscape at startup / PWA resume, not only after the demo button.
   // The Screen Orientation API is optional and only allowed in installed PWAs.
 const requestLandscape = () => {
   if (!window.matchMedia?.('(display-mode: standalone)').matches) return;
@@ -997,10 +1003,6 @@ document.addEventListener('visibilitychange', () => {
 });
 requestLandscape();
 
-setTool('select');
-  ui.message.textContent = '철 채굴 예시를 설치했습니다 · 건설비 미차감';
-  invalidate();
-});
 byId('rotate').addEventListener('click',()=>{rotation=(rotation+1)%4;finishStroke(false);invalidate();});
 byId('reset').addEventListener('click',()=>{camera.reset();hoverPoint=null;invalidate();});
 ui.drillResource.addEventListener('change', event => {

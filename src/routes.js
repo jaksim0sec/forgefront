@@ -3,6 +3,9 @@ import { STRUCTURES } from './world.js';
 import { BUILD_COSTS, canAfford, sumCosts } from './progression.js';
 
 export const ROUTE_LIMIT = 2048;
+// Each pointer stroke owns its route; the index follows that route without
+// retaining it after the gesture ends.
+const ROUTE_INDICES = new WeakMap();
 export function directionBetween(a, b) {
   for (let side = 0; side < 4; side++) if (b.x - a.x === DIRECTIONS[side].x && b.y - a.y === DIRECTIONS[side].y) return side;
   return null;
@@ -14,8 +17,18 @@ export function extendRoute(route, target) {
   if (!route.length) { route.push({ x: target.x, y: target.y }); return route; }
   // Track tile indices once per extension rather than rescanning the entire
   // route for every tile traversed during a long pointer jump.
-  const indices = new Map(route.map((point, i) => [point.x + ',' + point.y, i]));
-  let { x, y } = route.at(-1);
+  const first = route[0], last = route.at(-1);
+  const firstKey = first.x + ',' + first.y, lastKey = last.x + ',' + last.y;
+  let cached = ROUTE_INDICES.get(route);
+  // A reused array can also be edited by a caller between extensions.
+  if (!cached || cached.length !== route.length || cached.first !== first ||
+      cached.last !== last || cached.firstKey !== firstKey || cached.lastKey !== lastKey) {
+    const indices = new Map(route.map((point, i) => [point.x + ',' + point.y, i]));
+    cached = { indices, length:route.length, first, last, firstKey, lastKey };
+    ROUTE_INDICES.set(route, cached);
+  }
+  const indices = cached.indices;
+  let { x, y } = last;
   const walk = (axis, destination) => {
     while (route.length < ROUTE_LIMIT && (axis === 'x' ? x : y) !== destination) {
       if (axis === 'x') x += Math.sign(destination - x);
@@ -43,6 +56,9 @@ export function extendRoute(route, target) {
   };
   if (Math.abs(target.x - x) >= Math.abs(target.y - y)) { walk('x', target.x); walk('y', target.y); }
   else { walk('y', target.y); walk('x', target.x); }
+  cached.length = route.length;
+  cached.last = route.at(-1);
+  cached.lastKey = cached.last.x + ',' + cached.last.y;
   return route;
 }
 

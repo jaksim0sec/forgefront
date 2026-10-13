@@ -77,3 +77,17 @@ test('long conveyor strokes trim revisited loops without leaving duplicate tiles
   assert.equal(route.length,406);
   assert.deepEqual(route.at(-1),{x:5,y:400});
 });
+
+test('a reused stroke index handles external endpoint edits and continued drawing',()=>{
+  const route=[];
+  extendRoute(route,{x:0,y:0});
+  extendRoute(route,{x:0,y:4});
+  route.push({x:0,y:5}); // An outside edit must invalidate the cached length.
+  extendRoute(route,{x:2,y:5});
+  assert.equal(route.length,8);
+  assert.deepEqual(route.at(-1),{x:2,y:5});
+  route[route.length-1]={x:2,y:4}; // Changing the last object also invalidates.
+  extendRoute(route,{x:2,y:3});
+  assert.deepEqual(route.at(-1),{x:2,y:3});
+  assert.equal(new Set(route.map(p=>p.x+','+p.y)).size,route.length);
+});
