@@ -14,6 +14,20 @@ const templates = {
     <path d="M10 0V48M38 0V48" stroke="#71695d" stroke-width="2.2"/>
     <path d="m20 22 4 4 4-4" fill="none" stroke="#929a97" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   </symbol>`,
+  tunnelEntrance: `<symbol id="s-tunnelEntrance" viewBox="0 0 48 48">
+    <rect x="2" y="2" width="44" height="44" rx="6" fill="#3b4443" stroke="#7b8883" stroke-width="2.5"/>
+    <rect x="8" y="9" width="32" height="30" rx="5" fill="#1b282a" stroke="#6c7973" stroke-width="2"/>
+    <path d="M13 29H35M13 34H35" stroke="#494e49" stroke-width="2"/>
+    <path d="m19 17 5-5 5 5M24 12V27" fill="none" stroke="#ac9a78" stroke-width="2.6"/>
+    <rect x="13" y="36" width="22" height="4" rx="2" fill="#7b7160"/>
+  </symbol>`,
+  tunnelExit: `<symbol id="s-tunnelExit" viewBox="0 0 48 48">
+    <rect x="2" y="2" width="44" height="44" rx="6" fill="#414b48" stroke="#89958c" stroke-width="2.5"/>
+    <rect x="8" y="9" width="32" height="30" rx="5" fill="#202f31" stroke="#687d77" stroke-width="2"/>
+    <path d="M13 30H35M13 35H35" stroke="#64675b" stroke-width="2"/>
+    <path d="M24 30V12m-5 5 5-5 5 5" fill="none" stroke="#c0ae89" stroke-width="2.6"/>
+    <circle cx="24" cy="36" r="2" fill="#c0ae89"/>
+  </symbol>`,
   junction: `<symbol id="s-junction" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="5" fill="#343d40" stroke="#687579" stroke-width="1.8"/><rect x="9" y="9" width="30" height="30" rx="4" fill="#202b30"/><path d="M24 6V42M6 24H42" stroke="#877e6e" stroke-width="5" stroke-linecap="round"/><circle cx="24" cy="24" r="8" fill="#4a5559" stroke="#a49478" stroke-width="1.4"/><path d="M20 24h8m-4-4v8" stroke="#bac5c5" stroke-width="1.8"/></symbol>`,
   drill: `<symbol id="s-drill" viewBox="0 0 96 96"><rect x="3" y="3" width="90" height="90" rx="9" fill="#48413c" stroke="#9f8b78" stroke-width="4"/><rect x="11" y="11" width="74" height="74" rx="7" fill="#19272f" stroke="#536773" stroke-width="2"/><path d="M12 24H84M12 72H84" stroke="#8e9da5" stroke-width="3" stroke-opacity=".55"/><circle cx="48" cy="48" r="29" fill="#6c5c4f" stroke="#b29c85" stroke-width="4"/><circle cx="48" cy="48" r="20" fill="#192b36" stroke="#78929e" stroke-width="3"/><g class="real-blades"><path d="M48 27L55 41L69 48L55 55L48 69L41 55L27 48L41 41Z" fill="#c0d0d4"/></g><circle cx="48" cy="48" r="7" fill="#b7c8cb" stroke="#5c7984" stroke-width="3"/><g fill="#c5d1d5"><circle cx="16" cy="16" r="3"/><circle cx="80" cy="16" r="3"/><circle cx="16" cy="80" r="3"/><circle cx="80" cy="80" r="3"/></g></symbol>`,
   smelter: `<symbol id="s-smelter" viewBox="0 0 144 96"><rect x="3" y="3" width="138" height="90" rx="9" fill="#3d4247" stroke="#98a1a7" stroke-width="4"/><rect x="12" y="10" width="120" height="76" rx="5" fill="#1a252e" stroke="#64737c" stroke-width="2"/><g fill="#5d5147" stroke="#a99682" stroke-width="3"><rect x="20" y="24" width="28" height="49" rx="4"/><rect x="57" y="24" width="28" height="49" rx="4"/><rect x="94" y="24" width="28" height="49" rx="4"/></g><g fill="#a08b70"><rect x="25" y="48" width="18" height="17" rx="2"/><rect x="62" y="48" width="18" height="17" rx="2"/><rect x="99" y="48" width="18" height="17" rx="2"/></g><g stroke="#8d9ba3" stroke-width="3"><path d="M22 16H120M25 78H119"/></g><path d="M9 35V61M135 35V61" stroke="#98a4aa" stroke-width="3" stroke-opacity=".5"/></symbol>`,
