@@ -30,7 +30,7 @@
       </defs>
       <rect width="100%" height="100%" fill="url(#ambient)"/>
       <g id="terrain-layer" pointer-events="none"></g>
-      <g id="territory-layer" pointer-events="none"></g>
+      <g id="territory-layer" pointer-events="none" visibility="hidden"></g>
       <rect width="100%" height="100%" fill="url(#tile-grid)"/>
       <rect width="100%" height="100%" fill="url(#sector-grid)"/>
       <g id="ore-layer" pointer-events="none"></g>
@@ -79,7 +79,7 @@
       <button type="button" id="rotate" class="rotate">↻ 회전 <output id="rotation">0°</output></button>
       <div class="toolbox-actions">
         <button id="show-links" type="button" aria-pressed="true">↗ 자원 연결 ON</button>
-        <button id="show-territory" type="button" aria-pressed="true">◇ 영토 경계 ON</button>
+        <button id="show-territory" type="button" aria-pressed="false">◇ 영토 경계 OFF</button>
         <button id="touch-draw" type="button" aria-pressed="false">✎ 터치 경로 건설 OFF</button>
         <button id="example" type="button">＋ 철 채굴라인 예시</button>
         <button id="simulate-raid" type="button">◈ 침입 정찰대 시험</button>
