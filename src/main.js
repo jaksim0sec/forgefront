@@ -674,7 +674,7 @@ function actionAt(point, alternate = false) {
 }
 function startStroke(pointerId, point, isTouch) {
   const start=hitTile(point);
-  paint = { pointerId, route: [pendingTunnel??start,start], isTouch, kind: tool, lastAnchor: null };
+  paint = { pointerId, route: tool === 'tunnelEntrance' ? [pendingTunnel??start,start] : [start], isTouch, kind: tool, lastAnchor: null };
   if (tool !== 'conveyor' && tool !== 'erase' && tool !== 'tunnelEntrance') paintStructure(point);
   invalidate();
 }
