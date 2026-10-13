@@ -68,9 +68,11 @@ export class CombatRenderer {
       const y=(shot.prevY??shot.y)+(shot.y-(shot.prevY??shot.y))*alpha;
       const p=camera.worldToScreen(x*CAMERA_CONFIG.tileSize,y*CAMERA_CONFIG.tileSize);
       if(p.x<-20||p.y<-20||p.x>camera.width+20||p.y>camera.height+20)continue;
-      const r=Math.max(2,2.8*camera.zoom);
-      ctx.fillStyle='#f5d39a';
-      ctx.strokeStyle='#cf9b65';
+      const heavy=shot.damage>=40;
+      const scatter=shot.splashRadius>0;
+      const r=Math.max(2,(heavy?4.2:scatter?3.2:2.8)*camera.zoom);
+      ctx.fillStyle=heavy?'#cfb89b':scatter?'#c9a789':'#f5d39a';
+      ctx.strokeStyle=heavy?'#8e8273':'#cf9b65';
       ctx.lineWidth=1.4;
       ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
     }
