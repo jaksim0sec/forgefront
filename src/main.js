@@ -14,6 +14,7 @@ import { TerrainRenderer } from './terrain-render.js';
 import { Territory } from './territory.js';
 import { TerritoryRenderer } from './territory-render.js';
 import { Combat } from './combat.js';
+import { UnitCommand, SOLDIER } from './unit-command.js';
 import { WEAPONS, isWall } from './defense.js';
 import { CombatRenderer } from './combat-render.js';
 import { CargoRenderer } from './cargo-renderer.js';
@@ -37,6 +38,7 @@ world.survival = true;
 const connections = new ItemConnections(world);
 const industry = new Industry(world, connections);
 const combat = new Combat(world);
+const unitCommand = new UnitCommand(world,combat);
 installSprites(svg);
 const buildings = new BuildingRenderer(svg, world, camera, connections);
 const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
@@ -132,7 +134,7 @@ const ui = {
   territoryDetail: byId('selected-territory'),
   production: byId('selected-production'), message: byId('build-message'),
 };
-let tool = 'select', rotation = 0, selectedId = null;
+let tool = 'select', rotation = 0, selectedId = null, selectedUnitId = null;
 let activeOwner = 'north', hoverPoint = null, showLinks = true;
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 let recentStructure = 'drill';
@@ -144,6 +146,69 @@ quickSelect.setAttribute('aria-label','선택 도구');
 quickSelect.addEventListener('click',()=>setTool('select'));
 // The same quick controls remain mounted whether the drawer is folded or open.
 const toolbox = byId('toolbox-panel');
+// Unit selection is an independent map overlay, available even with the
+// building drawer collapsed on a phone.
+const unitPanel=document.createElement('section');
+unitPanel.className='unit-command-panel';
+unitPanel.hidden=true;
+unitPanel.setAttribute('aria-label','부대 명령');
+unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>빈 타일 탭: 이동 · 적 건물 탭: 공격</p><div><button type="button" id="unit-halt">정지</button><button type="button" id="unit-dismiss">선택 해제</button></div>';
+svg.after(unitPanel);
+byId('unit-halt').addEventListener('click',()=>{
+  if(selectedUnitId!=null)unitCommand.stop(selectedUnitId);
+  invalidate();
+});
+byId('unit-dismiss').addEventListener('click',()=>{
+  selectedUnitId=null;combatVisual.selectedUnitId=null;invalidate();
+});
+function friendlyUnitAt(point){
+  const pos=camera.screenToWorld(point.x,point.y);
+  const x=pos.x/CAMERA_CONFIG.tileSize,y=pos.y/CAMERA_CONFIG.tileSize;
+  const radius=Math.max(.65,9/(CAMERA_CONFIG.tileSize*camera.zoom));
+  let best=null,nearest=radius;
+  for(const unit of world.units.entities.values()){
+    if(unit.role!=='soldier'||unit.ownerId!==activeOwner)continue;
+    const d=Math.hypot(x-unit.x,y-unit.y);
+    if(d<nearest){best=unit;nearest=d;}
+  }
+  return best;
+}
+function refreshUnitPanel(){
+  const unit=world.units.get(selectedUnitId);
+  if(!unit || unit.role!=='soldier')selectedUnitId=null;
+  unitPanel.hidden=!unit || unit.role!=='soldier'||tool!=='select';
+  combatVisual.selectedUnitId=unitPanel.hidden?null:selectedUnitId;
+  if(!unitPanel.hidden){
+    byId('unit-name').textContent='전투 유닛 #'+unit.id;
+    byId('unit-health').textContent='HP '+unit.health+' / '+unit.maxHealth;
+  }
+}
+function trainSelectedUnit(){
+  const tower=world.structures.get(selectedId);
+  const result=unitCommand.train(activeOwner,tower?.type==='tower'?tower.id:null);
+  if(result.ok){
+    setTool('select');
+    selectedId=null;selectedUnitId=result.unit.id;selectionDismissed=true;
+    ui.message.textContent='유닛 생산 완료 · 유닛 선택 후 지도를 탭해 이동하거나 공격하세요';
+    combatVisual.wake();
+  }else{
+    const message={tower:'가동 중인 아군 중앙 타워가 필요합니다.',
+      limit:'유닛 최대치에 도달했습니다.',materials:'자원이 부족합니다. 납 12 · 철 4 필요',
+      spawn:'타워 주변에 출격할 빈 공간이 없습니다.'};
+    ui.message.textContent=message[result.reason]??'병력을 생산할 수 없습니다.';
+  }
+  invalidate();
+}
+const trainQuick=document.createElement('button');
+trainQuick.type='button';
+trainQuick.textContent='⚔ 전투 유닛 생산 · 납 12 / 철 4';
+trainQuick.addEventListener('click',trainSelectedUnit);
+toolbox.querySelector('.toolbox-actions').prepend(trainQuick);
+const trainSelected=document.createElement('button');
+trainSelected.type='button';trainSelected.textContent='⚔ 전투 유닛 생산';
+trainSelected.addEventListener('click',trainSelectedUnit);
+byId('selected-detail').querySelector('.inspector-actions').append(trainSelected);
+
 const quickBar=document.createElement('div');
 quickBar.className='collapsed-top-row';
 quickBar.append(quickSelect,toolbox.querySelector('.panel-fold-toggle'));
@@ -311,6 +376,8 @@ function render() {
   }
   ui.rotation.textContent = rotation * 90 + '°';
   const selected = world.structures.get(selectedId);
+  refreshUnitPanel();
+  trainSelected.hidden=selected?.type!=='tower'||selected?.ownerId!==activeOwner;
   const powerRadius = byId('power-radius');
   const weaponRadius = byId('weapon-radius');
   if (selected && WEAPONS[selected.type]) {
@@ -627,6 +694,8 @@ refreshRecentShortcut();
 function setTool(next) {
   if (next !== 'select' && next !== 'erase' && !STRUCTURES[next]) return;
   tool = next;
+  selectedUnitId=null;
+  combatVisual.selectedUnitId=null;
   pendingTunnel = null;
   if(STRUCTURES[next] && next!=='conveyor'){
     recentStructure=next;
@@ -698,9 +767,27 @@ function actionAt(point, alternate = false) {
     const created = world.build(tool, anchor.x, anchor.y, rotation, activeOwner);
     notifyBuild(created, tool);
     if (created.ok) selectedId = created.entity.id;
-  } else { selectedId = world.getAt(tile.x, tile.y)?.id ?? null;
-    selectionDismissed = false;
-
+  } else {
+    const clicked=friendlyUnitAt(point);
+    const active=world.units.get(selectedUnitId);
+    if(clicked){
+      selectedUnitId=clicked.id;selectedId=null;
+    }else if(active?.role==='soldier'){
+      const structure=world.getAt(tile.x,tile.y);
+      if(structure?.ownerId && structure.ownerId!==active.ownerId){
+        const order=unitCommand.order(active.id,{targetId:structure.id});
+        ui.message.textContent=order.ok?'적 시설 공격 명령':'해당 시설까지 접근할 경로가 없습니다.';
+      }else if(!structure){
+        const order=unitCommand.order(active.id,{x:tile.x+.5,y:tile.y+.5});
+        ui.message.textContent=order.ok?'이동 명령 완료':'지형 또는 장애물 때문에 이동할 수 없습니다.';
+      }else{
+        selectedUnitId=null;selectedId=structure.id;
+      }
+    }else{
+      selectedId=world.getAt(tile.x,tile.y)?.id??null;
+      selectedUnitId=null;
+    }
+    selectionDismissed=false;
   }
   invalidate();
 }
@@ -1025,8 +1112,9 @@ setInterval(() => {
   lastTick = now;
   const productionChanged = industry.step(dt);
   const combatChanged = combat.step(dt);
-  if (productionChanged || combatChanged) invalidate();
-  if (combatChanged) combatVisual.wake();
+  const unitsChanged = unitCommand.step(dt);
+  if (productionChanged || combatChanged || unitsChanged) invalidate();
+  if (combatChanged || unitsChanged) combatVisual.wake();
 }, 200);
 
 // A phone starts with the compact two-row palette. Expanding adds content below.

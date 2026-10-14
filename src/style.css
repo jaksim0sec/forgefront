@@ -902,3 +902,34 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;
 }
 #toolbox-panel .defense-section-items button {min-width:0;}
+
+/* Command controls stay visible when the building drawer is folded. */
+.unit-command-panel {
+  position:absolute;
+  top:max(10px,env(safe-area-inset-top));
+  left:max(10px,env(safe-area-inset-left));
+  z-index:7;
+  width:min(236px,calc(100vw - 255px));
+  padding:10px 12px;
+  border:1px solid #668578;
+  border-radius:12px;
+  background:rgba(18,34,40,.91);
+  box-shadow:0 8px 24px #02070b88;
+  color:#e8f0ec;
+  font-size:11px;
+  pointer-events:auto;
+}
+.unit-command-panel[hidden],#selected-detail .inspector-actions button[hidden] {display:none!important;}
+.unit-command-panel strong {display:block;font-size:13px;margin-bottom:3px;}
+.unit-command-panel>span {color:#b8d0c2;font-variant-numeric:tabular-nums;}
+.unit-command-panel p {line-height:1.4;color:#c6d5d0;margin:7px 0;}
+.unit-command-panel>div {display:flex;gap:6px;}
+.unit-command-panel button {
+  flex:1;min-height:34px;
+  border:1px solid #688e81;border-radius:7px;
+  background:#2c4a46;color:#e5f1e9;
+  font-size:11px;cursor:pointer;
+}
+@media(max-width:550px){
+  .unit-command-panel {width:min(200px,calc(100vw - 238px));padding:8px;}
+}

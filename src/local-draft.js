@@ -15,7 +15,10 @@ export function saveDraft(world,storage) {
       return out;
     });
     const wallets=Object.fromEntries([...world.stockpiles].map(([id,w])=>[id,{...w}]));
-    storage.setItem(DRAFT_KEY,JSON.stringify({schema:1,structures,wallets}));
+    const units=[...world.units.entities.values()].filter(e=>e.role==='soldier')
+      .map(e=>({x:e.x,y:e.y,health:e.health,ownerId:e.ownerId,
+        goal:e.goal,attackTargetId:e.attackTargetId,cooldown:e.cooldown}));
+    storage.setItem(DRAFT_KEY,JSON.stringify({schema:1,structures,wallets,units}));
     return true;
   }catch{return false;} // Storage may be disabled or full.
 }
@@ -77,7 +80,23 @@ export function restoreDraft(world,storage) {
           Object.fromEntries(Object.entries(items).filter(([id,n])=>nonNegative(n)))));
       }
     }
+    if(Array.isArray(snapshot.units)){
+      for(const old of snapshot.units.slice(0,12)){
+        if(!old||![old.x,old.y,old.health].every(Number.isFinite)||
+          old.health<=0||!stage.inBounds(Math.floor(old.x),Math.floor(old.y))||
+          typeof old.ownerId!=='string')continue;
+        const unit=stage.units.spawn({x:old.x,y:old.y,
+          prevX:old.x,prevY:old.y,ownerId:old.ownerId,
+          health:75,role:'soldier',speed:2.35,mobility:'ground',
+          goal:old.goal&&Number.isFinite(old.goal.x)&&Number.isFinite(old.goal.y)
+            ? {x:old.goal.x,y:old.goal.y}:null,
+          attackTargetId:remap.get(old.attackTargetId)??null,
+          cooldown:nonNegative(old.cooldown)?old.cooldown:0,path:[],pathIndex:0});
+        if(unit)unit.health=Math.min(old.health,unit.maxHealth);
+      }
+    }
     world.structures=stage.structures;
+    world.units=stage.units;
     world.chunks=stage.chunks;
     world.nextId=stage.nextId;
     world.stockpiles=stage.stockpiles;
@@ -95,7 +114,7 @@ export function attachDraftAutosave(world,storage){
     pending=setTimeout(()=>{pending=null;saveDraft(world,storage);},900);
   };
   const unsubscribe=world.subscribe(({type})=>{
-    if(['place','remove','rotate','owner','state','economy','transfer'].includes(type))schedule();
+    if(['place','remove','rotate','owner','state','economy','transfer','unit-order'].includes(type))schedule();
   });
   const heartbeat=setInterval(()=>{if(world.structures.size) schedule();},10000);
   const flush=()=>{

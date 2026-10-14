@@ -69,14 +69,17 @@ export class Combat {
     // Resolve existing shots before aiming another round.
     for (const [id,shot] of shots) {
       shot.prevX=shot.x;shot.prevY=shot.y;
-      const target=scouts.get(shot.targetId);
+      const target=shot.targetKind==='structure'
+        ? world.structures.get(shot.targetId) : scouts.get(shot.targetId);
       if(!target || target.ownerId===shot.ownerId){shots.delete(id);continue;}
-      const d=Math.sqrt(distance2(shot,target));
+      const impact=shot.targetKind==='structure'?center(target):target;
+      const d=Math.sqrt(distance2(shot,impact));
       const travel=shot.speed*delta;
       if(d<=travel+0.32){
-        this.visualEvents.push({type:'hit',x:target.x,y:target.y,heavy:shot.damage>=40});
-        world.units.damage(target.id,shot.damage);
-        if (shot.splashRadius && shot.splashDamage) {
+        this.visualEvents.push({type:'hit',x:impact.x,y:impact.y,heavy:shot.damage>=40});
+        if(shot.targetKind==='structure')world.damageStructure(target.id,shot.damage);
+        else world.units.damage(target.id,shot.damage);
+        if (shot.targetKind!=='structure' && shot.splashRadius && shot.splashDamage) {
           const radius2=shot.splashRadius*shot.splashRadius;
           for (const other of scouts.values()) {
             if (other.id===target.id || other.ownerId===shot.ownerId) continue;
@@ -85,14 +88,15 @@ export class Combat {
         }
         shots.delete(id);
       } else if(d>0){
-        shot.x+=(target.x-shot.x)/d*travel;
-        shot.y+=(target.y-shot.y)/d*travel;
+        shot.x+=(impact.x-shot.x)/d*travel;
+        shot.y+=(impact.y-shot.y)/d*travel;
       }
     }
 
     // Scouts advance towards their assigned command tower. Impassable ridges
     // halt movement instead of allowing enemies to clip through cliffs.
     for (const [id,scout] of scouts) {
+      if(scout.role==='soldier')continue; // Controlled units have their own orders.
       scout.age=(scout.age??0)+delta;
       if(scout.age>36){scouts.delete(id);continue;}
       scout.prevX=scout.x;scout.prevY=scout.y;

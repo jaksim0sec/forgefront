@@ -14,6 +14,7 @@ export class CombatRenderer {
     catch {this.ctx=null;}
     this.frame=0;
     this.flashes=[];
+    this.selectedUnitId=null;
     this.aimTurrets=aimTurrets;
     this.previousFrame=0;
     this.animate=this.animate.bind(this);
@@ -64,8 +65,27 @@ export class CombatRenderer {
       ctx.lineTo(p.x-s*.8,p.y);
       ctx.closePath();
       ctx.fill();ctx.stroke();
-      ctx.fillStyle='#b7c5ce';
+      ctx.fillStyle=unit.role==='soldier'?'#d7e4db':'#b7c5ce';
       ctx.fillRect(p.x-s*.25,p.y-s*.26,s*.5,s*.52);
+      if(unit.role==='soldier'){
+        ctx.strokeStyle='#dae8df';
+        ctx.lineWidth=1.4;
+        ctx.beginPath();ctx.moveTo(p.x-s*.36,p.y+s*.32);
+        ctx.lineTo(p.x+s*.36,p.y+s*.32);ctx.stroke();
+      }
+      if(unit.id===this.selectedUnitId && unit.role==='soldier'){
+        ctx.strokeStyle='#f5d39a';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(p.x,p.y,s*1.35,0,Math.PI*2);ctx.stroke();
+        const goal=unit.path?.[unit.path.length-1];
+        if(goal){
+          const destination=camera.worldToScreen(goal.x*CAMERA_CONFIG.tileSize,goal.y*CAMERA_CONFIG.tileSize);
+          ctx.strokeStyle='#a6d6be';ctx.lineWidth=1.5;
+          ctx.beginPath();ctx.moveTo(destination.x-5,destination.y);
+          ctx.lineTo(destination.x+5,destination.y);
+          ctx.moveTo(destination.x,destination.y-5);
+          ctx.lineTo(destination.x,destination.y+5);ctx.stroke();
+        }
+      }
       if(unit.health<unit.maxHealth){
         ctx.fillStyle='#14212a';
         ctx.fillRect(p.x-s,p.y-s-5,s*2,2.6);
