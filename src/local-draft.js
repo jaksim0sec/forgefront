@@ -3,7 +3,7 @@ import { World, STRUCTURES } from './world.js';
 export const DRAFT_KEY='forgefront:local-world:1';
 const FIELDS=['health','enabled','progress','moveProgress','itemId','itemCount',
   'resourceId','burnRemaining','fuelProgress','fuelCharges','routeCursor',
-  'lastSourceId','pairId','activity','inventory'];
+  'lastSourceId','pairId','activity','inventory','trainQueued','trainProgress'];
 const nonNegative=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0;
 export function saveDraft(world,storage) {
   if(!storage)return false;
@@ -17,7 +17,7 @@ export function saveDraft(world,storage) {
     const wallets=Object.fromEntries([...world.stockpiles].map(([id,w])=>[id,{...w}]));
     const units=[...world.units.entities.values()].filter(e=>e.role==='soldier')
       .map(e=>({x:e.x,y:e.y,health:e.health,ownerId:e.ownerId,
-        goal:e.goal,attackTargetId:e.attackTargetId,cooldown:e.cooldown}));
+        goal:e.goal,formationGoal:e.formationGoal,attackTargetId:e.attackTargetId,cooldown:e.cooldown}));
     storage.setItem(DRAFT_KEY,JSON.stringify({schema:1,structures,wallets,units}));
     return true;
   }catch{return false;} // Storage may be disabled or full.
@@ -91,6 +91,8 @@ export function restoreDraft(world,storage) {
           goal:old.goal&&Number.isFinite(old.goal.x)&&Number.isFinite(old.goal.y)
             ? {x:old.goal.x,y:old.goal.y}:null,
           attackTargetId:remap.get(old.attackTargetId)??null,
+          formationGoal:old.formationGoal&&Number.isFinite(old.formationGoal.x)&&Number.isFinite(old.formationGoal.y)
+            ? {x:old.formationGoal.x,y:old.formationGoal.y}:null,
           cooldown:nonNegative(old.cooldown)?old.cooldown:0,path:[],pathIndex:0});
         if(unit)unit.health=Math.min(old.health,unit.maxHealth);
       }
@@ -114,7 +116,7 @@ export function attachDraftAutosave(world,storage){
     pending=setTimeout(()=>{pending=null;saveDraft(world,storage);},900);
   };
   const unsubscribe=world.subscribe(({type})=>{
-    if(['place','remove','rotate','owner','state','economy','transfer','unit-order'].includes(type))schedule();
+    if(['place','remove','rotate','owner','state','economy','transfer','unit-order','unit-production'].includes(type))schedule();
   });
   const heartbeat=setInterval(()=>{if(world.structures.size) schedule();},10000);
   const flush=()=>{

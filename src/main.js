@@ -14,7 +14,7 @@ import { TerrainRenderer } from './terrain-render.js';
 import { Territory } from './territory.js';
 import { TerritoryRenderer } from './territory-render.js';
 import { Combat } from './combat.js';
-import { UnitCommand, SOLDIER } from './unit-command.js';
+import { UnitCommand, SOLDIER, TRAIN_SECONDS, TRAIN_QUEUE_LIMIT } from './unit-command.js';
 import { WEAPONS, isWall } from './defense.js';
 import { CombatRenderer } from './combat-render.js';
 import { CargoRenderer } from './cargo-renderer.js';
@@ -134,9 +134,17 @@ const ui = {
   territoryDetail: byId('selected-territory'),
   production: byId('selected-production'), message: byId('build-message'),
 };
-let tool = 'select', rotation = 0, selectedId = null, selectedUnitId = null;
+let tool = 'select', rotation = 0, selectedId = null;
+const selectedUnitIds=new Set();
+let multiUnitSelection=false, selectionDrag=null;
 let activeOwner = 'north', hoverPoint = null, showLinks = true;
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
+const factoryTool=document.createElement('button');
+factoryTool.type='button';factoryTool.dataset.tool='unitFactory';
+factoryTool.setAttribute('aria-pressed','false');
+factoryTool.textContent='유닛 공장';
+byId('toolbox-panel').querySelector('.tool-list').appendChild(factoryTool);
+toolButtons.push(factoryTool);
 let recentStructure = 'drill';
 const quickSelect = document.createElement('button');
 quickSelect.type='button';
@@ -152,15 +160,50 @@ const unitPanel=document.createElement('section');
 unitPanel.className='unit-command-panel';
 unitPanel.hidden=true;
 unitPanel.setAttribute('aria-label','부대 명령');
-unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>빈 타일 탭: 이동 · 적 건물 탭: 공격</p><div><button type="button" id="unit-halt">정지</button><button type="button" id="unit-dismiss">선택 해제</button></div>';
+unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>빈 땅: 이동 · 적 시설: 공격 · 길게 눌러 드래그: 범위 선택</p><div><button type="button" id="unit-multi" aria-pressed="false">다중 선택 OFF</button><button type="button" id="unit-halt">정지</button><button type="button" id="unit-dismiss">해제</button></div>';
 svg.after(unitPanel);
+const selectionBox=document.createElementNS('http://www.w3.org/2000/svg','rect');
+selectionBox.id='unit-selection-box';
+selectionBox.setAttribute('pointer-events','none');
+selectionBox.setAttribute('visibility','hidden');
+svg.appendChild(selectionBox);
+byId('unit-multi').addEventListener('click',()=>{
+  multiUnitSelection=!multiUnitSelection;
+  byId('unit-multi').setAttribute('aria-pressed',String(multiUnitSelection));
+  byId('unit-multi').textContent='다중 선택 '+(multiUnitSelection?'ON':'OFF');
+  invalidate();
+});
 byId('unit-halt').addEventListener('click',()=>{
-  if(selectedUnitId!=null)unitCommand.stop(selectedUnitId);
+  for(const id of selectedUnitIds)unitCommand.stop(id);
   invalidate();
 });
 byId('unit-dismiss').addEventListener('click',()=>{
-  selectedUnitId=null;combatVisual.selectedUnitId=null;invalidate();
+  selectedUnitIds.clear();invalidate();
 });
+function updateSelectionBox(){
+  if(!selectionDrag){selectionBox.setAttribute('visibility','hidden');return;}
+  const a=selectionDrag.start,b=selectionDrag.end;
+  selectionBox.setAttribute('x',Math.min(a.x,b.x));
+  selectionBox.setAttribute('y',Math.min(a.y,b.y));
+  selectionBox.setAttribute('width',Math.abs(a.x-b.x));
+  selectionBox.setAttribute('height',Math.abs(a.y-b.y));
+  selectionBox.setAttribute('visibility','visible');
+}
+function finishUnitSelection(commit){
+  if(!selectionDrag)return;
+  const drag=selectionDrag;selectionDrag=null;
+  if(!commit||Math.hypot(drag.end.x-drag.start.x,drag.end.y-drag.start.y)<9)return;
+  if(!drag.additive&&!multiUnitSelection)selectedUnitIds.clear();
+  const loX=Math.min(drag.start.x,drag.end.x),hiX=Math.max(drag.start.x,drag.end.x);
+  const loY=Math.min(drag.start.y,drag.end.y),hiY=Math.max(drag.start.y,drag.end.y);
+  for(const unit of world.units.entities.values()){
+    if(unit.role!=='soldier'||unit.ownerId!==activeOwner)continue;
+    const p=camera.worldToScreen(unit.x*CAMERA_CONFIG.tileSize,unit.y*CAMERA_CONFIG.tileSize);
+    if(p.x>=loX&&p.x<=hiX&&p.y>=loY&&p.y<=hiY)selectedUnitIds.add(unit.id);
+  }
+  selectedId=null;selectionDismissed=true;
+}
+
 function friendlyUnitAt(point){
   const pos=camera.screenToWorld(point.x,point.y);
   const x=pos.x/CAMERA_CONFIG.tileSize,y=pos.y/CAMERA_CONFIG.tileSize;
@@ -174,38 +217,37 @@ function friendlyUnitAt(point){
   return best;
 }
 function refreshUnitPanel(){
-  const unit=world.units.get(selectedUnitId);
-  if(!unit || unit.role!=='soldier')selectedUnitId=null;
-  unitPanel.hidden=!unit || unit.role!=='soldier'||tool!=='select';
-  combatVisual.selectedUnitId=unitPanel.hidden?null:selectedUnitId;
+  for(const id of [...selectedUnitIds]){
+    const unit=world.units.get(id);
+    if(!unit||unit.role!=='soldier'||unit.ownerId!==activeOwner)
+      selectedUnitIds.delete(id);
+  }
+  const units=[...selectedUnitIds].map(id=>world.units.get(id));
+  unitPanel.hidden=!units.length||tool!=='select';
+  combatVisual.selectedUnitIds=new Set(unitPanel.hidden?[]:selectedUnitIds);
   if(!unitPanel.hidden){
-    byId('unit-name').textContent='전투 유닛 #'+unit.id;
-    byId('unit-health').textContent='HP '+unit.health+' / '+unit.maxHealth;
+    byId('unit-name').textContent=units.length===1
+      ? '전투 유닛 #'+units[0].id : '선택된 전투 유닛 '+units.length+'기';
+    byId('unit-health').textContent=units.length===1
+      ? 'HP '+units[0].health+' / '+units[0].maxHealth
+      : '총 HP '+units.reduce((n,u)=>n+u.health,0)+' / '+units.length*SOLDIER.health;
   }
 }
 function trainSelectedUnit(){
-  const tower=world.structures.get(selectedId);
-  const result=unitCommand.train(activeOwner,tower?.type==='tower'?tower.id:null);
+  const factory=world.structures.get(selectedId);
+  const result=unitCommand.train(activeOwner,factory?.type==='unitFactory'?factory.id:null);
   if(result.ok){
-    setTool('select');
-    selectedId=null;selectedUnitId=result.unit.id;selectionDismissed=true;
-    ui.message.textContent='유닛 생산 완료 · 유닛 선택 후 지도를 탭해 이동하거나 공격하세요';
-    combatVisual.wake();
+    ui.message.textContent='생산 예약 · '+result.queued+'/'+TRAIN_QUEUE_LIMIT+'기 · '+TRAIN_SECONDS+'초/기 · 전력 필요';
   }else{
-    const message={tower:'가동 중인 아군 중앙 타워가 필요합니다.',
-      limit:'유닛 최대치에 도달했습니다.',materials:'자원이 부족합니다. 납 12 · 철 4 필요',
-      spawn:'타워 주변에 출격할 빈 공간이 없습니다.'};
+    const message={factory:'가동 가능한 아군 유닛 공장이 필요합니다.',
+      limit:'유닛 최대치에 도달했습니다.',queue:'공장 대기열이 가득 찼습니다.',
+      materials:'자원 부족 · 납 12 · 철 4 필요'};
     ui.message.textContent=message[result.reason]??'병력을 생산할 수 없습니다.';
   }
   invalidate();
 }
-const trainQuick=document.createElement('button');
-trainQuick.type='button';
-trainQuick.textContent='⚔ 전투 유닛 생산 · 납 12 / 철 4';
-trainQuick.addEventListener('click',trainSelectedUnit);
-toolbox.querySelector('.toolbox-actions').prepend(trainQuick);
 const trainSelected=document.createElement('button');
-trainSelected.type='button';trainSelected.textContent='⚔ 전투 유닛 생산';
+trainSelected.type='button';trainSelected.textContent='⚔ 생산 대기열 추가 · 납 12 / 철 4';
 trainSelected.addEventListener('click',trainSelectedUnit);
 byId('selected-detail').querySelector('.inspector-actions').append(trainSelected);
 
@@ -326,6 +368,7 @@ function render() {
   terrainVisual.draw();
   if (territoryVisual.layer.getAttribute('visibility') !== 'hidden') territoryVisual.draw();
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
+  updateSelectionBox();
   const buildPreview=byId('build-line-preview');
   if(paint?.grid && paint.kind!=='conveyor' && paint.kind!=='erase' && paint.kind!=='tunnelEntrance'){
     const positions=paint.anchors??[paint.grid.origin];
@@ -377,7 +420,7 @@ function render() {
   ui.rotation.textContent = rotation * 90 + '°';
   const selected = world.structures.get(selectedId);
   refreshUnitPanel();
-  trainSelected.hidden=selected?.type!=='tower'||selected?.ownerId!==activeOwner;
+  trainSelected.hidden=selected?.type!=='unitFactory'||selected?.ownerId!==activeOwner;
   const powerRadius = byId('power-radius');
   const weaponRadius = byId('weapon-radius');
   if (selected && WEAPONS[selected.type]) {
@@ -424,6 +467,10 @@ function render() {
   const recipe = selected ? RECIPES[selected.type] : null;
   ui.production.textContent = !selected ? '—' :
     recipe ? `${RESOURCES[recipe.output].label} · ${Math.min(100, Math.floor(100 * (selected.progress ?? 0) / recipe.seconds))}% ${finishedCount ? '· 완성품 ' + finishedCount + '개' : ''}` :
+    selected.type==='unitFactory'
+      ? (selected.trainQueued>0
+        ? '생산 대기 '+selected.trainQueued+'기 · '+Math.floor(100*(selected.trainProgress??0)/TRAIN_SECONDS)+'% · '+(selected.powered?'가동 중':'전력 부족')
+        : '대기열 비어 있음 · '+(selected.powered?'생산 가능':'전력 부족')) :
     selected.resourceId ? `${RESOURCES[selected.resourceId].label} 채집` :
     WEAPONS[selected.type] ? `사거리 ${WEAPONS[selected.type].range}칸 · 피해 ${WEAPONS[selected.type].damage} · ${selected.powered ? '방어 준비' : '전력 대기'}` :
     isWall(selected.type) ? '지상 침입자 차단 · 내구도 기반' :
@@ -450,6 +497,7 @@ const BUILD_DESCRIPTIONS = Object.freeze({
   drill:'철·석탄 광맥에서 자원을 채굴하는 기본 드릴.',
   smelter:'납과 철을 제련해 발전 설비 제작에 필요한 금속 부품을 생산해.',
   generator:'석탄을 태워 주변 고전력 산업 시설에 전기를 공급해.',
+  unitFactory:'전투 유닛 조립 공장. 전력 2를 소비하며 납과 철로 병력을 생산해.',
   turret:'정밀 구동 포탑. 전력을 공급받아 일정 거리의 적을 추적해.',
   scatterTurret:'근거리 광역 방어 장치. 넓은 탄착으로 밀집한 적을 제압해.',
   heavyTurret:'고하중 포신과 정밀 구동축으로 멀리 있는 적에 강한 타격을 가해.',
@@ -532,6 +580,7 @@ function showBuildInfo(type) {
   let inputs = recipe ? Object.entries(recipe.inputs).map(([id, amount]) => ({ id, amount })) : [];
   let outputs = recipe ? [{ id:recipe.output, amount:recipe.amount + '/' + recipe.seconds + '초' }] : [];
   if (type === 'generator') inputs = [{id:'coal',amount:'1/8초'}];
+  if (type === 'unitFactory') inputs = [{id:'lead',amount:SOLDIER.cost.lead},{id:'iron',amount:SOLDIER.cost.iron}];
   if (type === 'poweredDrill') inputs = [{id:'coal',amount:'1/3회'}];
   if (type === 'leadCollector') outputs = [{id:'lead',amount:def.itemsPerSecond + '/초'}];
   if (type === 'drill') outputs = [
@@ -552,6 +601,7 @@ function showBuildInfo(type) {
     : type === 'drill' ? '광맥별 철 또는 석탄 · ' + def.itemsPerSecond + '/초'
     : type === 'conveyor' ? '단방향 자원 이동'
     : type === 'tunnelEntrance' ? '입구·출구 한 쌍 · 직선 2~7칸 · 총 납 6 철 2'
+    : type === 'unitFactory' ? '전투 유닛 1기 / '+TRAIN_SECONDS+'초 · 최대 '+TRAIN_QUEUE_LIMIT+'기 예약'
     : type === 'warehouse' ? '보관 한도 ' + def.itemCapacity + ' · 자동 입출고'
     : isWall(type) ? '지상 침입자 차단 · 내구도 ' + def.maxHealth
     : '';
@@ -562,7 +612,7 @@ const TOOL_GROUPS = Object.freeze([
   {label:'물류', icon:'<path d="M4 8h13m-4-4 4 4-4 4M7 16h13m-4-4 4 4-4 4"/>',
     types:['conveyor','junction','tunnelEntrance','warehouse']},
   {label:'방어', icon:'<path d="M12 3 20 6v6c0 5-3 8-8 9-5-1-8-4-8-9V6l8-3Z"/><path d="m9 12 2 2 4-4"/>',
-    types:['turret','scatterTurret','heavyTurret','wall','ironWall','reinforcedWall']},
+    types:['turret','scatterTurret','heavyTurret','wall','ironWall','reinforcedWall','unitFactory']},
   {label:'채굴', icon:'<path d="m5 19 13-13M9 5l10 10M4 19h16"/>',
     types:['leadCollector','drill','poweredDrill']},
   {label:'생산', icon:'<path d="M3 20V9l6 4V9l6 4V5h6v15Z"/><path d="M7 17h2m3 0h2m3 0h2"/>',
@@ -621,6 +671,7 @@ function setupBuildThumbnails() {
       for (const [sectionName, sectionTypes] of [
         ['포탑',['turret','scatterTurret','heavyTurret']],
         ['방벽',['wall','ironWall','reinforcedWall']],
+        ['병력 생산',['unitFactory']],
       ]) {
         const section = document.createElement('section');
         section.className = 'defense-section';
@@ -694,8 +745,9 @@ refreshRecentShortcut();
 function setTool(next) {
   if (next !== 'select' && next !== 'erase' && !STRUCTURES[next]) return;
   tool = next;
-  selectedUnitId=null;
-  combatVisual.selectedUnitId=null;
+  selectedUnitIds.clear();
+  selectionDrag=null;
+  combatVisual.selectedUnitIds.clear();
   pendingTunnel = null;
   if(STRUCTURES[next] && next!=='conveyor'){
     recentStructure=next;
@@ -745,7 +797,7 @@ function notifyBuild(result, type) {
   ui.message.textContent = (reasons[result?.reason] ?? '설치할 수 없는 위치입니다.') +
     (missing ? ' · 부족: ' + missing : '');
 }
-function actionAt(point, alternate = false) {
+function actionAt(point, alternate = false, additive = false) {
   const tile = hitTile(point);
   if (alternate || tool === 'erase') {
     const entity = world.getAt(tile.x, tile.y);
@@ -769,23 +821,33 @@ function actionAt(point, alternate = false) {
     if (created.ok) selectedId = created.entity.id;
   } else {
     const clicked=friendlyUnitAt(point);
-    const active=world.units.get(selectedUnitId);
     if(clicked){
-      selectedUnitId=clicked.id;selectedId=null;
-    }else if(active?.role==='soldier'){
-      const structure=world.getAt(tile.x,tile.y);
-      if(structure?.ownerId && structure.ownerId!==active.ownerId){
-        const order=unitCommand.order(active.id,{targetId:structure.id});
-        ui.message.textContent=order.ok?'적 시설 공격 명령':'해당 시설까지 접근할 경로가 없습니다.';
-      }else if(!structure){
-        const order=unitCommand.order(active.id,{x:tile.x+.5,y:tile.y+.5});
-        ui.message.textContent=order.ok?'이동 명령 완료':'지형 또는 장애물 때문에 이동할 수 없습니다.';
+      if(additive||multiUnitSelection){
+        if(selectedUnitIds.has(clicked.id))selectedUnitIds.delete(clicked.id);
+        else selectedUnitIds.add(clicked.id);
       }else{
-        selectedUnitId=null;selectedId=structure.id;
+        selectedUnitIds.clear();selectedUnitIds.add(clicked.id);
+      }
+      selectedId=null;
+    }else if(selectedUnitIds.size){
+      const structure=world.getAt(tile.x,tile.y);
+      if(structure?.ownerId&&structure.ownerId!==activeOwner||!structure){
+        const destination=structure
+          ? {targetId:structure.id}:{x:tile.x+.5,y:tile.y+.5};
+        const ids=[...selectedUnitIds];
+        const result=ids.length>1
+          ? unitCommand.orderGroup(ids,destination)
+          : unitCommand.order(ids[0],destination);
+        ui.message.textContent=result.ok
+          ? (ids.length>1 ? result.count+'기 명령 완료'+
+            (result.count<result.total?' · 일부 경로 불가':'') :
+            (structure?'적 시설 공격 명령':'이동 명령 완료'))
+          : '도달 가능한 배치 위치가 없습니다.';
+      }else{
+        selectedUnitIds.clear();selectedId=structure.id;
       }
     }else{
       selectedId=world.getAt(tile.x,tile.y)?.id??null;
-      selectedUnitId=null;
     }
     selectionDismissed=false;
   }
@@ -890,12 +952,13 @@ svg.addEventListener('pointerdown', event => {
       for (const tap of taps.values()) tap.cancelled = true;
       cancelHold();
       if (paint?.isTouch) finishStroke(false);
+      finishUnitSelection(false);
     }
     touches.set(event.pointerId, point);
     svg.setPointerCapture(event.pointerId);
     taps.set(event.pointerId, { start: point, cancelled: touches.size > 1 });
     resetGesture();
-    if (touches.size === 1 && (STRUCTURES[tool] || tool === 'erase')) {
+    if (touches.size === 1 && (STRUCTURES[tool] || tool === 'erase' || tool === 'select')) {
       const pointerId = event.pointerId;
       const timer = setTimeout(() => {
         if (pendingHold?.pointerId !== pointerId || touches.size !== 1 || !taps.has(pointerId)) return;
@@ -904,7 +967,8 @@ svg.addEventListener('pointerdown', event => {
         taps.get(pointerId).cancelled = true;
         pendingHold = null;
         gesture = { ...current, type: 'draw' };
-        startStroke(pointerId, current, true);
+        if(tool==='select')selectionDrag={pointerId,start:point,end:current,additive:multiUnitSelection};
+        else startStroke(pointerId, current, true);
       }, HOLD_MS);
       pendingHold = { pointerId, timer };
     }
@@ -912,7 +976,11 @@ svg.addEventListener('pointerdown', event => {
   } else if (event.button === 0) {
     svg.setPointerCapture(event.pointerId);
     if (STRUCTURES[tool] || tool === 'erase') startStroke(event.pointerId, point, false);
-    else taps.set(event.pointerId, { start: point, cancelled: false });
+    else {
+      if(tool==='select')selectionDrag={pointerId:event.pointerId,start:point,end:point,
+        additive:event.shiftKey};
+      taps.set(event.pointerId, {start:point,cancelled:false,additive:event.shiftKey});
+    }
   } else if (event.button === 2) {
     svg.setPointerCapture(event.pointerId);
     taps.set(event.pointerId, { start: point, cancelled: false, alternate: true });
@@ -927,6 +995,9 @@ svg.addEventListener('pointermove', event => {
     if (pendingHold?.pointerId === event.pointerId) cancelHold();
   }
   if (event.pointerType !== 'touch') {
+    if(selectionDrag?.pointerId===event.pointerId){
+      selectionDrag.end=point;invalidate();return;
+    }
     const previous = hoverPoint ? hitTile(hoverPoint) : null;
     hoverPoint = point;
     if (paint?.pointerId === event.pointerId) extendStroke(point);
@@ -944,7 +1015,8 @@ svg.addEventListener('pointermove', event => {
     if (gesture.distance > 0 && next.distance > 0) camera.zoomAt(next.distance / gesture.distance, next.x, next.y);
     gesture = next;
   } else if (touches.size === 1) {
-    if (paint?.isTouch && paint.pointerId === event.pointerId) extendStroke(point);
+    if(selectionDrag?.pointerId===event.pointerId)selectionDrag.end=point;
+    else if (paint?.isTouch && paint.pointerId === event.pointerId) extendStroke(point);
     else if (gesture?.type === 'pan') {
       camera.panPixels(point.x - gesture.x, point.y - gesture.y);
       gesture = { ...point, type:'pan' };
@@ -956,10 +1028,17 @@ function release(event, commit) {
   if (pendingHold?.pointerId === event.pointerId) cancelHold();
   const point = localPoint(event);
   const candidate = taps.get(event.pointerId);
-  if (paint?.pointerId === event.pointerId) {
+  if(selectionDrag?.pointerId===event.pointerId){
+    selectionDrag.end=point;
+    const moved=Math.hypot(point.x-selectionDrag.start.x,point.y-selectionDrag.start.y)>=HOLD_SLOP;
+    finishUnitSelection(commit);
+    if(candidate && commit && !candidate.cancelled && !moved)
+      actionAt(point,candidate.alternate,candidate.additive);
+  }else if (paint?.pointerId === event.pointerId) {
     if (commit) extendStroke(point);
     finishStroke(commit);
-  } else if (candidate && commit && !candidate.cancelled) actionAt(point, candidate.alternate);
+  } else if (candidate && commit && !candidate.cancelled)
+    actionAt(point,candidate.alternate,candidate.additive);
   taps.delete(event.pointerId);
   if (touches.delete(event.pointerId)) resetGesture();
   if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
@@ -970,12 +1049,13 @@ svg.addEventListener('pointercancel', event => release(event, false));
 svg.addEventListener('lostpointercapture', event => {
   if (pendingHold?.pointerId === event.pointerId) cancelHold();
   if (paint?.pointerId === event.pointerId) finishStroke(false);
+  if (selectionDrag?.pointerId===event.pointerId)finishUnitSelection(false);
   taps.delete(event.pointerId);
   if (touches.delete(event.pointerId)) resetGesture();
 });
 svg.addEventListener('pointerleave', event => { if (event.pointerType !== 'touch' && !paint) { hoverPoint = null; invalidate(); } });
 svg.addEventListener('contextmenu', event => event.preventDefault());
-window.addEventListener('blur', () => { cancelHold(); touches.clear(); taps.clear(); gesture = null; finishStroke(false); });
+window.addEventListener('blur', () => { cancelHold(); touches.clear(); taps.clear(); gesture = null; finishStroke(false); finishUnitSelection(false); });
 
 svg.addEventListener('wheel', event => {
   event.preventDefault();

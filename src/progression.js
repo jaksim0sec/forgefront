@@ -5,6 +5,7 @@
  */
 export const BUILD_COSTS = Object.freeze({
   tower: null, // strategic starting structure; not freely constructible
+  unitFactory: Object.freeze({lead:24,iron:12,parts:4}),
   leadCollector: Object.freeze({}),
   conveyor: Object.freeze({ lead: 1 }),
   junction: Object.freeze({ lead: 2 }),

@@ -14,7 +14,7 @@ export class CombatRenderer {
     catch {this.ctx=null;}
     this.frame=0;
     this.flashes=[];
-    this.selectedUnitId=null;
+    this.selectedUnitIds=new Set();
     this.aimTurrets=aimTurrets;
     this.previousFrame=0;
     this.animate=this.animate.bind(this);
@@ -73,7 +73,7 @@ export class CombatRenderer {
         ctx.beginPath();ctx.moveTo(p.x-s*.36,p.y+s*.32);
         ctx.lineTo(p.x+s*.36,p.y+s*.32);ctx.stroke();
       }
-      if(unit.id===this.selectedUnitId && unit.role==='soldier'){
+      if(this.selectedUnitIds.has(unit.id) && unit.role==='soldier'){
         ctx.strokeStyle='#f5d39a';ctx.lineWidth=2;
         ctx.beginPath();ctx.arc(p.x,p.y,s*1.35,0,Math.PI*2);ctx.stroke();
         const goal=unit.path?.[unit.path.length-1];

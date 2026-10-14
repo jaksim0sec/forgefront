@@ -102,6 +102,23 @@ Object.assign(templates, {
 });
 
 Object.assign(templates, {
+  unitFactory: `<symbol id="s-unitFactory" viewBox="0 0 144 144">
+    <rect x="3" y="3" width="138" height="138" rx="12" fill="#39474a" stroke="#97a8a6" stroke-width="4"/>
+    <rect x="12" y="12" width="120" height="120" rx="9" fill="#202f35" stroke="#637f83" stroke-width="3"/>
+    <path d="M20 27H124M20 117H124" stroke="#8c8e81" stroke-width="7"/>
+    <path d="M22 44H122M22 99H122" stroke="#34494f" stroke-width="7"/>
+    <g fill="#415a60" stroke="#9bb2b0" stroke-width="3">
+      <rect x="25" y="27" width="27" height="90" rx="5"/>
+      <rect x="92" y="27" width="27" height="90" rx="5"/>
+    </g>
+    <path d="M39 34V110M105 34V110" stroke="#bac4bb" stroke-width="3" stroke-dasharray="6 8" opacity=".75"/>
+    <rect x="54" y="22" width="36" height="100" rx="9" fill="#1a3037" stroke="#8ba3a8" stroke-width="4"/>
+    <path d="M62 33H82M62 111H82" stroke="#bdac84" stroke-width="4"/>
+    <circle cx="72" cy="72" r="22" fill="#3f555b" stroke="#abbdb6" stroke-width="4"/>
+    <circle cx="72" cy="72" r="12" fill="#21383e" stroke="#d4c195" stroke-width="4"/>
+    <path d="M72 62V82M62 72H82" stroke="#b9d2c8" stroke-width="4" stroke-linecap="round"/>
+    <g fill="#d0b68b"><circle cx="18" cy="18" r="3"/><circle cx="126" cy="18" r="3"/><circle cx="18" cy="126" r="3"/><circle cx="126" cy="126" r="3"/></g>
+  </symbol>`,
   warehouse: `<symbol id="s-warehouse" viewBox="0 0 96 96">
     <rect x="3" y="3" width="90" height="90" rx="11" fill="#414849" stroke="#8b9793" stroke-width="4"/>
     <rect x="10" y="10" width="76" height="76" rx="8" fill="#252f32" stroke="#556969" stroke-width="2.5"/>

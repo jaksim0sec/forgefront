@@ -944,3 +944,17 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
     box-sizing:border-box;
   }
 }
+
+/* Group selection feedback shares the SVG map without intercepting gestures. */
+#unit-selection-box {
+  fill:rgba(151,195,174,.15);
+  stroke:#b8d9be;
+  stroke-width:1.8;
+  stroke-dasharray:6 5;
+  pointer-events:none;
+}
+.unit-command-panel>div {display:flex;gap:5px;flex-wrap:wrap;}
+.unit-command-panel>div button {min-width:62px;flex:1 1 auto;}
+.unit-command-panel #unit-multi[aria-pressed="true"] {
+  border-color:#a7d2b4;background:#3d5b52;color:#f2fff6;
+}

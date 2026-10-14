@@ -12,6 +12,7 @@ export const STRUCTURES = Object.freeze({
   drill: Object.freeze({ label: '기본 채굴기', width: 2, height: 2, maxHealth: 180, itemCapacity: 12, itemsPerSecond: 1 }),
   leadCollector: Object.freeze({ label: '납 채집기', width: 1, height: 1, maxHealth: 100, itemCapacity: 10, itemsPerSecond: 0.9 }),
   tower: Object.freeze({ label: '중앙 타워', width: 2, height: 2, maxHealth: 700, itemCapacity: Infinity, powerOutput: 3 }),
+  unitFactory: Object.freeze({ label: '유닛 공장', width: 3, height: 3, maxHealth: 420, itemCapacity: 0, powerUse: 2 }),
   turret: Object.freeze({ label: '방어 포탑', width: 2, height: 2, maxHealth: 260, itemCapacity: 0, powerUse: 0.5 }),
   scatterTurret: Object.freeze({ label: '산탄 포탑', width: 2, height: 2, maxHealth: 290, itemCapacity: 0, powerUse: 1.5 }),
   heavyTurret: Object.freeze({ label: '중포 포탑', width: 3, height: 3, maxHealth: 420, itemCapacity: 0, powerUse: 3 }),
