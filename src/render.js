@@ -43,6 +43,16 @@ Object.assign(templates, {
     <path d="M24 15V33M15 24H33" stroke="#a0b2b7" stroke-width="2"/>
     <path d="M37 13V37" stroke="#b5a17e" stroke-width="2"/>
   </symbol>`,
+  outpost: `<symbol id="s-outpost" viewBox="0 0 96 96">
+    <rect x="3" y="3" width="90" height="90" rx="10" fill="#3b4b52" stroke="#94aaa9" stroke-width="3"/>
+    <rect x="12" y="12" width="72" height="72" rx="8" fill="#1b2f39" stroke="#7e9697" stroke-width="3"/>
+    <path d="M17 17H79M17 79H79M17 17V79M79 17V79" stroke="#b6aa8d" stroke-width="4"/>
+    <path d="M25 25V70M71 25V70" stroke="#495f68" stroke-width="8"/>
+    <circle cx="48" cy="48" r="23" fill="#344e55" stroke="#c3b28e" stroke-width="4"/>
+    <path d="M38 59V37L49 31L59 37V59Z" fill="#243d49" stroke="#b5c5c2" stroke-width="3"/>
+    <path d="M49 31V17M49 17L69 25L49 33" stroke="#d1b992" stroke-width="3" fill="#8f988f"/>
+    <circle cx="48" cy="48" r="6" fill="#d7bd91"/>
+  </symbol>`,
   tower: `<symbol id="s-tower" viewBox="0 0 96 96">
     <rect x="2" y="2" width="92" height="92" rx="9" fill="#303e48" stroke="#8299a6" stroke-width="3"/>
     <rect x="9" y="9" width="78" height="78" rx="7" fill="#1a2c36" stroke="#57717e" stroke-width="2"/>

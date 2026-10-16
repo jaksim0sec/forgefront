@@ -3,7 +3,7 @@ import { World, STRUCTURES } from './world.js';
 export const DRAFT_KEY='forgefront:local-world:1';
 const FIELDS=['health','enabled','progress','moveProgress','itemId','itemCount',
   'resourceId','burnRemaining','fuelProgress','fuelCharges','routeCursor',
-  'lastSourceId','pairId','activity','inventory','trainQueued','trainProgress'];
+  'lastSourceId','pairId','activity','inventory','trainQueued','trainProgress','captureProgress','captureTeam'];
 const nonNegative=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0;
 export function saveDraft(world,storage) {
   if(!storage)return false;
@@ -17,8 +17,10 @@ export function saveDraft(world,storage) {
     const wallets=Object.fromEntries([...world.stockpiles].map(([id,w])=>[id,{...w}]));
     const units=[...world.units.entities.values()].filter(e=>e.role==='soldier')
       .map(e=>({x:e.x,y:e.y,health:e.health,ownerId:e.ownerId,
-        goal:e.goal,formationGoal:e.formationGoal,attackTargetId:e.attackTargetId,cooldown:e.cooldown}));
-    storage.setItem(DRAFT_KEY,JSON.stringify({schema:1,structures,wallets,units}));
+        goal:e.goal,formationGoal:e.formationGoal,attackTargetId:e.attackTargetId,
+        captureTargetId:e.captureTargetId,cooldown:e.cooldown}));
+    storage.setItem(DRAFT_KEY,JSON.stringify({schema:1,structures,wallets,units,
+      captureSitesSeeded:!!world.captureSitesSeeded}));
     return true;
   }catch{return false;} // Storage may be disabled or full.
 }
@@ -52,6 +54,8 @@ export function restoreDraft(world,storage) {
         if(field==='inventory'){
           if(value!==null && typeof value==='object' && !Array.isArray(value) && e.inventory)
             e.inventory=Object.fromEntries(Object.entries(value).filter(([k,n])=>nonNegative(n)));
+        }else if(field==='captureTeam'){
+          if(e.type==='outpost' && (value===null||value==='north'||value==='south'))e.captureTeam=value;
         }else if(field==='itemId'||field==='resourceId'||field==='activity'){
           if(value===null||typeof value==='string')e[field]=value;
         }else if(field==='enabled'){e.enabled=!!value;}
@@ -91,6 +95,7 @@ export function restoreDraft(world,storage) {
           goal:old.goal&&Number.isFinite(old.goal.x)&&Number.isFinite(old.goal.y)
             ? {x:old.goal.x,y:old.goal.y}:null,
           attackTargetId:remap.get(old.attackTargetId)??null,
+          captureTargetId:remap.get(old.captureTargetId)??null,
           formationGoal:old.formationGoal&&Number.isFinite(old.formationGoal.x)&&Number.isFinite(old.formationGoal.y)
             ? {x:old.formationGoal.x,y:old.formationGoal.y}:null,
           cooldown:nonNegative(old.cooldown)?old.cooldown:0,path:[],pathIndex:0});
@@ -102,6 +107,7 @@ export function restoreDraft(world,storage) {
     world.chunks=stage.chunks;
     world.nextId=stage.nextId;
     world.stockpiles=stage.stockpiles;
+    world.captureSitesSeeded=!!snapshot.captureSitesSeeded;
     return {restored:true,count:world.structures.size};
   }catch(error){
     try{storage.removeItem(DRAFT_KEY);}catch{}
@@ -116,7 +122,7 @@ export function attachDraftAutosave(world,storage){
     pending=setTimeout(()=>{pending=null;saveDraft(world,storage);},900);
   };
   const unsubscribe=world.subscribe(({type})=>{
-    if(['place','remove','rotate','owner','state','economy','transfer','unit-order','unit-production'].includes(type))schedule();
+    if(['place','remove','rotate','owner','state','economy','transfer','unit-order','unit-production','capture-progress'].includes(type))schedule();
   });
   const heartbeat=setInterval(()=>{if(world.structures.size) schedule();},10000);
   const flush=()=>{

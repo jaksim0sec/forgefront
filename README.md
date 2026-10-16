@@ -137,3 +137,12 @@ Optional focused checks: `npm test` (Node.js). No external dependencies.
 - M08: persistent world/save snapshots, bulk-logistics optimizations and profile-guided rendering upgrades.
 
 Not implemented: multiplayer, proper physical power cables, unit-based territorial capture, advanced full-factory recipes/balancing, pathfinding or automated combat. SVG assets and game logic are separate to keep them editable and cheap to render.
+
+## M08 — Capturable outposts and local faction flags
+
+- Two neutral 2×2 outposts are seeded near the natural frontier passages on first launch (including for existing local saves), **without replacing any pre-existing structure**. A seeded/destroyed outpost does not respawn on reload.
+- Selecting soldiers and tapping a neutral/enemy outpost issues a **capture order**, not a firing order. Soldiers travel within 3.6 tiles. Occupying forces capture over 10 seconds with a small squad-speed bonus; opposing forces contest and pause capture progress.
+- On completion, the outpost transfers through `World.setOwner()`, immediately granting a smaller 13-tile claim radius. The existing 22-tile central command-tower radius is unchanged. Captured areas obey the same territory-only building rules.
+- Capture rings, contested status, faction flag markers, and a short capture burst make the objective visible. The territory overlay automatically opens on a successful capture. Capture ownership, partial progress, and unit capture orders are persisted in local drafts.
+- In the expanded build toolbox, **⚑ 국가 이름 · 국기 편집** opens the local faction editor: choose north/south, name (up to 20 characters), 3 stripe colors, vertical/horizontal layout, and a center emblem. The flags are **sanitized SVG**; profiles are stored only in the browser's localStorage at `forgefront:nation-profiles:v1`.
+- Existing structures, unit production, and single/multiple squad commands remain in place. **Opponent AI, central-tower defeat rules, network play, and advanced unit types are not part of M08.**

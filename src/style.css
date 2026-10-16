@@ -958,3 +958,43 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 .unit-command-panel #unit-multi[aria-pressed="true"] {
   border-color:#a7d2b4;background:#3d5b52;color:#f2fff6;
 }
+
+/* Capture markers float over the map without handling input. */
+.capture-markers{pointer-events:none;}
+.capture-rim{fill:rgba(21,34,41,.65);stroke:#8999a1;stroke-width:2;}
+.capture-label{font:600 11px system-ui,sans-serif;paint-order:stroke;
+  stroke:#101a22;stroke-width:3.5px;stroke-linejoin:round;}
+
+/* Nation name and flag designer, stored in this browser. */
+.nation-editor-overlay[hidden]{display:none!important;}
+.nation-editor-overlay{position:fixed;inset:0;z-index:1000;
+  background:rgba(3,9,13,.72);backdrop-filter:blur(7px);
+  display:grid;place-items:center;padding:14px;box-sizing:border-box;}
+.nation-editor-dialog{width:min(390px,100%);max-height:calc(100dvh - 28px);
+  overflow:auto;box-sizing:border-box;background:#17262d;border:1px solid #78949b;
+  border-radius:16px;padding:15px;color:#e7eff0;
+  box-shadow:0 20px 65px #030a0ec7;display:grid;gap:9px;}
+.nation-editor-dialog header{display:flex;justify-content:space-between;align-items:center;}
+.nation-editor-dialog h2{margin:0;font-size:17px;}
+.nation-editor-dialog button,.nation-editor-dialog select,.nation-editor-dialog input{
+  background:#293d48;border:1px solid #667d88;color:#ebf3f3;border-radius:9px;
+  min-height:36px;padding:6px 10px;font:inherit;box-sizing:border-box;}
+.nation-editor-dialog header button{font-size:22px;min-width:37px;}
+.nation-editor-help{font-size:12px;line-height:1.45;color:#afc2cc;margin:0;}
+.nation-editor-dialog>label{display:grid;grid-template-columns:85px 1fr;
+  align-items:center;gap:9px;font-size:12px;}
+.nation-editor-dialog input[type=color]{padding:2px;width:100%;cursor:pointer;}
+.nation-editor-preview{display:grid;place-items:center;min-height:123px;
+  background:linear-gradient(135deg,#253941,#101b24);border:1px solid #516673;
+  border-radius:12px;}
+.nation-editor-preview svg{height:104px;width:auto;max-width:92%;
+  box-shadow:0 8px 16px #0005;}
+.nation-editor-dialog fieldset{border:1px solid #4d636d;border-radius:10px;
+  display:flex;gap:8px;justify-content:space-around;}
+.nation-editor-dialog legend{font-size:12px;color:#bacdd2;padding:0 5px;}
+.nation-editor-dialog fieldset label{display:grid;gap:4px;
+  text-align:center;flex:1;font-size:11px;}
+.nation-editor-actions{display:flex;gap:9px;margin-top:2px;}
+.nation-editor-actions button{flex:1;cursor:pointer;}
+.nation-editor-actions [data-save]{background:#42665c;border-color:#80a997;}
+.nation-editor-status{min-height:16px;margin:0;color:#c5e7d3;font-size:11px;}

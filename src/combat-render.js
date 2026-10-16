@@ -45,7 +45,7 @@ export class CombatRenderer {
     const events=this.combat.visualEvents.splice(0);
     for(const effect of events) this.flashes.push({...effect,born:now});
     if(this.flashes.length>48)this.flashes.splice(0,this.flashes.length-48);
-    this.flashes=this.flashes.filter(e=>now-e.born<240);
+    this.flashes=this.flashes.filter(e=>now-e.born<(e.type==='capture'?750:240));
     if(!units.size&&!shots.size&&!this.flashes.length&&!turning)return;
     const alpha=Math.max(0,Math.min(1,(now-this.combat.lastTick)/200));
     const scale=camera.zoom*CAMERA_CONFIG.tileSize;
@@ -107,13 +107,18 @@ export class CombatRenderer {
       ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
     }
     for(const fx of this.flashes){
-      const age=(now-fx.born)/240;
+      const age=(now-fx.born)/(fx.type==='capture'?750:240);
       const p=camera.worldToScreen(fx.x*CAMERA_CONFIG.tileSize,fx.y*CAMERA_CONFIG.tileSize);
       if(p.x<-25||p.y<-25||p.x>camera.width+25||p.y>camera.height+25)continue;
       ctx.globalAlpha=Math.max(0,1-age);
       ctx.strokeStyle=fx.heavy?'#f0c9a0':'#e8c997';
       ctx.lineWidth=fx.type==='hit'?2.4:2;
-      if(fx.type==='hit'){
+      if(fx.type==='capture'){
+        ctx.strokeStyle=nationColor(fx.ownerId);
+        ctx.lineWidth=3.2;
+        ctx.beginPath();ctx.arc(p.x,p.y,9+age*44,0,Math.PI*2);ctx.stroke();
+        ctx.beginPath();ctx.arc(p.x,p.y,4+age*19,0,Math.PI*2);ctx.stroke();
+      }else if(fx.type==='hit'){
         ctx.beginPath();ctx.arc(p.x,p.y,3+age*(fx.heavy?18:11),0,Math.PI*2);ctx.stroke();
       }else{
         const dx=Math.cos(fx.angle),dy=Math.sin(fx.angle);

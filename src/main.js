@@ -7,12 +7,15 @@ import { extendRoute, planConveyorRoute, commitConveyorRoute } from './routes.js
 import { buildTunnel, tunnelGeometry } from './underground.js';
 import { startBuildStroke, normalizedBuildLine } from './build-stroke.js';
 import { restoreDraft, attachDraftAutosave } from './local-draft.js';
-import { nationLabel } from './nations.js';
+import { nationLabel, restoreNationProfiles } from './nations.js';
+import { installNationEditor } from './nation-editor.js';
 import { RESOURCES } from './resources.js';
 import { Terrain } from './terrain.js';
 import { TerrainRenderer } from './terrain-render.js';
 import { Territory } from './territory.js';
 import { TerritoryRenderer } from './territory-render.js';
+import { Capture, seedOutposts } from './capture.js';
+import { CaptureRenderer } from './capture-render.js';
 import { Combat } from './combat.js';
 import { UnitCommand, SOLDIER, TRAIN_SECONDS, TRAIN_QUEUE_LIMIT } from './unit-command.js';
 import { WEAPONS, isWall } from './defense.js';
@@ -28,17 +31,20 @@ world.terrain = new Terrain();
 // The starter layout is created only when there is no compatible draft.
 let draftStorage=null;
 try { draftStorage=window.localStorage; } catch {}
+restoreNationProfiles(draftStorage);
 const draft=restoreDraft(world,draftStorage);
 if(!draft.restored){
   world.place('tower',0,-1,0,'north');
   world.place('tower',70,-25,0,'south');
   world.place('leadCollector',-1,0,0,'north');
 }
+seedOutposts(world);
 world.survival = true;
 const connections = new ItemConnections(world);
 const industry = new Industry(world, connections);
 const combat = new Combat(world);
 const unitCommand = new UnitCommand(world,combat);
+const capture = new Capture(world);
 installSprites(svg);
 const buildings = new BuildingRenderer(svg, world, camera, connections);
 const terrainVisual = new TerrainRenderer(svg, world.terrain, camera);
@@ -49,6 +55,7 @@ const territoryVisual = new TerritoryRenderer(svg, territory, camera);
 const cargoRenderer = new CargoRenderer(svg, camera, RESOURCES);
 world.subscribe(change => cargoRenderer.transfer(change, world));
 const combatVisual = new CombatRenderer(svg, camera, world, combat, dt=>buildings.aimTurrets(dt));
+const captureVisual = new CaptureRenderer(svg,camera,world,capture);
 attachDraftAutosave(world,draftStorage);
 
 const byId = id => document.getElementById(id);
@@ -154,13 +161,21 @@ quickSelect.setAttribute('aria-label','선택 도구');
 quickSelect.addEventListener('click',()=>setTool('select'));
 // The same quick controls remain mounted whether the drawer is folded or open.
 const toolbox = byId('toolbox-panel');
+installNationEditor({toolbox,storage:draftStorage,onSaved:()=>{
+  territory.rebuild();
+  for(const node of buildings.elements.values())node._renderStateKey=null;
+  if(buildings.distant)buildings.distant.needsPaint=true;
+  toolbox.querySelector('.owner-heading').textContent=nationLabel(activeOwner)+' 비축 물자';
+  invalidate();combatVisual.wake();
+}});
+toolbox.querySelector('.owner-heading').textContent=nationLabel(activeOwner)+' 비축 물자';
 // Unit selection is an independent map overlay, available even with the
 // building drawer collapsed on a phone.
 const unitPanel=document.createElement('section');
 unitPanel.className='unit-command-panel';
 unitPanel.hidden=true;
 unitPanel.setAttribute('aria-label','부대 명령');
-unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>빈 땅: 이동 · 적 시설: 공격 · 길게 눌러 드래그: 범위 선택</p><div><button type="button" id="unit-multi" aria-pressed="false">다중 선택 OFF</button><button type="button" id="unit-halt">정지</button><button type="button" id="unit-dismiss">해제</button></div>';
+unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>빈 땅: 이동 · 적 시설: 공격 · 전초기지: 점령 · 길게 눌러 드래그: 범위 선택</p><div><button type="button" id="unit-multi" aria-pressed="false">다중 선택 OFF</button><button type="button" id="unit-halt">정지</button><button type="button" id="unit-dismiss">해제</button></div>';
 svg.after(unitPanel);
 const selectionBox=document.createElementNS('http://www.w3.org/2000/svg','rect');
 selectionBox.id='unit-selection-box';
@@ -368,6 +383,7 @@ function render() {
   terrainVisual.draw();
   if (territoryVisual.layer.getAttribute('visibility') !== 'hidden') territoryVisual.draw();
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
+  captureVisual.draw();
   updateSelectionBox();
   const buildPreview=byId('build-line-preview');
   if(paint?.grid && paint.kind!=='conveyor' && paint.kind!=='erase' && paint.kind!=='tunnelEntrance'){
@@ -455,7 +471,11 @@ function render() {
     'no-power':'전력 부족', 'no-coal':'석탄 부족', 'no-ore':'광맥 없음',
     'waiting-input':'재료 부족'
   };
-  ui.status.textContent = selected ? (!selected.enabled ? '중지됨'
+  ui.status.textContent = selected?.type==='outpost'
+    ? (selected.captureState==='contested'?'적군과 경합 중':
+      selected.captureProgress>0?'점령 진행 중 · '+nationLabel(selected.captureTeam):
+      selected.ownerId?'확보됨 · '+nationLabel(selected.ownerId):'중립 · 점령 가능')
+    : selected ? (!selected.enabled ? '중지됨'
     : selected.activity === 'waiting-input' && missingMaterials.length ? '재료 부족 · ' + missingMaterials.join(', ')
     : selected.activity === 'blocked' && finishedCount ? '완성품 ' + finishedCount + '개 · 배출 경로 확인'
     : stateLabels[selected.activity] ?? selected.activity) : '—';
@@ -466,6 +486,7 @@ function render() {
   ) : '—';
   const recipe = selected ? RECIPES[selected.type] : null;
   ui.production.textContent = !selected ? '—' :
+    selected.type==='outpost' ? '점령 '+Math.round((selected.captureProgress??0)*100)+'% · 점령 반경 3.6칸' :
     recipe ? `${RESOURCES[recipe.output].label} · ${Math.min(100, Math.floor(100 * (selected.progress ?? 0) / recipe.seconds))}% ${finishedCount ? '· 완성품 ' + finishedCount + '개' : ''}` :
     selected.type==='unitFactory'
       ? (selected.trainQueued>0
@@ -484,6 +505,7 @@ function render() {
     Math.floor(selected.x + selected.width / 2), Math.floor(selected.y + selected.height / 2));
   ui.territoryDetail.textContent = selected?.type === 'tower'
     ? `${nationLabel(selected.ownerId)} · 영향 반경 22칸`
+    : selected?.type==='outpost' ? (selected.ownerId?nationLabel(selected.ownerId):'중립')+' · 점령 시 영토 반경 13칸'
     : selected ? (occupying ? nationLabel(occupying) + ' 영토' : '무주지') : '—';
   ui.resourcePicker.hidden = selected?.type !== 'drill';
   if (selected?.type === 'drill') ui.drillResource.value = selected.resourceId;
@@ -831,7 +853,8 @@ function actionAt(point, alternate = false, additive = false) {
       selectedId=null;
     }else if(selectedUnitIds.size){
       const structure=world.getAt(tile.x,tile.y);
-      if(structure?.ownerId&&structure.ownerId!==activeOwner||!structure){
+      if((structure?.type==='outpost'&&structure.ownerId!==activeOwner)||
+        (structure?.ownerId&&structure.ownerId!==activeOwner)||!structure){
         const destination=structure
           ? {targetId:structure.id}:{x:tile.x+.5,y:tile.y+.5};
         const ids=[...selectedUnitIds];
@@ -839,7 +862,8 @@ function actionAt(point, alternate = false, additive = false) {
           ? unitCommand.orderGroup(ids,destination)
           : unitCommand.order(ids[0],destination);
         ui.message.textContent=result.ok
-          ? (ids.length>1 ? result.count+'기 명령 완료'+
+          ? (structure?.type==='outpost' ? '전초기지 점령 명령 · 해당 지역에서 점령 진행' :
+            ids.length>1 ? result.count+'기 명령 완료'+
             (result.count<result.total?' · 일부 경로 불가':'') :
             (structure?'적 시설 공격 명령':'이동 명령 완료'))
           : '도달 가능한 배치 위치가 없습니다.';
@@ -1193,8 +1217,18 @@ setInterval(() => {
   const productionChanged = industry.step(dt);
   const combatChanged = combat.step(dt);
   const unitsChanged = unitCommand.step(dt);
-  if (productionChanged || combatChanged || unitsChanged) invalidate();
-  if (combatChanged || unitsChanged) combatVisual.wake();
+  const captureChanged=capture.step(dt);
+  for(const event of capture.events.splice(0)){
+    combat.visualEvents.push({type:'capture',x:event.x,y:event.y,ownerId:event.ownerId});
+    ui.message.textContent=nationLabel(event.ownerId)+' 전초기지 점령 완료 · 영토 확장!';
+    const territoryButton=byId('show-territory');
+    territoryButton.setAttribute('aria-pressed','true');
+    territoryButton.textContent='◇ 영토 경계 ON';
+    territoryVisual.layer.setAttribute('visibility','visible');
+    combatVisual.wake();
+  }
+  if (productionChanged || combatChanged || unitsChanged || captureChanged) invalidate();
+  if (combatChanged || unitsChanged || captureChanged) combatVisual.wake();
 }, 200);
 
 // A phone starts with the compact two-row palette. Expanding adds content below.

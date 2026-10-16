@@ -12,6 +12,7 @@ export const STRUCTURES = Object.freeze({
   drill: Object.freeze({ label: '기본 채굴기', width: 2, height: 2, maxHealth: 180, itemCapacity: 12, itemsPerSecond: 1 }),
   leadCollector: Object.freeze({ label: '납 채집기', width: 1, height: 1, maxHealth: 100, itemCapacity: 10, itemsPerSecond: 0.9 }),
   tower: Object.freeze({ label: '중앙 타워', width: 2, height: 2, maxHealth: 700, itemCapacity: Infinity, powerOutput: 3 }),
+  outpost: Object.freeze({ label: '점령 전초기지', width: 2, height: 2, maxHealth: 480, itemCapacity: 0 }),
   unitFactory: Object.freeze({ label: '유닛 공장', width: 3, height: 3, maxHealth: 420, itemCapacity: 0, powerUse: 2 }),
   turret: Object.freeze({ label: '방어 포탑', width: 2, height: 2, maxHealth: 260, itemCapacity: 0, powerUse: 0.5 }),
   scatterTurret: Object.freeze({ label: '산탄 포탑', width: 2, height: 2, maxHealth: 290, itemCapacity: 0, powerUse: 1.5 }),
@@ -63,6 +64,7 @@ export class World {
     this.territory = null; // Supplied by game bootstrap; optional for editor fixtures
     this.survival = false; // Existing world.place remains a sandbox constructor
     this.stockpiles = new Map(); // Nation's deliveries to its tower
+    this.captureSitesSeeded=false;
 
   }
 
@@ -256,6 +258,9 @@ export class World {
       burnRemaining: 0,
       fuelProgress: 0,
     };
+    if(type==='outpost'){
+      entity.captureProgress=0;entity.captureTeam=null;entity.captureState='idle';
+    }
     this.structures.set(entity.id, entity);
     for (let dy = 0; dy < entity.height; dy++) {
       for (let dx = 0; dx < entity.width; dx++) {

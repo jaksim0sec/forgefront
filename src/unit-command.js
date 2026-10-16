@@ -7,6 +7,7 @@ export const SOLDIER = Object.freeze({
 });
 export const MAX_CONTROLLED_UNITS = 12;
 export const TRAIN_SECONDS = 4;
+export const UNIT_CAPTURE_RADIUS = 3.6;
 export const TRAIN_QUEUE_LIMIT = 3;
 const MAX_UNITS = 24;
 const MAX_ROUTE_NODES = 12000;
@@ -100,7 +101,8 @@ export class UnitCommand {
     // Rebuild transient waypoints from persisted orders after page reload.
     for(const unit of world.units.entities.values()){
       if(unit.role!=='soldier')continue;
-      if(unit.attackTargetId)this.order(unit.id,{targetId:unit.attackTargetId,slot:unit.formationGoal});
+      if(unit.captureTargetId)this.order(unit.id,{targetId:unit.captureTargetId,slot:unit.formationGoal});
+      else if(unit.attackTargetId)this.order(unit.id,{targetId:unit.attackTargetId,slot:unit.formationGoal});
       else if(unit.goal)this.order(unit.id,unit.goal);
     }
   }
@@ -155,6 +157,7 @@ export class UnitCommand {
     if(destination?.targetId&&(!target||target.ownerId===units[0].ownerId))
       return {ok:false,reason:'target'};
     const center=target?middle(target):{x:destination?.x,y:destination?.y};
+    const captureTarget=target?.type==='outpost';
     if(!Number.isFinite(center.x)||!Number.isFinite(center.y))
       return {ok:false,reason:'position'};
     const centroid={x:units.reduce((a,u)=>a+u.x,0)/units.length,
@@ -169,7 +172,8 @@ export class UnitCommand {
       const x=Math.floor(center.x)+dx,y=Math.floor(center.y)+dy;
       if(!passable(this.world,x,y))continue;
       const point={x:x+.5,y:y+.5};
-      if(target&&!withinRange(this.world,point,center,SOLDIER.range-.15,this.combat))continue;
+      if(target&&!withinRange(this.world,point,center,
+        captureTarget?UNIT_CAPTURE_RADIUS-.3:SOLDIER.range-.15,this.combat))continue;
       if(occupied.some(p=>dist(p,point)<.85))continue;
       slots.push(point);
     }
@@ -195,7 +199,8 @@ export class UnitCommand {
       unit.path=route;unit.pathIndex=0;
       unit.goal=target?null:{...point};
       unit.formationGoal=target?{...point}:null;
-      unit.attackTargetId=target?.id??null;
+      unit.attackTargetId=captureTarget?null:(target?.id??null);
+      unit.captureTargetId=captureTarget?target.id:null;
       this.world.changed('unit-order',unit);
     }
     return {ok:true,count:assignments.length,total:units.length,
@@ -213,25 +218,29 @@ export class UnitCommand {
       return {ok:false,reason:'position'};
     if(!target&&!passable(this.world,Math.floor(goal.x),Math.floor(goal.y)))
       return {ok:false,reason:'blocked'};
+    const captureTarget=target?.type==='outpost';
     const slot=target&&destination.slot&&Number.isFinite(destination.slot.x)&&
       Number.isFinite(destination.slot.y)?destination.slot:null;
     if(slot&&(!passable(this.world,Math.floor(slot.x),Math.floor(slot.y))||
-       !withinRange(this.world,slot,goal,SOLDIER.range-.15,this.combat)))
+       !withinRange(this.world,slot,goal,
+          captureTarget?UNIT_CAPTURE_RADIUS-.3:SOLDIER.range-.15,this.combat)))
       return {ok:false,reason:'position'};
-    const reach=slot?0:target?SOLDIER.range-0.3:0.01;
+    const reach=slot?0:target?(captureTarget?UNIT_CAPTURE_RADIUS-.4:SOLDIER.range-.3):0.01;
     const route=routeUnit(this.world,unit,slot??goal,reach,slot?null:target?this.combat:null);
     if(!route)return {ok:false,reason:'path'};
     unit.path=route;unit.pathIndex=0;
     unit.goal=target?null:{x:goal.x,y:goal.y};
     unit.formationGoal=slot?{...slot}:null;
-    unit.attackTargetId=target?.id??null;
+    unit.attackTargetId=captureTarget?null:(target?.id??null);
+    unit.captureTargetId=captureTarget?target.id:null;
     this.world.changed('unit-order',unit);
     return {ok:true,length:route.length};
   }
   stop(unitId) {
     const unit=this.world.units.get(unitId);
     if(!unit||unit.role!=='soldier')return false;
-    unit.path=[];unit.pathIndex=0;unit.goal=null;unit.formationGoal=null;unit.attackTargetId=null;
+    unit.path=[];unit.pathIndex=0;unit.goal=null;unit.formationGoal=null;
+    unit.attackTargetId=null;unit.captureTargetId=null;
     this.world.changed('unit-order',unit);
     return true;
   }
@@ -265,6 +274,10 @@ export class UnitCommand {
       active=true;
       unit.prevX=unit.x;unit.prevY=unit.y;
       unit.cooldown=Math.max(0,(unit.cooldown??0)-delta);
+      const captureTarget=world.structures.get(unit.captureTargetId);
+      if(unit.captureTargetId&&(!captureTarget||captureTarget.ownerId===unit.ownerId)){
+        unit.captureTargetId=null;unit.path=[];unit.formationGoal=null;
+      }
       const target=world.structures.get(unit.attackTargetId);
       if(unit.attackTargetId&&(!target||target.ownerId===unit.ownerId)){
         unit.attackTargetId=null;unit.path=[];unit.goal=null;unit.formationGoal=null;
