@@ -1,5 +1,6 @@
 import { CAMERA_CONFIG } from './camera.js';
 import { nationColor } from './nations.js';
+import { AMMO_CAPACITY } from './frontline.js';
 
 /** A single passive Canvas2D layer for moving scouts, shots and brief impacts.
  * All positions come from World units/projectiles; no per-entity DOM.
@@ -73,9 +74,18 @@ export class CombatRenderer {
         ctx.beginPath();ctx.moveTo(p.x-s*.36,p.y+s*.32);
         ctx.lineTo(p.x+s*.36,p.y+s*.32);ctx.stroke();
       }
+      if(unit.role==='soldier'&&unit.entrenched){
+        ctx.strokeStyle='#82c8d6';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(p.x,p.y,s*1.05,Math.PI*1.12,Math.PI*1.88);ctx.stroke();
+      }
       if(this.selectedUnitIds.has(unit.id) && unit.role==='soldier'){
-        ctx.strokeStyle='#f5d39a';ctx.lineWidth=2;
+        ctx.strokeStyle=unit.supplied?'#a6d6be':'#e3a198';ctx.lineWidth=2;
         ctx.beginPath();ctx.arc(p.x,p.y,s*1.35,0,Math.PI*2);ctx.stroke();
+        const ammo=Math.max(0,Math.min(AMMO_CAPACITY,unit.ammo??AMMO_CAPACITY));
+        for(let i=0;i<AMMO_CAPACITY;i++){
+          ctx.fillStyle=i<ammo?'#f5d39a':'#364451';
+          ctx.fillRect(p.x-s*.9+i*s*.225,p.y+s*1.48,s*.15,2.5);
+        }
         const goal=unit.path?.[unit.path.length-1];
         if(goal){
           const destination=camera.worldToScreen(goal.x*CAMERA_CONFIG.tileSize,goal.y*CAMERA_CONFIG.tileSize);

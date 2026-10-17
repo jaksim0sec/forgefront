@@ -18,6 +18,7 @@ import { Capture, seedOutposts } from './capture.js';
 import { CaptureRenderer } from './capture-render.js';
 import { Combat } from './combat.js';
 import { UnitCommand, SOLDIER, TRAIN_SECONDS, TRAIN_QUEUE_LIMIT } from './unit-command.js';
+import { FrontlineSupply, AMMO_CAPACITY } from './frontline.js';
 import { WEAPONS, isWall } from './defense.js';
 import { CombatRenderer } from './combat-render.js';
 import { CargoRenderer } from './cargo-renderer.js';
@@ -43,7 +44,8 @@ world.survival = true;
 const connections = new ItemConnections(world);
 const industry = new Industry(world, connections);
 const combat = new Combat(world);
-const unitCommand = new UnitCommand(world,combat);
+const frontlineSupply = new FrontlineSupply(world,connections);
+const unitCommand = new UnitCommand(world,combat,frontlineSupply);
 const capture = new Capture(world);
 installSprites(svg);
 const buildings = new BuildingRenderer(svg, world, camera, connections);
@@ -175,7 +177,7 @@ const unitPanel=document.createElement('section');
 unitPanel.className='unit-command-panel';
 unitPanel.hidden=true;
 unitPanel.setAttribute('aria-label','부대 명령');
-unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>빈 땅: 이동 · 적 시설: 공격 · 전초기지: 점령 · 길게 눌러 드래그: 범위 선택</p><div><button type="button" id="unit-multi" aria-pressed="false">다중 선택 OFF</button><button type="button" id="unit-halt">정지</button><button type="button" id="unit-dismiss">해제</button></div>';
+unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>빈 땅: 이동 · 적 시설: 공격 · 전초기지: 점령 · 길게 눌러 드래그: 범위 선택</p><div><button type="button" id="unit-multi" aria-pressed="false">다중 선택 OFF</button><button type="button" id="unit-halt">방어선 고정</button><button type="button" id="unit-dismiss">해제</button></div>';
 svg.after(unitPanel);
 const selectionBox=document.createElementNS('http://www.w3.org/2000/svg','rect');
 selectionBox.id='unit-selection-box';
@@ -245,7 +247,9 @@ function refreshUnitPanel(){
       ? '전투 유닛 #'+units[0].id : '선택된 전투 유닛 '+units.length+'기';
     byId('unit-health').textContent=units.length===1
       ? 'HP '+units[0].health+' / '+units[0].maxHealth
-      : '총 HP '+units.reduce((n,u)=>n+u.health,0)+' / '+units.length*SOLDIER.health;
+      : '총 HP '+Math.ceil(units.reduce((n,u)=>n+u.health,0))+' / '+units.length*SOLDIER.health;
+    byId('unit-health').textContent+=' · 탄약 '+units.reduce((n,u)=>n+(u.ammo??AMMO_CAPACITY),0)+'/'+units.length*AMMO_CAPACITY+
+      (units.length===1?(units[0].supplied?' · 보급 연결':' · 보급 단절')+(units[0].entrenched?' · 방벽 엄폐':''):'');
   }
 }
 function trainSelectedUnit(){
@@ -1146,6 +1150,17 @@ byId('show-links').addEventListener('click',event => {
   event.currentTarget.setAttribute('aria-pressed',String(showLinks));
   event.currentTarget.textContent = `↗ 자원 연결 ${showLinks ? 'ON' : 'OFF'}`;
   invalidate();
+});
+const assaultButton=document.createElement('button');
+assaultButton.type='button';assaultButton.textContent='⚔ 전선 교전 훈련 · 적 돌격대';
+toolbox.querySelector('.toolbox-actions').appendChild(assaultButton);
+assaultButton.addEventListener('click',()=>{
+  const result=unitCommand.launchAssault(activeOwner);
+  ui.message.textContent=result.ok
+    ? '적 돌격대 '+result.count+'기 접근 · '+(result.targetType==='outpost'?'아군 전초기지 점령 시도':'중앙 타워 공격')
+    : {target:'방어 목표가 없습니다.',limit:'전장 유닛 최대치입니다.',
+      space:'적 부대 배치 공간이 없습니다.',path:'적 부대의 접근 경로가 없습니다.'}[result.reason]??'교전을 시작할 수 없습니다.';
+  if(result.ok){combatVisual.wake();invalidate();}
 });
 byId('simulate-raid').addEventListener('click', () => {
   const ok = combat.spawnRaid(activeOwner);

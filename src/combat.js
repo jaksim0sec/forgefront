@@ -2,6 +2,7 @@
  * Coordinates are tile units. Weapon stats are intentionally early-game values.
  */
 import { WEAPONS, isWall } from './defense.js';
+import { damageAgainstUnit } from './frontline.js';
 export const TURRET = WEAPONS.turret;
 const MAX_SCOUTS = 24;
 const MAX_SHOTS = 64;
@@ -78,12 +79,12 @@ export class Combat {
       if(d<=travel+0.32){
         this.visualEvents.push({type:'hit',x:impact.x,y:impact.y,heavy:shot.damage>=40});
         if(shot.targetKind==='structure')world.damageStructure(target.id,shot.damage);
-        else world.units.damage(target.id,shot.damage);
+        else world.units.damage(target.id,damageAgainstUnit(world,target,shot.damage));
         if (shot.targetKind!=='structure' && shot.splashRadius && shot.splashDamage) {
           const radius2=shot.splashRadius*shot.splashRadius;
           for (const other of scouts.values()) {
             if (other.id===target.id || other.ownerId===shot.ownerId) continue;
-            if (distance2(other,target)<=radius2) world.units.damage(other.id,shot.splashDamage);
+            if (distance2(other,target)<=radius2) world.units.damage(other.id,damageAgainstUnit(world,other,shot.splashDamage));
           }
         }
         shots.delete(id);

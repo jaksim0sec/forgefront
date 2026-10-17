@@ -18,7 +18,9 @@ export function saveDraft(world,storage) {
     const units=[...world.units.entities.values()].filter(e=>e.role==='soldier')
       .map(e=>({x:e.x,y:e.y,health:e.health,ownerId:e.ownerId,
         goal:e.goal,formationGoal:e.formationGoal,attackTargetId:e.attackTargetId,
-        captureTargetId:e.captureTargetId,cooldown:e.cooldown}));
+        captureTargetId:e.captureTargetId,cooldown:e.cooldown,
+        ammo:e.ammo,supplyProgress:e.supplyProgress,holdPosition:!!e.holdPosition,
+        autoAssault:!!e.autoAssault,assaultCompleted:!!e.assaultCompleted}));
     storage.setItem(DRAFT_KEY,JSON.stringify({schema:1,structures,wallets,units,
       captureSitesSeeded:!!world.captureSitesSeeded}));
     return true;
@@ -85,7 +87,7 @@ export function restoreDraft(world,storage) {
       }
     }
     if(Array.isArray(snapshot.units)){
-      for(const old of snapshot.units.slice(0,12)){
+      for(const old of snapshot.units.slice(0,24)){
         if(!old||![old.x,old.y,old.health].every(Number.isFinite)||
           old.health<=0||!stage.inBounds(Math.floor(old.x),Math.floor(old.y))||
           typeof old.ownerId!=='string')continue;
@@ -98,7 +100,11 @@ export function restoreDraft(world,storage) {
           captureTargetId:remap.get(old.captureTargetId)??null,
           formationGoal:old.formationGoal&&Number.isFinite(old.formationGoal.x)&&Number.isFinite(old.formationGoal.y)
             ? {x:old.formationGoal.x,y:old.formationGoal.y}:null,
-          cooldown:nonNegative(old.cooldown)?old.cooldown:0,path:[],pathIndex:0});
+          cooldown:nonNegative(old.cooldown)?old.cooldown:0,
+          ammo:nonNegative(old.ammo)?Math.min(8,old.ammo):8,
+          supplyProgress:nonNegative(old.supplyProgress)?Math.min(1.25,old.supplyProgress):0,
+          holdPosition:old.holdPosition===true,autoAssault:old.autoAssault===true,
+          assaultCompleted:old.assaultCompleted===true,path:[],pathIndex:0});
         if(unit)unit.health=Math.min(old.health,unit.maxHealth);
       }
     }

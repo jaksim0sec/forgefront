@@ -1,4 +1,5 @@
 import { canAfford, consumeCost } from './progression.js';
+import { AMMO_CAPACITY, RESUPPLY_SECONDS, isEntrenched } from './frontline.js';
 
 // First controllable ground unit; all costs and limits live outside the UI.
 export const SOLDIER = Object.freeze({
@@ -89,8 +90,8 @@ export function routeUnit(world,start,goal,reach=0,combat=null) {
   return null;
 }
 export class UnitCommand {
-  constructor(world,combat) {
-    this.world=world;this.combat=combat;
+  constructor(world,combat,supply=null) {
+    this.world=world;this.combat=combat;this.supply=supply;
     this.factories=new Set([...world.structures.values()]
       .filter(e=>e.type==='unitFactory').map(e=>e.id));
     this.unsubscribe=world.subscribe(({type,entity})=>{
@@ -140,7 +141,7 @@ export class UnitCommand {
         return world.units.spawn({x:x+.5,y:y+.5,prevX:x+.5,prevY:y+.5,
           ownerId:factory.ownerId,health:SOLDIER.health,speed:SOLDIER.speed,
           role:'soldier',mobility:'ground',path:[],goal:null,attackTargetId:null,
-          formationGoal:null,cooldown:0});
+          formationGoal:null,cooldown:0,ammo:AMMO_CAPACITY,supplyProgress:0,holdPosition:false});
       }
     return null;
   }
@@ -201,6 +202,7 @@ export class UnitCommand {
       unit.formationGoal=target?{...point}:null;
       unit.attackTargetId=captureTarget?null:(target?.id??null);
       unit.captureTargetId=captureTarget?target.id:null;
+      unit.holdPosition=false;unit.autoAssault=false;
       this.world.changed('unit-order',unit);
     }
     return {ok:true,count:assignments.length,total:units.length,
@@ -233,6 +235,7 @@ export class UnitCommand {
     unit.formationGoal=slot?{...slot}:null;
     unit.attackTargetId=captureTarget?null:(target?.id??null);
     unit.captureTargetId=captureTarget?target.id:null;
+    unit.holdPosition=false;unit.autoAssault=false;
     this.world.changed('unit-order',unit);
     return {ok:true,length:route.length};
   }
@@ -241,8 +244,57 @@ export class UnitCommand {
     if(!unit||unit.role!=='soldier')return false;
     unit.path=[];unit.pathIndex=0;unit.goal=null;unit.formationGoal=null;
     unit.attackTargetId=null;unit.captureTargetId=null;
+    unit.holdPosition=true;unit.autoAssault=false;
     this.world.changed('unit-order',unit);
     return true;
+  }
+  /** A manual enemy raid targets the player's farthest defended objective.
+   * No auto spawns; the existing per-faction unit cap still applies.
+   */
+  launchAssault(defender='north'){
+    const attacker=defender==='north'?'south':'north',world=this.world;
+    const targets=[...world.structures.values()].filter(e=>e.ownerId===defender&&
+      e.health>0&&(e.type==='tower'||e.type==='outpost'));
+    const enemyTower=[...world.structures.values()].find(e=>e.type==='tower'&&e.ownerId===attacker);
+    const posts=targets.filter(e=>e.type==='outpost');
+    if(enemyTower)posts.sort((a,b)=>dist(middle(a),middle(enemyTower))-dist(middle(b),middle(enemyTower)));
+    const target=posts[0]??targets.find(e=>e.type==='tower');
+    if(!target)return {ok:false,reason:'target'};
+    const current=[...world.units.entities.values()].filter(e=>e.role==='soldier'&&e.ownerId===attacker).length;
+    const count=Math.min(4,MAX_CONTROLLED_UNITS-current,MAX_UNITS-world.units.entities.size);
+    if(count<1)return {ok:false,reason:'limit'};
+    const p=middle(target),toward=enemyTower?{x:middle(enemyTower).x-p.x,y:middle(enemyTower).y-p.y}:
+      {x:attacker==='south'?1:-1,y:0};
+    const size=Math.hypot(toward.x,toward.y)||1,hx=toward.x/size,hy=toward.y/size;
+    const candidates=[];
+    for(let dy=-12;dy<=12;dy++)for(let dx=-12;dx<=12;dx++){
+      const r=Math.hypot(dx,dy),forward=dx*hx+dy*hy;
+      if(r<8||r>12||forward<5)continue;
+      candidates.push({x:Math.floor(p.x+dx)+.5,y:Math.floor(p.y+dy)+.5,
+        score:Math.abs(r-9)+Math.abs(forward-r)*.6});
+    }
+    candidates.sort((a,b)=>a.score-b.score);
+    const spawned=[];
+    for(const point of candidates){
+      if(!passable(world,Math.floor(point.x),Math.floor(point.y))||
+        spawned.some(u=>dist(u,point)<1.5)||
+        [...world.units.entities.values()].some(u=>dist(u,point)<1.2))continue;
+      const unit=world.units.spawn({...point,prevX:point.x,prevY:point.y,
+        ownerId:attacker,role:'soldier',mobility:'ground',health:SOLDIER.health,
+        speed:SOLDIER.speed,path:[],goal:null,cooldown:0,ammo:AMMO_CAPACITY,
+        holdPosition:false,autoAssault:true,assaultCompleted:false});
+      if(unit)spawned.push(unit);
+      if(spawned.length===count)break;
+    }
+    if(!spawned.length)return {ok:false,reason:'space'};
+    const issued=this.orderGroup(spawned.map(u=>u.id),{targetId:target.id});
+    if(!issued.ok){for(const u of spawned)world.units.remove(u.id);return issued;}
+    for(const u of spawned){
+      if(u.captureTargetId===target.id||u.attackTargetId===target.id)u.autoAssault=true;
+      else world.units.remove(u.id);
+    }
+    world.changed('unit-order',null);
+    return {ok:true,count:issued.count,targetType:target.type};
   }
   step(dt) {
     if(!Number.isFinite(dt)||dt<=0)return false;
@@ -274,9 +326,25 @@ export class UnitCommand {
       active=true;
       unit.prevX=unit.x;unit.prevY=unit.y;
       unit.cooldown=Math.max(0,(unit.cooldown??0)-delta);
+      unit.ammo=Number.isFinite(unit.ammo)?Math.max(0,Math.min(AMMO_CAPACITY,unit.ammo)):AMMO_CAPACITY;
+      unit.supplied=this.supply?.covers(unit)??false;
+      unit.entrenched=isEntrenched(world,unit);
+      if(unit.supplied){
+        unit.supplyProgress=(unit.supplyProgress??0)+delta;
+        if(unit.ammo<AMMO_CAPACITY&&unit.supplyProgress>=RESUPPLY_SECONDS){
+          unit.ammo++;unit.supplyProgress-=RESUPPLY_SECONDS;
+        }
+        if(unit.ammo===AMMO_CAPACITY)unit.supplyProgress=0;
+      }
       const captureTarget=world.structures.get(unit.captureTargetId);
       if(unit.captureTargetId&&(!captureTarget||captureTarget.ownerId===unit.ownerId)){
         unit.captureTargetId=null;unit.path=[];unit.formationGoal=null;
+      }
+      if(unit.autoAssault&&!unit.captureTargetId&&!unit.attackTargetId&&!unit.assaultCompleted){
+        unit.assaultCompleted=true; // Never repeat costly route searches on a blocked map.
+        const next=[...world.structures.values()].find(e=>e.type==='tower'&&
+          e.ownerId&&e.ownerId!==unit.ownerId&&e.health>0);
+        if(next){this.order(unit.id,{targetId:next.id});unit.autoAssault=true;}
       }
       const target=world.structures.get(unit.attackTargetId);
       if(unit.attackTargetId&&(!target||target.ownerId===unit.ownerId)){
@@ -301,7 +369,7 @@ export class UnitCommand {
           }
         }
       }
-      if(unit.cooldown>0||world.projectiles.entities.size>=64)continue;
+      if(unit.cooldown>0||unit.ammo<1||world.projectiles.entities.size>=64)continue;
       let fireAt=attacking?{entity:target,point:enemyCenter,kind:'structure'}:null;
       if(!fireAt){
         let nearest=SOLDIER.range;
@@ -320,6 +388,7 @@ export class UnitCommand {
         targetKind:fireAt.kind,speed:SOLDIER.projectileSpeed,damage:SOLDIER.damage
       });
       unit.cooldown=SOLDIER.reload;
+      unit.ammo--;
       this.combat.visualEvents.push({type:'fire',x:unit.x,y:unit.y,
         angle:Math.atan2(fireAt.point.y-unit.y,fireAt.point.x-unit.x)});
     }

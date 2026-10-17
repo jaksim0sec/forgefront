@@ -146,3 +146,11 @@ Not implemented: multiplayer, proper physical power cables, unit-based territori
 - Capture rings, contested status, faction flag markers, and a short capture burst make the objective visible. The territory overlay automatically opens on a successful capture. Capture ownership, partial progress, and unit capture orders are persisted in local drafts.
 - In the expanded build toolbox, **⚑ 국가 이름 · 국기 편집** opens the local faction editor: choose north/south, name (up to 20 characters), 3 stripe colors, vertical/horizontal layout, and a center emblem. The flags are **sanitized SVG**; profiles are stored only in the browser's localStorage at `forgefront:nation-profiles:v1`.
 - Existing structures, unit production, and single/multiple squad commands remain in place. **Opponent AI, central-tower defeat rules, network play, and advanced unit types are not part of M08.**
+
+## M09 — Supply corridors and frontline skirmishes
+
+- A live friendly tower supports nearby soldiers. Conveyor / junction / underground / warehouse lines extend supply only when a directed item connection leads **back into the tower**. A disconnected or enemy line provides no supply. Each soldier carries 8 abstract shots and replenishes one shot per 1.25 seconds within supplied tiles; this is not a new factory recipe.
+- **방어선 고정** stops selected soldiers. Stationary defenders adjacent to an allied wall receive 28% less incoming projectile damage. Mobile troops gain no wall bonus.
+- **전선 교전 훈련** manually sends up to four rival soldiers at a held outpost (otherwise the command tower). The existing 12-per-side and 24-global unit caps remain. No unattended spawning.
+- Selected units show ammo pips and a supply status ring; cover has a subtle arc. Browser drafts preserve ammo and orders. Supply queries use spatial buckets, cached against structural / link changes.
+- Still missing: autonomous opponent production/strategy, dedicated physical ammo cargo, victory rules, and measured large-scale performance.
