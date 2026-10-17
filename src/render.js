@@ -518,6 +518,7 @@ export class BuildingRenderer {
         }
       }
       moveSprite(node, structure, this.connections, world);
+      node.style.opacity=structure.constructionRemaining>0?'0.62':'1';
       if (STRUCTURES[structure.type].blocksGround) {
         const health = node._parts.health;
         const visibility = selectedId === structure.id || structure.health < structure.maxHealth ? 'visible' : 'hidden';

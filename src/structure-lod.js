@@ -142,6 +142,12 @@ export class DistantStructureRenderer {
         ctx.fillRect(2, 2, w - 4, h - 4);
       }
 
+      if(structure.constructionRemaining>0){
+        const fraction=1-structure.constructionRemaining/(structure.constructionTotal||1);
+        ctx.fillStyle='#b6a17c44';ctx.fillRect(0,0,w,h);
+        ctx.fillStyle='#1a292c';ctx.fillRect(5,h-7,w-10,4);
+        ctx.fillStyle='#d8b877';ctx.fillRect(5,h-7,(w-10)*Math.max(0,Math.min(1,fraction)),4);
+      }
       if (structure.type === 'conveyor') {
         this.drawBend(ctx, structure);
         this.drawSeams(ctx, structure);

@@ -121,8 +121,8 @@ export class Combat {
       const ny=scout.y+(to.y-scout.y)/d*travel;
       if(scout.mobility !== 'air'){
         const obstacle=world.getAt(Math.floor(nx),Math.floor(ny));
-        if(obstacle && obstacle.ownerId!==scout.ownerId &&
-            obstacle.health>0 && isWall(obstacle.type)){
+        if(obstacle && !(obstacle.constructionRemaining>0) &&
+            obstacle.ownerId!==scout.ownerId && obstacle.health>0 && isWall(obstacle.type)){
           scout.attackTimer=(scout.attackTimer??0)-delta;
           if(scout.attackTimer<=0){
             world.damageStructure(obstacle.id,scout.hitPower??10);

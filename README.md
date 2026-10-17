@@ -167,3 +167,14 @@ Not implemented: multiplayer, proper physical power cables, unit-based territori
 - The rollback request survives the pagehide auto-save race: it stores a pending snapshot in a separate key and applies it at the next boot before loading the normal world draft. Checkpoints remain available after reload until kept or restored; national flag profiles are managed separately and not reverted.
 - **Continuous frontline battle** is a user-controlled loop of bounded mixed assault waves every 26 seconds, only while enabled. Maximum unit caps are still enforced; no extra network requests or background simulation.
 - If local storage cannot create a checkpoint, the battle exercise is refused rather than silently modifying an unprotected world. This is a practice-mode safety net, not a full save-slot system.
+
+## M12A — Construction time is tactical time
+
+- New player-built defensive walls, turrets and industrial structures are **construction sites** for 4–18 seconds. Only three sites per faction progress at once; extra sites wait in order. Construction sites block movement, do not operate and have only 40% HP until finished, so enemy raids can interrupt fortification.
+- Starter structures, restored old buildings, World.place test fixtures, conveyors and underground logistics remain instant. Existing local drafts store remaining construction time. Construction status appears in the selected-building inspector and newly built sites are semi-transparent at close zoom with a progress stripe at distant zoom.
+
+## M12B — Direct tactical gestures and obstacle visibility
+
+- On touch devices, drag **from a friendly soldier** to issue a move/capture/attack order directly. Dragging a selected soldier moves its whole selected squad. A short tap still selects, holding empty terrain begins box selection, and two fingers cancel an in-progress command and preserve camera pinch/zoom.
+- A squad panel control selects friendly soldiers within seven tiles of the selected soldier. Tactical overlay shows a compact 9x9 neighborhood (walkable teal, blocked structures/cliffs red, enemy target orange) and a dashed drag target arrow, capped to three SVG path nodes for performance.
+- Invalid destinations and unreachable paths explain the cause of failed orders instead of silently failing.

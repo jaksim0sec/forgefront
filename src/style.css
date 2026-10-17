@@ -1009,3 +1009,10 @@ background:#243b46;color:#e1ecec;border:1px solid #55717a;border-radius:8px;font
 .battle-exercise-tools button{min-height:30px;padding:6px 8px;border-radius:7px;text-align:left;
   border:1px solid #4c6c77;background:#263d48;color:#e2ecee;font-size:11px}
 .battle-exercise-tools button[hidden]{display:none!important}
+
+/* One lightweight navigability overlay for squad orders. */
+.tactical-walkable{fill:#70dbc5;fill-opacity:.09;stroke:#90e6d6;stroke-opacity:.24;stroke-width:.7}
+.tactical-blocked{fill:#f18b83;fill-opacity:.25;stroke:#ffb0a1;stroke-opacity:.5;stroke-width:1}
+.tactical-target{fill:#e2b66b;fill-opacity:.26;stroke:#f6d58d;stroke-opacity:.72;stroke-width:1}
+.tactical-order{fill:none;stroke:#9fe5d6;stroke-width:3;stroke-dasharray:6 6;stroke-linecap:round}
+.tactical-order.invalid{stroke:#ff9990}

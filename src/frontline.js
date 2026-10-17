@@ -63,7 +63,7 @@ export function isEntrenched(world,u){
   const x=Math.floor(u.x),y=Math.floor(u.y);
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
     const e=world.getAt(x+dx,y+dy);
-    if(e?.ownerId===u.ownerId&&e.health>0&&WALLS.has(e.type))return true;
+    if(e?.ownerId===u.ownerId&&e.health>0&&!(e.constructionRemaining>0)&&WALLS.has(e.type))return true;
   }
   return false;
 }

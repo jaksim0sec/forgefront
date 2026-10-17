@@ -7,6 +7,8 @@ import { extendRoute, planConveyorRoute, commitConveyorRoute } from './routes.js
 import { buildTunnel, tunnelGeometry } from './underground.js';
 import { startBuildStroke, normalizedBuildLine } from './build-stroke.js';
 import { restoreDraft, attachDraftAutosave } from './local-draft.js';
+import { Construction,ACTIVE_CREWS,constructionSeconds } from './construction.js';
+import { tacticalTile,isTacticalTarget } from './tactical-map.js';
 import { beginExercise,hasExerciseCheckpoint,requestExerciseRollback,applyPendingExerciseRollback,keepExerciseResults } from './battle-exercise.js';
 import { nationLabel, restoreNationProfiles } from './nations.js';
 import { installNationEditor } from './nation-editor.js';
@@ -44,6 +46,8 @@ if(!draft.restored){
 }
 seedOutposts(world);
 world.survival = true;
+world.constructionEnabled = true;
+const construction = new Construction(world);
 const connections = new ItemConnections(world);
 const industry = new Industry(world, connections);
 const combat = new Combat(world);
@@ -148,7 +152,7 @@ const ui = {
 };
 let tool = 'select', rotation = 0, selectedId = null;
 const selectedUnitIds=new Set();
-let multiUnitSelection=false, selectionDrag=null;
+let multiUnitSelection=false, selectionDrag=null,orderDrag=null;
 let activeOwner = 'north', hoverPoint = null, showLinks = true;
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 const factoryTool=document.createElement('button');
@@ -180,17 +184,69 @@ const unitPanel=document.createElement('section');
 unitPanel.className='unit-command-panel';
 unitPanel.hidden=true;
 unitPanel.setAttribute('aria-label','부대 명령');
-unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>빈 땅: 이동 · 적 시설: 공격 · 전초기지: 점령 · 길게 눌러 드래그: 범위 선택</p><div><button type="button" id="unit-multi" aria-pressed="false">다중 선택 OFF</button><button type="button" id="unit-halt">방어선 고정</button><button type="button" id="unit-dismiss">해제</button></div>';
+unitPanel.innerHTML='<strong id="unit-name">전투 유닛</strong><span id="unit-health"></span><p>병사를 끌어 이동/공격 · 빈 땅 길게 누르면 범위 선택 · 청록: 이동 / 빨강: 차단 / 주황: 공격</p><div><button type="button" id="unit-multi" aria-pressed="false">다중 선택 OFF</button><button type="button" id="unit-nearby">주변 부대</button><button type="button" id="unit-halt">방어선 고정</button><button type="button" id="unit-dismiss">해제</button></div>';
 svg.after(unitPanel);
 const selectionBox=document.createElementNS('http://www.w3.org/2000/svg','rect');
 selectionBox.id='unit-selection-box';
 selectionBox.setAttribute('pointer-events','none');
 selectionBox.setAttribute('visibility','hidden');
 svg.appendChild(selectionBox);
+// Screen-space tactical clues; just three reused SVG paths, not one node/tile.
+const NS_TACTIC='http://www.w3.org/2000/svg';
+const tacticalPaths=Object.fromEntries(['walkable','blocked','target','order'].map(kind=>{
+  const path=document.createElementNS(NS_TACTIC,'path');
+  path.setAttribute('class','tactical-'+kind);
+  path.setAttribute('pointer-events','none');path.setAttribute('visibility','hidden');
+  svg.appendChild(path);return [kind,path];
+}));
+function drawTacticalHints(){
+  const chosen=world.units.get(selectedUnitIds.values().next().value);
+  if(tool!=='select'||(!chosen&&!orderDrag)){
+    for(const el of Object.values(tacticalPaths))el.setAttribute('visibility','hidden');
+    return;
+  }
+  const focus=orderDrag?.end??hoverPoint??(chosen?
+    camera.worldToScreen(chosen.x*CAMERA_CONFIG.tileSize,chosen.y*CAMERA_CONFIG.tileSize):null);
+  if(!focus)return;
+  const tile=hitTile(focus),scale=CAMERA_CONFIG.tileSize*camera.zoom;
+  const cells={walkable:[],blocked:[],target:[]};
+  if(scale>=13){
+    for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){
+      const x=tile.x+dx,y=tile.y+dy;
+      const type=tacticalTile(world,x,y,activeOwner);
+      const group=type==='walkable'?'walkable':type==='target'?'target':'blocked';
+      const screen=camera.worldToScreen(x*CAMERA_CONFIG.tileSize,y*CAMERA_CONFIG.tileSize);
+      cells[group].push('M'+screen.x.toFixed(1)+' '+screen.y.toFixed(1)+
+        'h'+scale.toFixed(1)+'v'+scale.toFixed(1)+'h-'+scale.toFixed(1)+'Z');
+    }
+  }
+  for(const [kind,parts] of Object.entries(cells)){
+    const el=tacticalPaths[kind];el.setAttribute('d',parts.join(''));
+    el.setAttribute('visibility',parts.length?'visible':'hidden');
+  }
+  const arrow=tacticalPaths.order;
+  if(orderDrag?.moved){
+    const start=orderDrag.start,end=orderDrag.end;
+    const endpoint=hitTile(end),status=tacticalTile(world,endpoint.x,endpoint.y,activeOwner);
+    arrow.setAttribute('d','M'+start.x+' '+start.y+'L'+end.x+' '+end.y);
+    arrow.classList.toggle('invalid',!isTacticalTarget(status));
+    arrow.setAttribute('visibility','visible');
+  }else arrow.setAttribute('visibility','hidden');
+}
 byId('unit-multi').addEventListener('click',()=>{
   multiUnitSelection=!multiUnitSelection;
   byId('unit-multi').setAttribute('aria-pressed',String(multiUnitSelection));
   byId('unit-multi').textContent='다중 선택 '+(multiUnitSelection?'ON':'OFF');
+  invalidate();
+});
+byId('unit-nearby').addEventListener('click',()=>{
+  const origin=world.units.get(selectedUnitIds.values().next().value);
+  if(!origin)return;
+  for(const soldier of world.units.entities.values()){
+    if(soldier.role==='soldier'&&soldier.ownerId===activeOwner&&
+       Math.hypot(soldier.x-origin.x,soldier.y-origin.y)<=7)
+      selectedUnitIds.add(soldier.id);
+  }
   invalidate();
 });
 byId('unit-halt').addEventListener('click',()=>{
@@ -235,6 +291,29 @@ function friendlyUnitAt(point){
     if(d<nearest){best=unit;nearest=d;}
   }
   return best;
+}
+/** Centralize orders: tapping a target and dragging a unit obey identical rules. */
+function issueUnitOrder(ids,point){
+  if(!ids.length)return false;
+  const tile=hitTile(point),status=tacticalTile(world,tile.x,tile.y,activeOwner);
+  if(!isTacticalTarget(status)){
+    ui.message.textContent=status==='friendly'?'아군 건물 위치입니다 · 옆 빈 땅을 선택하세요.':
+      status==='cliff'?'⛔ 절벽 때문에 이동할 수 없습니다.':'⛔ 지도 밖입니다.';
+    return false;
+  }
+  const structure=world.getAt(tile.x,tile.y);
+  const destination=structure?{targetId:structure.id}:{x:tile.x+.5,y:tile.y+.5};
+  const result=ids.length>1?unitCommand.orderGroup(ids,destination):
+    unitCommand.order(ids[0],destination);
+  ui.message.textContent=result.ok
+    ? (structure?.type==='outpost'?'전초기지 점령 명령':structure?'적 시설 공격 명령':
+      ids.length>1?result.count+'기 부대 이동':'병력 이동 명령 완료')+
+      (result.total&&result.count<result.total?' · 일부 유닛 경로 불가':'')
+    : ({path:'⛔ 접근할 수 없는 경로입니다.',position:'⛔ 목표 지점이 막혔습니다.',
+       space:'⛔ 부대가 진형을 펼칠 공간이 없습니다.',blocked:'⛔ 건물에 막힌 위치입니다.'}
+      [result.reason]??'⛔ 목표에 도달할 수 없습니다.');
+  if(result.ok)combatVisual.wake();
+  invalidate();return result.ok;
 }
 function refreshUnitPanel(){
   for(const id of [...selectedUnitIds]){
@@ -397,6 +476,7 @@ function render() {
   buildings.draw(tool, hoverTile, rotation, selectedId, showLinks, previewForStroke(paint), activeOwner);
   captureVisual.draw();
   updateSelectionBox();
+  drawTacticalHints();
   const buildPreview=byId('build-line-preview');
   if(paint?.grid && paint.kind!=='conveyor' && paint.kind!=='erase' && paint.kind!=='tunnelEntrance'){
     const positions=paint.anchors??[paint.grid.origin];
@@ -471,7 +551,7 @@ function render() {
     `${STRUCTURES[selected.type].label} #${selected.id} · ${nationLabel(selected.ownerId)}` :
     (tool === 'select' ? '타일 또는 건물을 선택하세요.' : tool === 'erase' ? '건물 철거 모드' :
       `${STRUCTURES[tool].label} 설치 모드`);
-  ui.hp.textContent = selected ? `${selected.health} / ${selected.maxHealth}` : '—';
+  ui.hp.textContent = selected ? `${Math.ceil(selected.health)} / ${selected.maxHealth}` : '—';
   const recipeState = selected && RECIPES[selected.type];
   const missingMaterials = recipeState ? Object.entries(recipeState.inputs)
     .filter(([id, qty]) => (selected.inventory?.[id] ?? 0) < qty)
@@ -483,7 +563,9 @@ function render() {
     'no-power':'전력 부족', 'no-coal':'석탄 부족', 'no-ore':'광맥 없음',
     'waiting-input':'재료 부족'
   };
-  ui.status.textContent = selected?.type==='outpost'
+  ui.status.textContent = selected?.constructionRemaining>0
+    ? '공사 중 · '+Math.ceil(selected.constructionRemaining)+'초 남음 · 완공 전 작동 불가'
+    : selected?.type==='outpost'
     ? (selected.captureState==='contested'?'적군과 경합 중':
       selected.captureProgress>0?'점령 진행 중 · '+nationLabel(selected.captureTeam):
       selected.ownerId?'확보됨 · '+nationLabel(selected.ownerId):'중립 · 점령 가능')
@@ -498,6 +580,7 @@ function render() {
   ) : '—';
   const recipe = selected ? RECIPES[selected.type] : null;
   ui.production.textContent = !selected ? '—' :
+    selected.constructionRemaining>0 ? '건설 '+Math.round(100*(1-selected.constructionRemaining/(selected.constructionTotal||1)))+'% · 동시 공사 '+ACTIVE_CREWS+'곳/국가' :
     selected.type==='outpost' ? '점령 '+Math.round((selected.captureProgress??0)*100)+'% · 점령 반경 3.6칸' :
     recipe ? `${RESOURCES[recipe.output].label} · ${Math.min(100, Math.floor(100 * (selected.progress ?? 0) / recipe.seconds))}% ${finishedCount ? '· 완성품 ' + finishedCount + '개' : ''}` :
     selected.type==='unitFactory'
@@ -608,7 +691,8 @@ function showBuildInfo(type) {
   byId('build-preview-name').textContent = def.label;
   byId('build-preview-description').textContent = BUILD_DESCRIPTIONS[type] ?? '산업용 구조물';
   byId('build-preview-size').textContent = def.width + '×' + def.height;
-  byId('build-preview-health').textContent = 'HP ' + def.maxHealth;
+  byId('build-preview-health').textContent = 'HP ' + def.maxHealth+
+    (constructionSeconds(type)?' · 공사 '+constructionSeconds(type)+'초':' · 즉시 건설');
   fillCost(byId('build-preview-cost'), type==='tunnelEntrance'?{lead:6,iron:2}:BUILD_COSTS[type]);
 
   let inputs = recipe ? Object.entries(recipe.inputs).map(([id, amount]) => ({ id, amount })) : [];
@@ -780,7 +864,7 @@ function setTool(next) {
   if (next !== 'select' && next !== 'erase' && !STRUCTURES[next]) return;
   tool = next;
   selectedUnitIds.clear();
-  selectionDrag=null;
+  selectionDrag=null;orderDrag=null;
   combatVisual.selectedUnitIds.clear();
   pendingTunnel = null;
   if(STRUCTURES[next] && next!=='conveyor'){
@@ -867,18 +951,7 @@ function actionAt(point, alternate = false, additive = false) {
       const structure=world.getAt(tile.x,tile.y);
       if((structure?.type==='outpost'&&structure.ownerId!==activeOwner)||
         (structure?.ownerId&&structure.ownerId!==activeOwner)||!structure){
-        const destination=structure
-          ? {targetId:structure.id}:{x:tile.x+.5,y:tile.y+.5};
-        const ids=[...selectedUnitIds];
-        const result=ids.length>1
-          ? unitCommand.orderGroup(ids,destination)
-          : unitCommand.order(ids[0],destination);
-        ui.message.textContent=result.ok
-          ? (structure?.type==='outpost' ? '전초기지 점령 명령 · 해당 지역에서 점령 진행' :
-            ids.length>1 ? result.count+'기 명령 완료'+
-            (result.count<result.total?' · 일부 경로 불가':'') :
-            (structure?'적 시설 공격 명령':'이동 명령 완료'))
-          : '도달 가능한 배치 위치가 없습니다.';
+        issueUnitOrder([...selectedUnitIds],point);
       }else{
         selectedUnitIds.clear();selectedId=structure.id;
       }
@@ -989,12 +1062,18 @@ svg.addEventListener('pointerdown', event => {
       cancelHold();
       if (paint?.isTouch) finishStroke(false);
       finishUnitSelection(false);
+      orderDrag=null;
     }
     touches.set(event.pointerId, point);
     svg.setPointerCapture(event.pointerId);
     taps.set(event.pointerId, { start: point, cancelled: touches.size > 1 });
     resetGesture();
-    if (touches.size === 1 && (STRUCTURES[tool] || tool === 'erase' || tool === 'select')) {
+    if(touches.size===1&&tool==='select'){
+      const clicked=friendlyUnitAt(point);
+      if(clicked)orderDrag={pointerId:event.pointerId,start:point,end:point,moved:false,
+        ids:selectedUnitIds.has(clicked.id)?[...selectedUnitIds]:[clicked.id]};
+    }
+    if (!orderDrag && touches.size === 1 && (STRUCTURES[tool] || tool === 'erase' || tool === 'select')) {
       const pointerId = event.pointerId;
       const timer = setTimeout(() => {
         if (pendingHold?.pointerId !== pointerId || touches.size !== 1 || !taps.has(pointerId)) return;
@@ -1013,8 +1092,12 @@ svg.addEventListener('pointerdown', event => {
     svg.setPointerCapture(event.pointerId);
     if (STRUCTURES[tool] || tool === 'erase') startStroke(event.pointerId, point, false);
     else {
-      if(tool==='select')selectionDrag={pointerId:event.pointerId,start:point,end:point,
-        additive:event.shiftKey};
+      if(tool==='select'){
+        const clicked=friendlyUnitAt(point);
+        if(clicked)orderDrag={pointerId:event.pointerId,start:point,end:point,moved:false,
+          ids:selectedUnitIds.has(clicked.id)?[...selectedUnitIds]:[clicked.id]};
+        else selectionDrag={pointerId:event.pointerId,start:point,end:point,additive:event.shiftKey};
+      }
       taps.set(event.pointerId, {start:point,cancelled:false,additive:event.shiftKey});
     }
   } else if (event.button === 2) {
@@ -1031,6 +1114,11 @@ svg.addEventListener('pointermove', event => {
     if (pendingHold?.pointerId === event.pointerId) cancelHold();
   }
   if (event.pointerType !== 'touch') {
+    if(orderDrag?.pointerId===event.pointerId){
+      orderDrag.end=point;
+      orderDrag.moved=Math.hypot(point.x-orderDrag.start.x,point.y-orderDrag.start.y)>=HOLD_SLOP;
+      invalidate();return;
+    }
     if(selectionDrag?.pointerId===event.pointerId){
       selectionDrag.end=point;invalidate();return;
     }
@@ -1051,7 +1139,11 @@ svg.addEventListener('pointermove', event => {
     if (gesture.distance > 0 && next.distance > 0) camera.zoomAt(next.distance / gesture.distance, next.x, next.y);
     gesture = next;
   } else if (touches.size === 1) {
-    if(selectionDrag?.pointerId===event.pointerId)selectionDrag.end=point;
+    if(orderDrag?.pointerId===event.pointerId){
+      orderDrag.end=point;
+      orderDrag.moved=Math.hypot(point.x-orderDrag.start.x,point.y-orderDrag.start.y)>=HOLD_SLOP;
+    }
+    else if(selectionDrag?.pointerId===event.pointerId)selectionDrag.end=point;
     else if (paint?.isTouch && paint.pointerId === event.pointerId) extendStroke(point);
     else if (gesture?.type === 'pan') {
       camera.panPixels(point.x - gesture.x, point.y - gesture.y);
@@ -1064,7 +1156,16 @@ function release(event, commit) {
   if (pendingHold?.pointerId === event.pointerId) cancelHold();
   const point = localPoint(event);
   const candidate = taps.get(event.pointerId);
-  if(selectionDrag?.pointerId===event.pointerId){
+  if(orderDrag?.pointerId===event.pointerId){
+    const drag=orderDrag;orderDrag=null;
+    if(commit&&drag.moved){
+      selectedUnitIds.clear();
+      for(const id of drag.ids)selectedUnitIds.add(id);
+      selectedId=null;selectionDismissed=true;
+      issueUnitOrder(drag.ids,point);
+    }else if(candidate&&commit&&!candidate.cancelled)
+      actionAt(point,candidate.alternate,candidate.additive);
+  }else if(selectionDrag?.pointerId===event.pointerId){
     selectionDrag.end=point;
     const moved=Math.hypot(point.x-selectionDrag.start.x,point.y-selectionDrag.start.y)>=HOLD_SLOP;
     finishUnitSelection(commit);
@@ -1086,12 +1187,13 @@ svg.addEventListener('lostpointercapture', event => {
   if (pendingHold?.pointerId === event.pointerId) cancelHold();
   if (paint?.pointerId === event.pointerId) finishStroke(false);
   if (selectionDrag?.pointerId===event.pointerId)finishUnitSelection(false);
+  if(orderDrag?.pointerId===event.pointerId)orderDrag=null;
   taps.delete(event.pointerId);
   if (touches.delete(event.pointerId)) resetGesture();
 });
 svg.addEventListener('pointerleave', event => { if (event.pointerType !== 'touch' && !paint) { hoverPoint = null; invalidate(); } });
 svg.addEventListener('contextmenu', event => event.preventDefault());
-window.addEventListener('blur', () => { cancelHold(); touches.clear(); taps.clear(); gesture = null; finishStroke(false); finishUnitSelection(false); });
+window.addEventListener('blur', () => { cancelHold(); touches.clear(); taps.clear(); gesture = null; orderDrag=null; finishStroke(false); finishUnitSelection(false); });
 
 svg.addEventListener('wheel', event => {
   event.preventDefault();
@@ -1294,6 +1396,7 @@ let lastTick = performance.now();
 setInterval(() => {
   const now = performance.now(), dt = Math.min(.5, (now-lastTick)/1000);
   lastTick = now;
+  const constructionChanged=construction.step(dt);
   const productionChanged = industry.step(dt);
   const combatChanged = combat.step(dt);
   const unitsChanged = unitCommand.step(dt);
@@ -1317,7 +1420,7 @@ setInterval(() => {
     territoryVisual.layer.setAttribute('visibility','visible');
     combatVisual.wake();
   }
-  if (productionChanged || combatChanged || unitsChanged || captureChanged) invalidate();
+  if (constructionChanged || productionChanged || combatChanged || unitsChanged || captureChanged) invalidate();
   if (combatChanged || unitsChanged || captureChanged) combatVisual.wake();
 }, 200);
 

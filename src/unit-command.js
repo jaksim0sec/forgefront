@@ -16,7 +16,8 @@ const dist = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
 const middle = e => ({x:e.x+e.width/2,y:e.y+e.height/2});
 
 function passable(world,x,y) {
-  return world.inBounds(x,y) && !world.getAt(x,y) &&
+  const obstacle=world.getAt(x,y);
+  return world.inBounds(x,y) && (!obstacle||obstacle.constructionRemaining>0) &&
     !world.terrain?.isCliffAt(x,y);
 }
 function withinRange(world,source,destination,radius,combat) {

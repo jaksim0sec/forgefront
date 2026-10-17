@@ -2,6 +2,7 @@ import { CAMERA_CONFIG } from './camera.js';
 import { DynamicEntities, Effects } from './entities.js';
 import { RESOURCES } from './resources.js';
 import { BUILD_COSTS, canAfford, consumeCost } from './progression.js';
+import { constructionSeconds } from './construction.js';
 
 export const WORLD_CONFIG = Object.freeze({ width: 2048, height: 2048, chunkSize: 32 });
 export const STRUCTURES = Object.freeze({
@@ -63,6 +64,7 @@ export class World {
     this.terrain = null; // Optional deterministic geology (M05)
     this.territory = null; // Supplied by game bootstrap; optional for editor fixtures
     this.survival = false; // Existing world.place remains a sandbox constructor
+    this.constructionEnabled = false; // Gameplay opts in after the starter world is ready
     this.stockpiles = new Map(); // Nation's deliveries to its tower
     this.captureSitesSeeded=false;
 
@@ -115,6 +117,7 @@ export class World {
   setEnabled(id, enabled) {
     const entity = this.structures.get(id);
     if (!entity) return false;
+    if(entity.constructionRemaining>0)return false;
     entity.enabled = !!enabled;
     this.changed('state', entity);
     return true;
@@ -178,6 +181,16 @@ export class World {
     const check = this.canBuild(type, x, y, rotation, ownerId);
     if (!check.ok) return check;
     const result = this.place(type, x, y, rotation, ownerId, inputSide);
+    if(result.ok && this.constructionEnabled){
+      const seconds=constructionSeconds(type);
+      if(seconds>0){
+        const e=result.entity;
+        e.constructionTotal=seconds;e.constructionRemaining=seconds;
+        e.health=Math.max(1,Math.ceil(e.maxHealth*.4));
+        e.enabled=false;e.activity='building';
+        this.changed('state',e);
+      }
+    }
     if (result.ok && this.survival) consumeCost(this.walletFor(ownerId), BUILD_COSTS[type]);
     return result;
   }

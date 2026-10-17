@@ -4,7 +4,8 @@ import { unitDefinition,normalizeUnitType } from './unit-types.js';
 export const DRAFT_KEY='forgefront:local-world:1';
 const FIELDS=['health','enabled','progress','moveProgress','itemId','itemCount',
   'resourceId','burnRemaining','fuelProgress','fuelCharges','routeCursor',
-  'lastSourceId','pairId','activity','inventory','trainQueued','trainProgress','trainQueueTypes','captureProgress','captureTeam'];
+  'lastSourceId','pairId','activity','inventory','trainQueued','trainProgress','trainQueueTypes','captureProgress','captureTeam',
+  'constructionTotal','constructionRemaining'];
 const nonNegative=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0;
 export function saveDraft(world,storage) {
   if(!storage)return false;
