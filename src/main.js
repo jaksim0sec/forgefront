@@ -18,6 +18,7 @@ import { Capture, seedOutposts } from './capture.js';
 import { CaptureRenderer } from './capture-render.js';
 import { Combat } from './combat.js';
 import { UnitCommand, SOLDIER, TRAIN_SECONDS, TRAIN_QUEUE_LIMIT } from './unit-command.js';
+import { UNIT_TYPES,unitDefinition } from './unit-types.js';
 import { FrontlineSupply, AMMO_CAPACITY } from './frontline.js';
 import { WEAPONS, isWall } from './defense.js';
 import { CombatRenderer } from './combat-render.js';
@@ -244,31 +245,36 @@ function refreshUnitPanel(){
   combatVisual.selectedUnitIds=new Set(unitPanel.hidden?[]:selectedUnitIds);
   if(!unitPanel.hidden){
     byId('unit-name').textContent=units.length===1
-      ? '전투 유닛 #'+units[0].id : '선택된 전투 유닛 '+units.length+'기';
+      ? unitDefinition(units[0].unitType).label+' #'+units[0].id : '선택된 전투 유닛 '+units.length+'기';
     byId('unit-health').textContent=units.length===1
       ? 'HP '+units[0].health+' / '+units[0].maxHealth
-      : '총 HP '+Math.ceil(units.reduce((n,u)=>n+u.health,0))+' / '+units.length*SOLDIER.health;
+      : '총 HP '+Math.ceil(units.reduce((n,u)=>n+u.health,0))+' / '+units.reduce((n,u)=>n+u.maxHealth,0);
     byId('unit-health').textContent+=' · 탄약 '+units.reduce((n,u)=>n+(u.ammo??AMMO_CAPACITY),0)+'/'+units.length*AMMO_CAPACITY+
       (units.length===1?(units[0].supplied?' · 보급 연결':' · 보급 단절')+(units[0].entrenched?' · 방벽 엄폐':''):'');
   }
 }
-function trainSelectedUnit(){
-  const factory=world.structures.get(selectedId);
-  const result=unitCommand.train(activeOwner,factory?.type==='unitFactory'?factory.id:null);
-  if(result.ok){
-    ui.message.textContent='생산 예약 · '+result.queued+'/'+TRAIN_QUEUE_LIMIT+'기 · '+TRAIN_SECONDS+'초/기 · 전력 필요';
-  }else{
-    const message={factory:'가동 가능한 아군 유닛 공장이 필요합니다.',
-      limit:'유닛 최대치에 도달했습니다.',queue:'공장 대기열이 가득 찼습니다.',
-      materials:'자원 부족 · 납 12 · 철 4 필요'};
-    ui.message.textContent=message[result.reason]??'병력을 생산할 수 없습니다.';
-  }
+function trainSelectedUnit(kind='rifle'){
+  const factory=world.structures.get(selectedId),spec=unitDefinition(kind);
+  const result=unitCommand.train(activeOwner,factory?.type==='unitFactory'?factory.id:null,kind);
+  if(result.ok)ui.message.textContent=spec.label+' 생산 예약 · '+result.queued+'/'+TRAIN_QUEUE_LIMIT+
+    '기 · '+spec.trainSeconds+'초/기 · 전력 필요';
+  else ui.message.textContent=result.reason==='materials'
+    ? '자원 부족 · '+Object.entries(spec.cost).map(([id,n])=>(RESOURCES[id]?.label??id)+' '+n).join(' · ')
+    : ({factory:'가동 가능한 아군 유닛 공장이 필요합니다.',limit:'유닛 최대치에 도달했습니다.',
+      queue:'공장 대기열이 가득 찼습니다.'}[result.reason]??'생산할 수 없습니다.');
   invalidate();
 }
-const trainSelected=document.createElement('button');
-trainSelected.type='button';trainSelected.textContent='⚔ 생산 대기열 추가 · 납 12 / 철 4';
-trainSelected.addEventListener('click',trainSelectedUnit);
-byId('selected-detail').querySelector('.inspector-actions').append(trainSelected);
+const trainTools=document.createElement('div');
+trainTools.className='unit-training-tools';
+for(const spec of Object.values(UNIT_TYPES)){
+  const button=document.createElement('button');button.type='button';
+  button.textContent=spec.symbol+' '+spec.label+' · '+
+    Object.entries(spec.cost).map(([id,n])=>(RESOURCES[id]?.label??id)+n).join(' ');
+  button.title='체력 '+spec.health+' · 속도 '+spec.speed+' · 사거리 '+spec.range;
+  button.addEventListener('click',()=>trainSelectedUnit(spec.id));
+  trainTools.appendChild(button);
+}
+byId('selected-detail').querySelector('.inspector-actions').append(trainTools);
 
 const quickBar=document.createElement('div');
 quickBar.className='collapsed-top-row';
@@ -440,7 +446,7 @@ function render() {
   ui.rotation.textContent = rotation * 90 + '°';
   const selected = world.structures.get(selectedId);
   refreshUnitPanel();
-  trainSelected.hidden=selected?.type!=='unitFactory'||selected?.ownerId!==activeOwner;
+  trainTools.hidden=selected?.type!=='unitFactory'||selected?.ownerId!==activeOwner;
   const powerRadius = byId('power-radius');
   const weaponRadius = byId('weapon-radius');
   if (selected && WEAPONS[selected.type]) {
@@ -494,7 +500,7 @@ function render() {
     recipe ? `${RESOURCES[recipe.output].label} · ${Math.min(100, Math.floor(100 * (selected.progress ?? 0) / recipe.seconds))}% ${finishedCount ? '· 완성품 ' + finishedCount + '개' : ''}` :
     selected.type==='unitFactory'
       ? (selected.trainQueued>0
-        ? '생산 대기 '+selected.trainQueued+'기 · '+Math.floor(100*(selected.trainProgress??0)/TRAIN_SECONDS)+'% · '+(selected.powered?'가동 중':'전력 부족')
+        ? '생산 대기 '+selected.trainQueued+'기 · '+Math.floor(100*(selected.trainProgress??0)/unitDefinition(selected.trainQueueTypes?.[0]).trainSeconds)+'% · '+(selected.powered?'가동 중':'전력 부족')
         : '대기열 비어 있음 · '+(selected.powered?'생산 가능':'전력 부족')) :
     selected.resourceId ? `${RESOURCES[selected.resourceId].label} 채집` :
     WEAPONS[selected.type] ? `사거리 ${WEAPONS[selected.type].range}칸 · 피해 ${WEAPONS[selected.type].damage} · ${selected.powered ? '방어 준비' : '전력 대기'}` :

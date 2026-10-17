@@ -998,3 +998,8 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 .nation-editor-actions button{flex:1;cursor:pointer;}
 .nation-editor-actions [data-save]{background:#42665c;border-color:#80a997;}
 .nation-editor-status{min-height:16px;margin:0;color:#c5e7d3;font-size:11px;}
+
+.unit-training-tools{display:grid;grid-template-columns:1fr;gap:5px;width:100%;margin-top:6px}
+.unit-training-tools[hidden]{display:none!important}
+.unit-training-tools button{width:100%;min-height:30px;padding:6px 9px;text-align:left;
+background:#243b46;color:#e1ecec;border:1px solid #55717a;border-radius:8px;font-size:11px}

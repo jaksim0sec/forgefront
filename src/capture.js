@@ -38,7 +38,7 @@ export class Capture {
         let count=0;
         for(const u of units){
           const dx=u.x-center.x,dy=u.y-center.y;
-          if(dx*dx+dy*dy<=radius2)count++;
+          if(dx*dx+dy*dy<=radius2)count+=u.captureStrength??1;
         }
         if(count)present.push({team,count});
       }

@@ -55,7 +55,8 @@ export class CombatRenderer {
       const y=(unit.prevY??unit.y)+(unit.y-(unit.prevY??unit.y))*alpha;
       const p=camera.worldToScreen(x*CAMERA_CONFIG.tileSize,y*CAMERA_CONFIG.tileSize);
       if(p.x<-25||p.y<-25||p.x>camera.width+25||p.y>camera.height+25)continue;
-      const s=Math.max(5,Math.min(16,scale*0.22));
+      const cls=unit.unitType??'rifle';
+      const s=Math.max(5,Math.min(16,scale*0.22))*(cls==='heavy'?1.13:cls==='scout'?.85:1);
       ctx.fillStyle='#182631';
       ctx.strokeStyle=nationColor(unit.ownerId);
       ctx.lineWidth=Math.max(1.5,s*0.19);
@@ -66,8 +67,17 @@ export class CombatRenderer {
       ctx.lineTo(p.x-s*.8,p.y);
       ctx.closePath();
       ctx.fill();ctx.stroke();
-      ctx.fillStyle=unit.role==='soldier'?'#d7e4db':'#b7c5ce';
+      ctx.fillStyle=unit.role!=='soldier'?'#b7c5ce':
+        cls==='heavy'?'#e6b08e':cls==='scout'?'#8bdcd1':'#d7e4db';
       ctx.fillRect(p.x-s*.25,p.y-s*.26,s*.5,s*.52);
+      if(cls==='heavy'&&unit.role==='soldier'){
+        ctx.fillStyle='#a76c55';ctx.fillRect(p.x-s*.62,p.y-s*.24,s*.26,s*.5);
+        ctx.fillRect(p.x+s*.36,p.y-s*.24,s*.26,s*.5);
+      }else if(cls==='scout'&&unit.role==='soldier'){
+        ctx.strokeStyle='#92e5da';ctx.lineWidth=2;ctx.beginPath();
+        ctx.moveTo(p.x-s*.32,p.y+s*.18);ctx.lineTo(p.x,p.y-s*.4);
+        ctx.lineTo(p.x+s*.32,p.y+s*.18);ctx.stroke();
+      }
       if(unit.role==='soldier'){
         ctx.strokeStyle='#dae8df';
         ctx.lineWidth=1.4;

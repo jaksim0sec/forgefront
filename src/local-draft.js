@@ -1,9 +1,10 @@
 import { World, STRUCTURES } from './world.js';
+import { unitDefinition,normalizeUnitType } from './unit-types.js';
 
 export const DRAFT_KEY='forgefront:local-world:1';
 const FIELDS=['health','enabled','progress','moveProgress','itemId','itemCount',
   'resourceId','burnRemaining','fuelProgress','fuelCharges','routeCursor',
-  'lastSourceId','pairId','activity','inventory','trainQueued','trainProgress','captureProgress','captureTeam'];
+  'lastSourceId','pairId','activity','inventory','trainQueued','trainProgress','trainQueueTypes','captureProgress','captureTeam'];
 const nonNegative=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0;
 export function saveDraft(world,storage) {
   if(!storage)return false;
@@ -17,6 +18,7 @@ export function saveDraft(world,storage) {
     const wallets=Object.fromEntries([...world.stockpiles].map(([id,w])=>[id,{...w}]));
     const units=[...world.units.entities.values()].filter(e=>e.role==='soldier')
       .map(e=>({x:e.x,y:e.y,health:e.health,ownerId:e.ownerId,
+        unitType:normalizeUnitType(e.unitType),
         goal:e.goal,formationGoal:e.formationGoal,attackTargetId:e.attackTargetId,
         captureTargetId:e.captureTargetId,cooldown:e.cooldown,
         ammo:e.ammo,supplyProgress:e.supplyProgress,holdPosition:!!e.holdPosition,
@@ -56,6 +58,9 @@ export function restoreDraft(world,storage) {
         if(field==='inventory'){
           if(value!==null && typeof value==='object' && !Array.isArray(value) && e.inventory)
             e.inventory=Object.fromEntries(Object.entries(value).filter(([k,n])=>nonNegative(n)));
+        }else if(field==='trainQueueTypes'){
+          if(e.type==='unitFactory'&&Array.isArray(value))
+            e.trainQueueTypes=value.slice(0,3).map(normalizeUnitType);
         }else if(field==='captureTeam'){
           if(e.type==='outpost' && (value===null||value==='north'||value==='south'))e.captureTeam=value;
         }else if(field==='itemId'||field==='resourceId'||field==='activity'){
@@ -64,6 +69,11 @@ export function restoreDraft(world,storage) {
         else if(nonNegative(value))e[field]=value;
       }
       e.health=Math.min(e.maxHealth,e.health);
+      if(e.type==='unitFactory'){
+        const count=Math.max(0,Math.min(3,Math.floor(e.trainQueued??0)));
+        e.trainQueued=count;e.trainQueueTypes=(e.trainQueueTypes??[]).slice(0,count);
+        while(e.trainQueueTypes.length<count)e.trainQueueTypes.push('rifle');
+      }
     }
     for(const old of snapshot.structures){
       const e=stage.structures.get(remap.get(old.id));
@@ -91,9 +101,11 @@ export function restoreDraft(world,storage) {
         if(!old||![old.x,old.y,old.health].every(Number.isFinite)||
           old.health<=0||!stage.inBounds(Math.floor(old.x),Math.floor(old.y))||
           typeof old.ownerId!=='string')continue;
+        const kind=normalizeUnitType(old.unitType),spec=unitDefinition(kind);
         const unit=stage.units.spawn({x:old.x,y:old.y,
           prevX:old.x,prevY:old.y,ownerId:old.ownerId,
-          health:75,role:'soldier',speed:2.35,mobility:'ground',
+          health:spec.health,role:'soldier',unitType:kind,
+          captureStrength:spec.captureStrength,speed:spec.speed,mobility:'ground',
           goal:old.goal&&Number.isFinite(old.goal.x)&&Number.isFinite(old.goal.y)
             ? {x:old.goal.x,y:old.goal.y}:null,
           attackTargetId:remap.get(old.attackTargetId)??null,

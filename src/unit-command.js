@@ -1,11 +1,8 @@
 import { canAfford, consumeCost } from './progression.js';
 import { AMMO_CAPACITY, RESUPPLY_SECONDS, isEntrenched } from './frontline.js';
+import { SOLDIER, UNIT_TYPES, normalizeUnitType, unitDefinition } from './unit-types.js';
+export { SOLDIER, UNIT_TYPES };
 
-// First controllable ground unit; all costs and limits live outside the UI.
-export const SOLDIER = Object.freeze({
-  cost: Object.freeze({lead:12,iron:4}), health:75, speed:2.35,
-  range:4.2, damage:12, reload:0.85, projectileSpeed:19
-});
 export const MAX_CONTROLLED_UNITS = 12;
 export const TRAIN_SECONDS = 4;
 export const UNIT_CAPTURE_RADIUS = 3.6;
@@ -102,13 +99,19 @@ export class UnitCommand {
     // Rebuild transient waypoints from persisted orders after page reload.
     for(const unit of world.units.entities.values()){
       if(unit.role!=='soldier')continue;
+      unit.unitType=normalizeUnitType(unit.unitType);
+      unit.captureStrength=unitDefinition(unit.unitType).captureStrength;
+      const auto=unit.autoAssault,completed=unit.assaultCompleted;
       if(unit.captureTargetId)this.order(unit.id,{targetId:unit.captureTargetId,slot:unit.formationGoal});
       else if(unit.attackTargetId)this.order(unit.id,{targetId:unit.attackTargetId,slot:unit.formationGoal});
       else if(unit.goal)this.order(unit.id,unit.goal);
+      unit.autoAssault=auto;unit.assaultCompleted=completed;
     }
   }
   // Training belongs to a powered factory; funds are charged on queueing.
-  train(ownerId='north',factoryId=null) {
+  train(ownerId='north',factoryId=null,unitType='rifle') {
+    if(!UNIT_TYPES[unitType])return {ok:false,reason:'unit'};
+    const spec=unitDefinition(unitType);
     const world=this.world;
     const factory=factoryId==null
       ? [...world.structures.values()].find(e=>e.type==='unitFactory'&&e.ownerId===ownerId&&e.enabled&&e.health>0)
@@ -122,16 +125,19 @@ export class UnitCommand {
       return {ok:false,reason:'limit'};
     if((factory.trainQueued??0)>=TRAIN_QUEUE_LIMIT)return {ok:false,reason:'queue'};
     const wallet=world.walletFor(ownerId);
-    if(world.survival&&!canAfford(wallet,SOLDIER.cost))
-      return {ok:false,reason:'materials',cost:SOLDIER.cost};
-    if(world.survival)consumeCost(wallet,SOLDIER.cost);
-    factory.trainQueued=(factory.trainQueued??0)+1;
+    if(world.survival&&!canAfford(wallet,spec.cost))
+      return {ok:false,reason:'materials',cost:spec.cost};
+    if(world.survival)consumeCost(wallet,spec.cost);
+    const queue=Array.isArray(factory.trainQueueTypes)?
+      factory.trainQueueTypes:Array(factory.trainQueued??0).fill('rifle');
+    queue.push(unitType);factory.trainQueueTypes=queue;
+    factory.trainQueued=queue.length;
     factory.trainProgress=factory.trainProgress??0;
     world.changed('unit-production',factory);
-    return {ok:true,factory,queued:factory.trainQueued};
+    return {ok:true,factory,queued:factory.trainQueued,trainSeconds:spec.trainSeconds};
   }
-  spawnAtFactory(factory) {
-    const world=this.world,units=world.units.entities;
+  spawnAtFactory(factory,unitType='rifle') {
+    const world=this.world,units=world.units.entities,spec=unitDefinition(unitType);
     for(let y=factory.y-1;y<=factory.y+factory.height;y++)
       for(let x=factory.x-1;x<=factory.x+factory.width;x++){
         if(x>=factory.x&&x<factory.x+factory.width&&
@@ -139,7 +145,8 @@ export class UnitCommand {
         if(!passable(world,x,y))continue;
         if([...units.values()].some(e=>Math.hypot(e.x-x-.5,e.y-y-.5)<.8))continue;
         return world.units.spawn({x:x+.5,y:y+.5,prevX:x+.5,prevY:y+.5,
-          ownerId:factory.ownerId,health:SOLDIER.health,speed:SOLDIER.speed,
+          ownerId:factory.ownerId,health:spec.health,speed:spec.speed,
+          unitType:spec.id,captureStrength:spec.captureStrength,
           role:'soldier',mobility:'ground',path:[],goal:null,attackTargetId:null,
           formationGoal:null,cooldown:0,ammo:AMMO_CAPACITY,supplyProgress:0,holdPosition:false});
       }
@@ -168,13 +175,15 @@ export class UnitCommand {
       .filter(u=>u.role==='soldier'&&!selected.has(u.id))
       .map(u=>u.goal??u.formationGoal??{x:u.x,y:u.y});
     const slots=[];
-    const radius=Math.max(3,Math.ceil(Math.sqrt(units.length))+1);
+    const maxRange=Math.max(...units.map(u=>unitDefinition(u.unitType).range));
+    const radius=Math.max(3,Math.ceil(Math.sqrt(units.length))+1,
+      target&&!captureTarget?Math.ceil(maxRange):0);
     for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
       const x=Math.floor(center.x)+dx,y=Math.floor(center.y)+dy;
       if(!passable(this.world,x,y))continue;
       const point={x:x+.5,y:y+.5};
       if(target&&!withinRange(this.world,point,center,
-        captureTarget?UNIT_CAPTURE_RADIUS-.3:SOLDIER.range-.15,this.combat))continue;
+        captureTarget?UNIT_CAPTURE_RADIUS-.3:maxRange-.15,this.combat))continue;
       if(occupied.some(p=>dist(p,point)<.85))continue;
       slots.push(point);
     }
@@ -182,11 +191,13 @@ export class UnitCommand {
     const used=new Set(),assignments=[];
     for(const unit of units){
       const wanted={x:center.x+unit.x-centroid.x,y:center.y+unit.y-centroid.y};
-      const options=slots.filter(p=>!used.has(key(p.x,p.y)))
+      const maxUnitRange=unitDefinition(unit.unitType).range;
+      const options=slots.filter(p=>!used.has(key(p.x,p.y))&&
+        (!target||captureTarget||withinRange(this.world,p,center,maxUnitRange-.15,this.combat)))
         .sort((a,b)=>(dist(a,wanted)+.3*dist(a,center)+.025*dist(a,unit))-
                       (dist(b,wanted)+.3*dist(b,center)+.025*dist(b,unit)));
       let chosen=null;
-      for(const point of options.slice(0,24)){
+      for(const point of options.slice(0,10)){
         const route=routeUnit(this.world,unit,point);
         if(!route)continue;
         chosen={unit,point,route};break;
@@ -225,9 +236,9 @@ export class UnitCommand {
       Number.isFinite(destination.slot.y)?destination.slot:null;
     if(slot&&(!passable(this.world,Math.floor(slot.x),Math.floor(slot.y))||
        !withinRange(this.world,slot,goal,
-          captureTarget?UNIT_CAPTURE_RADIUS-.3:SOLDIER.range-.15,this.combat)))
+          captureTarget?UNIT_CAPTURE_RADIUS-.3:unitDefinition(unit.unitType).range-.15,this.combat)))
       return {ok:false,reason:'position'};
-    const reach=slot?0:target?(captureTarget?UNIT_CAPTURE_RADIUS-.4:SOLDIER.range-.3):0.01;
+    const reach=slot?0:target?(captureTarget?UNIT_CAPTURE_RADIUS-.4:unitDefinition(unit.unitType).range-.3):0.01;
     const route=routeUnit(this.world,unit,slot??goal,reach,slot?null:target?this.combat:null);
     if(!route)return {ok:false,reason:'path'};
     unit.path=route;unit.pathIndex=0;
@@ -279,9 +290,12 @@ export class UnitCommand {
       if(!passable(world,Math.floor(point.x),Math.floor(point.y))||
         spawned.some(u=>dist(u,point)<1.5)||
         [...world.units.entities.values()].some(u=>dist(u,point)<1.2))continue;
+      const kind=['rifle','scout','rifle','heavy'][spawned.length];
+      const spec=unitDefinition(kind);
       const unit=world.units.spawn({...point,prevX:point.x,prevY:point.y,
-        ownerId:attacker,role:'soldier',mobility:'ground',health:SOLDIER.health,
-        speed:SOLDIER.speed,path:[],goal:null,cooldown:0,ammo:AMMO_CAPACITY,
+        ownerId:attacker,role:'soldier',mobility:'ground',
+        unitType:kind,captureStrength:spec.captureStrength,health:spec.health,
+        speed:spec.speed,path:[],goal:null,cooldown:0,ammo:AMMO_CAPACITY,
         holdPosition:false,autoAssault:true,assaultCompleted:false});
       if(unit)spawned.push(unit);
       if(spawned.length===count)break;
@@ -313,9 +327,14 @@ export class UnitCommand {
         continue;
       }
       factory.activity='processing';
-      factory.trainProgress=Math.min(TRAIN_SECONDS,(factory.trainProgress??0)+delta);
-      if(factory.trainProgress<TRAIN_SECONDS)continue;
-      if(units.size>=MAX_UNITS||!this.spawnAtFactory(factory))continue;
+      if(!Array.isArray(factory.trainQueueTypes))
+        factory.trainQueueTypes=Array(factory.trainQueued).fill('rifle');
+      const kind=normalizeUnitType(factory.trainQueueTypes[0]);
+      const seconds=unitDefinition(kind).trainSeconds;
+      factory.trainProgress=Math.min(seconds,(factory.trainProgress??0)+delta);
+      if(factory.trainProgress<seconds)continue;
+      if(units.size>=MAX_UNITS||!this.spawnAtFactory(factory,kind))continue;
+      factory.trainQueueTypes.shift();
       factory.trainQueued--;
       factory.trainProgress=0;
       if(!factory.trainQueued)factory.activity='idle';
@@ -325,6 +344,7 @@ export class UnitCommand {
       if(unit.role!=='soldier')continue;
       active=true;
       unit.prevX=unit.x;unit.prevY=unit.y;
+      const spec=unitDefinition(unit.unitType);
       unit.cooldown=Math.max(0,(unit.cooldown??0)-delta);
       unit.ammo=Number.isFinite(unit.ammo)?Math.max(0,Math.min(AMMO_CAPACITY,unit.ammo)):AMMO_CAPACITY;
       unit.supplied=this.supply?.covers(unit)??false;
@@ -351,7 +371,7 @@ export class UnitCommand {
         unit.attackTargetId=null;unit.path=[];unit.goal=null;unit.formationGoal=null;
       }
       const enemyCenter=target?middle(target):null;
-      const attacking=enemyCenter&&withinRange(world,unit,enemyCenter,SOLDIER.range,this.combat);
+      const attacking=enemyCenter&&withinRange(world,unit,enemyCenter,spec.range,this.combat);
       if((!attacking||unit.formationGoal)&&unit.pathIndex<(unit.path?.length??0)){
         let travel=unit.speed*delta;
         while(travel>0&&unit.pathIndex<unit.path.length){
@@ -372,11 +392,11 @@ export class UnitCommand {
       if(unit.cooldown>0||unit.ammo<1||world.projectiles.entities.size>=64)continue;
       let fireAt=attacking?{entity:target,point:enemyCenter,kind:'structure'}:null;
       if(!fireAt){
-        let nearest=SOLDIER.range;
+        let nearest=spec.range;
         for(const enemy of units.values()){
           if(enemy.id===unit.id||enemy.ownerId===unit.ownerId||enemy.health<=0)continue;
           const d=dist(unit,enemy);
-          if(d<nearest&&withinRange(world,unit,enemy,SOLDIER.range,this.combat)){
+          if(d<nearest&&withinRange(world,unit,enemy,spec.range,this.combat)){
             fireAt={entity:enemy,point:enemy,kind:'unit'};nearest=d;
           }
         }
@@ -385,9 +405,10 @@ export class UnitCommand {
       world.projectiles.spawn({
         x:unit.x,y:unit.y,prevX:unit.x,prevY:unit.y,
         health:1,ownerId:unit.ownerId,targetId:fireAt.entity.id,
-        targetKind:fireAt.kind,speed:SOLDIER.projectileSpeed,damage:SOLDIER.damage
+        targetKind:fireAt.kind,speed:spec.projectileSpeed,damage:spec.damage,
+        splashRadius:spec.splashRadius??0,splashDamage:spec.splashDamage??0
       });
-      unit.cooldown=SOLDIER.reload;
+      unit.cooldown=spec.reload;
       unit.ammo--;
       this.combat.visualEvents.push({type:'fire',x:unit.x,y:unit.y,
         angle:Math.atan2(fireAt.point.y-unit.y,fireAt.point.x-unit.x)});

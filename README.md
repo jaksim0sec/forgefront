@@ -154,3 +154,9 @@ Not implemented: multiplayer, proper physical power cables, unit-based territori
 - **전선 교전 훈련** manually sends up to four rival soldiers at a held outpost (otherwise the command tower). The existing 12-per-side and 24-global unit caps remain. No unattended spawning.
 - Selected units show ammo pips and a supply status ring; cover has a subtle arc. Browser drafts preserve ammo and orders. Supply queries use spatial buckets, cached against structural / link changes.
 - Still missing: autonomous opponent production/strategy, dedicated physical ammo cargo, victory rules, and measured large-scale performance.
+
+## M10 — Tactical unit diversity
+
+- Rifle infantry retains its prior balance. Scouts are faster with shorter range, less HP and improved capture influence. Heavy infantry is slower and more expensive, with higher durability, extra range and small splash damage.
+- Unit factories accept three unit types in one FIFO queue. Existing local saves keep their factories, structures, stockpiles and units; old unnamed units are treated as rifle infantry. Queue selections and class-specific maximum health now restore correctly.
+- Mixed squads honor individual range in target selection; manual counterattacks now include scouts and heavy infantry. Distant soldiers continue to render on the existing batched Canvas2D layer. Formation path candidate checks are bounded to ten per unit.
