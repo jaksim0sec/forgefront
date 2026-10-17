@@ -15,35 +15,18 @@
 </head>
 <body>
   <main class="game" aria-label="FORGEFRONT 산업, 영토 및 방어 게임">
-    <header class="command-hud" aria-label="전장 상황">
-      <div class="command-brand"><span class="command-mark">✦</span><div><strong>FORGEFRONT</strong><small>TACTICAL COMMAND</small></div></div>
-      <div class="command-readouts">
-        <div><small>아군 병력</small><strong id="hud-units">0</strong></div>
-        <div><small>확보 거점</small><strong id="hud-sites">0</strong></div>
-        <div><small>적 병력</small><strong id="hud-hostiles">0</strong></div>
-        <div class="hud-alert"><small>상황</small><strong id="hud-threat">경계</strong></div>
+    <nav class="field-bar" aria-label="전술 상태 및 건설">
+      <div class="field-identity" aria-label="FORGEFRONT"><span class="field-mark">✦</span><span>FORGEFRONT</span></div>
+      <output id="field-status" class="field-status" aria-label="병력 현황">⚔ 0 : 0</output>
+      <div class="field-actions">
+        <button type="button" id="field-home" aria-label="아군 본진으로 이동" title="본진으로 이동">◎ <span>본진</span></button>
+        <button type="button" id="field-build" aria-controls="toolbox-panel" aria-expanded="false">▦ <span>건설</span></button>
       </div>
-      <nav class="command-switches" aria-label="전장 도구">
-        <button type="button" id="hud-focus" title="아군 본진으로 이동">⌖ <span>본진</span></button>
-        <button type="button" id="hud-fronts" title="영토 표시 전환">◇ <span>전선</span></button>
-        <button type="button" id="hud-build" title="건설 팔레트 열기">▦ <span>건설</span></button>
-      </nav>
-    </header>
-    <aside class="command-map" aria-label="전술 미니맵">
-      <div class="command-map-title"><span>전장 개요</span><span class="map-live">● LIVE</span></div>
-      <canvas id="tactical-minimap" width="244" height="152" aria-label="거점과 병력 위치, 클릭하면 카메라 이동"></canvas>
-      <div class="command-map-legend"><span><i class="legend-north"></i>아군</span><span><i class="legend-south"></i>적</span><span><i class="legend-neutral"></i>중립</span></div>
-    </aside>
-    <nav class="command-dock" aria-label="전술 명령">
-      <button type="button" id="dock-select" class="dock-active"><span class="dock-glyph">⌖</span><span>선택</span></button>
-      <button type="button" id="dock-group"><span class="dock-glyph">♟</span><span>주변 부대</span></button>
-      <button type="button" id="dock-hold"><span class="dock-glyph">◇</span><span>위치 사수</span></button>
-      <span class="dock-separator" aria-hidden="true"></span>
-      <button type="button" id="dock-conveyor"><span class="dock-glyph">⇥</span><span>보급로</span></button>
-      <button type="button" id="dock-defense"><span class="dock-glyph">▣</span><span>방어 건설</span></button>
-      <button type="button" id="dock-erase"><span class="dock-glyph">⌫</span><span>철거</span></button>
     </nav>
-    <div class="command-banner" id="command-banner" aria-live="polite">지도에서 아군 병사를 선택하거나 건설 도구를 열어 주세요.</div>
+    <div class="field-active-mode" id="field-active-mode" hidden>
+      <span id="field-mode-label">건설 모드</span>
+      <button type="button" id="field-cancel">✕ 종료</button>
+    </div>
     <svg id="world" class="world" xmlns="http://www.w3.org/2000/svg" aria-label="타일 보드">
       <defs>
         <pattern id="tile-grid" patternUnits="userSpaceOnUse" width="48" height="48">

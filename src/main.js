@@ -528,7 +528,9 @@ function render() {
   ui.rotation.textContent = rotation * 90 + '°';
   const selected = world.structures.get(selectedId);
   refreshUnitPanel();
-  refreshBattleHud();
+  if(performance.now()-lastFieldStatus>950){
+    lastFieldStatus=performance.now();showFieldStatus();
+  }
   trainTools.hidden=selected?.type!=='unitFactory'||selected?.ownerId!==activeOwner;
   const powerRadius = byId('power-radius');
   const weaponRadius = byId('weapon-radius');
@@ -861,118 +863,60 @@ function setupBuildThumbnails() {
 setupBuildThumbnails();
 refreshRecentShortcut();
 
-// Battle command interface: situational actions above the game, utilities behind a drawer.
-const hudBuild=byId('hud-build');
-const setPaletteVisible=visible=>{
-  setPanelCollapsed(toolbox,!visible);
-  hudBuild.classList.toggle('hud-active',visible);
-  hudBuild.setAttribute('aria-pressed',String(visible));
-};
-function syncTacticalDock(){
-  for(const [id,on] of [
-    ['dock-select',tool==='select'],
-    ['dock-conveyor',tool==='conveyor'],
-    ['dock-defense',tool!=='select'&&tool!=='erase'&&tool!=='conveyor'],
-    ['dock-erase',tool==='erase']
-  ])byId(id).classList.toggle('dock-active',on);
-  const hasSquad=selectedUnitIds.size>0&&tool==='select';
-  byId('dock-group').disabled=!hasSquad;
-  byId('dock-hold').disabled=!hasSquad;
+// Compact field UI. One menu, no persistent minimap/dock or per-frame entity scan.
+const fieldBuild=byId('field-build'),fieldMode=byId('field-active-mode');
+const fieldModeLabel=byId('field-mode-label');
+function toggleBuildMenu(open){
+  setPanelCollapsed(toolbox,!open);
+  document.querySelector('.game').classList.toggle('palette-open',open);
+  fieldBuild.setAttribute('aria-expanded',String(open));
+  fieldBuild.classList.toggle('active',open);
 }
-byId('hud-focus').addEventListener('click',()=>{
+fieldBuild.addEventListener('click',()=>toggleBuildMenu(toolbox.classList.contains('panel-collapsed')));
+toolbox.querySelector('.panel-fold-toggle').addEventListener('click',()=>{
+  const open=!toolbox.classList.contains('panel-collapsed');
+  document.querySelector('.game').classList.toggle('palette-open',open);
+  fieldBuild.setAttribute('aria-expanded',String(open));
+  fieldBuild.classList.toggle('active',open);
+});
+// Pointer pan/pinch is not treated as an outside click; plain map taps close the drawer.
+document.addEventListener('click',event=>{
+  if(!toolbox.classList.contains('panel-collapsed')&&
+     !event.target.closest('#toolbox-panel,.field-bar'))
+    toggleBuildMenu(false);
+});
+byId('field-home').addEventListener('click',()=>{
   const home=[...world.structures.values()].find(e=>e.type==='tower'&&e.ownerId===activeOwner);
-  if(home){camera.x=(home.x+home.width/2)*CAMERA_CONFIG.tileSize;
+  if(home){
+    camera.x=(home.x+home.width/2)*CAMERA_CONFIG.tileSize;
     camera.y=(home.y+home.height/2)*CAMERA_CONFIG.tileSize;
-    invalidate();}
-});
-byId('hud-fronts').addEventListener('click',()=>{
-  byId('show-territory').click();
-  byId('hud-fronts').classList.toggle('hud-active',
-    territoryVisual.layer.getAttribute('visibility')!=='hidden');
-});
-hudBuild.addEventListener('click',()=>setPaletteVisible(toolbox.classList.contains('panel-collapsed')));
-byId('dock-select').addEventListener('click',()=>setTool('select'));
-byId('dock-conveyor').addEventListener('click',()=>setTool('conveyor'));
-byId('dock-erase').addEventListener('click',()=>setTool('erase'));
-byId('dock-defense').addEventListener('click',()=>{
-  setPaletteVisible(true);
-  const defense=toolbox.querySelector('#build-category-1');
-  if(defense)setBuildCategory(defense);
-});
-byId('dock-group').addEventListener('click',()=>byId('unit-nearby').click());
-byId('dock-hold').addEventListener('click',()=>byId('unit-halt').click());
-
-// Minimap uses one canvas and paints only known entities, never all map tiles.
-const overview=byId('tactical-minimap'),overviewCtx=overview.getContext('2d');
-let mapBounds={left:-16,top:-42,width:112,height:90},lastMapDraw=0;
-function redrawBattleMap(now){
-  if(!overviewCtx||now-lastMapDraw<180)return;
-  lastMapDraw=now;
-  const landmarks=[...world.structures.values()].filter(e=>e.type==='tower'||e.type==='outpost');
-  const pts=landmarks.length?landmarks.map(e=>({x:e.x+e.width/2,y:e.y+e.height/2})):[{x:0,y:0},{x:70,y:-25}];
-  let minX=Math.min(...pts.map(p=>p.x)),maxX=Math.max(...pts.map(p=>p.x));
-  let minY=Math.min(...pts.map(p=>p.y)),maxY=Math.max(...pts.map(p=>p.y));
-  const span=Math.max(86,maxX-minX+28,maxY-minY+28);
-  const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
-  mapBounds={left:cx-span*.7,top:cy-span*.45,width:span*1.4,height:span*.9};
-  const ctx=overviewCtx,w=overview.width,h=overview.height;
-  ctx.clearRect(0,0,w,h);ctx.fillStyle='#0e2228';ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle='#ffffff0c';ctx.lineWidth=1;
-  for(let i=1;i<8;i++){ctx.beginPath();ctx.moveTo(i*w/8,0);ctx.lineTo(i*w/8,h);ctx.stroke()}
-  for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,i*h/5);ctx.lineTo(w,i*h/5);ctx.stroke()}
-  const pos=(x,y)=>({x:(x-mapBounds.left)/mapBounds.width*w,y:(y-mapBounds.top)/mapBounds.height*h});
-  const colors={north:'#83c8e6',south:'#f19b8e'};
-  for(const e of landmarks){
-    const pt=pos(e.x+e.width/2,e.y+e.height/2);
-    ctx.fillStyle=colors[e.ownerId]??'#d7bd8a';
-    ctx.strokeStyle='#08151e';ctx.lineWidth=2;
-    ctx.beginPath();
-    if(e.type==='tower')ctx.rect(pt.x-5,pt.y-5,10,10);
-    else ctx.arc(pt.x,pt.y,3.8,0,Math.PI*2);
-    ctx.fill();ctx.stroke();
+    invalidate();
   }
-  for(const u of world.units.entities.values()){
-    if(u.role!=='soldier')continue;
-    const pt=pos(u.x,u.y);
-    if(pt.x<0||pt.y<0||pt.x>w||pt.y>h)continue;
-    ctx.fillStyle=colors[u.ownerId]??'#d7bd8a';ctx.fillRect(pt.x-1.3,pt.y-1.3,2.6,2.6);
+});
+byId('field-cancel').addEventListener('click',()=>setTool('select'));
+// Advanced controls stay reachable, but never crowd the normal build categories.
+const fieldAdvanced=document.createElement('details');
+fieldAdvanced.className='field-advanced';
+const fieldAdvancedTitle=document.createElement('summary');
+fieldAdvancedTitle.textContent='⚙ 고급 도구 · 자원 · 전투 시험';
+fieldAdvanced.appendChild(fieldAdvancedTitle);
+toolbox.querySelector('.palette-details').appendChild(fieldAdvanced);
+function refreshFieldMode(){
+  const active=tool!=='select';
+  fieldMode.hidden=!active;
+  fieldModeLabel.textContent=tool==='erase'?'철거 모드':
+    tool==='conveyor'?'컨베이어 설치':STRUCTURES[tool]?.label+' 설치';
+}
+function showFieldStatus(){
+  const nodes=world.units.entities;
+  let friendly=0,hostile=0;
+  for(const unit of nodes.values()){
+    if(unit.ownerId===activeOwner)friendly++;
+    else hostile++;
   }
-  const tl=camera.screenToWorld(0,0),br=camera.screenToWorld(camera.width,camera.height);
-  const a=pos(tl.x/CAMERA_CONFIG.tileSize,tl.y/CAMERA_CONFIG.tileSize);
-  const b=pos(br.x/CAMERA_CONFIG.tileSize,br.y/CAMERA_CONFIG.tileSize);
-  ctx.strokeStyle='#e7f7e7';ctx.lineWidth=1.6;
-  ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);
+  byId('field-status').textContent='⚔ '+friendly+' : '+hostile;
 }
-overview.addEventListener('pointerdown',event=>{
-  const b=overview.getBoundingClientRect();
-  const nx=Math.max(0,Math.min(1,(event.clientX-b.left)/b.width));
-  const ny=Math.max(0,Math.min(1,(event.clientY-b.top)/b.height));
-  camera.x=(mapBounds.left+nx*mapBounds.width)*CAMERA_CONFIG.tileSize;
-  camera.y=(mapBounds.top+ny*mapBounds.height)*CAMERA_CONFIG.tileSize;
-  invalidate();
-});
-const banner=byId('command-banner');
-const originalMessage=ui.message;
-const messageObserver=new MutationObserver(()=>{
-  const m=originalMessage.textContent.trim();
-  if(m)banner.textContent=m;
-});
-messageObserver.observe(originalMessage,{childList:true,characterData:true,subtree:true});
-function refreshBattleHud(){
-  const units=[...world.units.entities.values()].filter(u=>u.role==='soldier');
-  const friendly=units.filter(u=>u.ownerId===activeOwner).length;
-  const enemies=units.length-friendly;
-  const sites=[...world.structures.values()].filter(e=>e.type==='outpost'&&e.ownerId===activeOwner).length;
-  byId('hud-units').textContent=friendly;
-  byId('hud-sites').textContent=sites;
-  byId('hud-hostiles').textContent=enemies;
-  const tower=[...world.structures.values()].find(e=>e.type==='tower'&&e.ownerId===activeOwner);
-  const threatened=tower&&units.some(u=>u.ownerId!==activeOwner&&Math.hypot(u.x-(tower.x+1),u.y-(tower.y+1))<23);
-  byId('hud-threat').textContent=threatened?'침공 경고':enemies?'교전 가능':'전선 안정';
-  byId('hud-threat').classList.toggle('threat-active',!!threatened);
-  syncTacticalDock();
-  redrawBattleMap(performance.now());
-}
+let lastFieldStatus=0;
 
 
 function setTool(next) {
@@ -1009,7 +953,8 @@ function setTool(next) {
       ? '건설비: ' + Object.entries(cost).map(([id, qty]) => `${RESOURCES[id]?.label ?? id} ${qty}`).join(' · ')
       : '기본 건설비 없음')
     : '';
-  syncTacticalDock();
+  refreshFieldMode();
+  if(next!=='select')toggleBuildMenu(false);
   invalidate();
 }
 function notifyBuild(result, type) {
@@ -1391,17 +1336,13 @@ const keepButton=document.createElement('button');
 keepButton.type='button';keepButton.textContent='✓ 전투 결과 유지';
 battleTools.append(assaultButton,battleToggle,rollbackButton,keepButton);
 toolbox.querySelector('.toolbox-actions').appendChild(battleTools);
-// Preserve every experimental and economy control without occupying the battlefield.
-const advanced=document.createElement('details');
-advanced.className='command-advanced';
-const advancedSummary=document.createElement('summary');
-advancedSummary.textContent='⚙ 고급 도구 · 자원 · 훈련';
-advanced.appendChild(advancedSummary);
 for(const selector of ['.toolbox-actions','.owner-heading','.economy-hint','#resource-list']){
-  const part=toolbox.querySelector('.palette-details '+selector);
-  if(part)advanced.appendChild(part);
+  const element=toolbox.querySelector('.palette-details '+selector);
+  if(element)fieldAdvanced.appendChild(element);
 }
-toolbox.querySelector('.palette-details').appendChild(advanced);
+// Keep errors and order feedback visible even when the building palette is closed.
+const fieldMessage=byId('build-message');
+toolbox.after(fieldMessage);
 function updateBattleTools(){
   battleToggle.textContent=continuousBattle?'Ⅱ 연속 전선전 중지':'⚑ 연속 전선전 시작';
   const available=hasExerciseCheckpoint(draftStorage);
@@ -1551,8 +1492,6 @@ setInterval(() => {
   if (combatChanged || unitsChanged || captureChanged) combatVisual.wake();
 }, 200);
 
-// A phone starts with the compact two-row palette. Expanding adds content below.
-if (window.matchMedia?.('(pointer: coarse)').matches)
-  setPanelCollapsed(toolbox,true);
-setPaletteVisible(false);
+// The world is the default surface on every device; the build palette is opt-in.
+toggleBuildMenu(false);
 setTool('select');

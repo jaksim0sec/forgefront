@@ -179,6 +179,6 @@ Not implemented: multiplayer, proper physical power cables, unit-based territori
 - A squad panel control selects friendly soldiers within seven tiles of the selected soldier. Tactical overlay shows a compact 9x9 neighborhood (walkable teal, blocked structures/cliffs red, enemy target orange) and a dashed drag target arrow, capped to three SVG path nodes for performance.
 - Invalid destinations and unreachable paths explain the cause of failed orders instead of silently failing.
 
-## M13 — Battlefield command UI
-
-Replaced console-like first-view layout with a floating operational HUD (live troop, held objective and hostile counts, alert level), clickable camera-centering tactical minimap, and six-action tactical dock. The existing advanced build palette, category icons, saved games and unit orders stay intact; the factory/utility clutter is hidden from the normal battlefield surface. The minimap plots known towers, outposts, unit positions, and current view without scanning terrain tiles. Mobile gets a responsive compact layout.
+## M14 — Uncluttered UI recovery
+The overlaid M13 HUD, always-visible minimap and six-button dock have been removed. In the normal state, the screen shows only a small status/build control and the map. Build opens the existing category-based toolbox as an overlay; choosing a tool closes it and shows an accessible cancel action. Unit commands appear only on selection, in a compact contextual panel. Advanced debug/economy/battle-exercise controls are kept behind a disclosure, and feedback toasts are visible even when construction is closed. No changes were made to world, army or save logic. Cache v26 forces the new layout on PWA upgrade.
+The build palette now dismisses on outside tap (not on pan gestures), hides concurrent inspectors, and stays synchronized when dismissed using its own fold control.
