@@ -160,3 +160,10 @@ Not implemented: multiplayer, proper physical power cables, unit-based territori
 - Rifle infantry retains its prior balance. Scouts are faster with shorter range, less HP and improved capture influence. Heavy infantry is slower and more expensive, with higher durability, extra range and small splash damage.
 - Unit factories accept three unit types in one FIFO queue. Existing local saves keep their factories, structures, stockpiles and units; old unnamed units are treated as rifle infantry. Queue selections and class-specific maximum health now restore correctly.
 - Mixed squads honor individual range in target selection; manual counterattacks now include scouts and heavy infantry. Distant soldiers continue to render on the existing batched Canvas2D layer. Formation path candidate checks are bounded to ten per unit.
+
+## M11 — Battle exercise checkpoint and sustained frontline scenario
+
+- Both training actions create an opt-in browser-local checkpoint **before** spawning enemy units. A new **rollback** button restores that exact pre-exercise world on reload, including once-destroyed outposts, stockpiles, placed defenses and soldiers. Keeping results explicitly clears the checkpoint.
+- The rollback request survives the pagehide auto-save race: it stores a pending snapshot in a separate key and applies it at the next boot before loading the normal world draft. Checkpoints remain available after reload until kept or restored; national flag profiles are managed separately and not reverted.
+- **Continuous frontline battle** is a user-controlled loop of bounded mixed assault waves every 26 seconds, only while enabled. Maximum unit caps are still enforced; no extra network requests or background simulation.
+- If local storage cannot create a checkpoint, the battle exercise is refused rather than silently modifying an unprotected world. This is a practice-mode safety net, not a full save-slot system.

@@ -7,6 +7,7 @@ import { extendRoute, planConveyorRoute, commitConveyorRoute } from './routes.js
 import { buildTunnel, tunnelGeometry } from './underground.js';
 import { startBuildStroke, normalizedBuildLine } from './build-stroke.js';
 import { restoreDraft, attachDraftAutosave } from './local-draft.js';
+import { beginExercise,hasExerciseCheckpoint,requestExerciseRollback,applyPendingExerciseRollback,keepExerciseResults } from './battle-exercise.js';
 import { nationLabel, restoreNationProfiles } from './nations.js';
 import { installNationEditor } from './nation-editor.js';
 import { RESOURCES } from './resources.js';
@@ -33,6 +34,7 @@ world.terrain = new Terrain();
 // The starter layout is created only when there is no compatible draft.
 let draftStorage=null;
 try { draftStorage=window.localStorage; } catch {}
+applyPendingExerciseRollback(draftStorage);
 restoreNationProfiles(draftStorage);
 const draft=restoreDraft(world,draftStorage);
 if(!draft.restored){
@@ -1157,22 +1159,79 @@ byId('show-links').addEventListener('click',event => {
   event.currentTarget.textContent = `↗ 자원 연결 ${showLinks ? 'ON' : 'OFF'}`;
   invalidate();
 });
+// Battle exercises snapshot the current world before any combat mutations.
+let continuousBattle=false,raidClock=0,raidWaves=0;
+const battleTools=document.createElement('div');
+battleTools.className='battle-exercise-tools';
 const assaultButton=document.createElement('button');
-assaultButton.type='button';assaultButton.textContent='⚔ 전선 교전 훈련 · 적 돌격대';
-toolbox.querySelector('.toolbox-actions').appendChild(assaultButton);
-assaultButton.addEventListener('click',()=>{
+assaultButton.type='button';assaultButton.textContent='⚔ 적 돌격대 투입';
+const battleToggle=document.createElement('button');
+battleToggle.type='button';battleToggle.textContent='⚑ 연속 전선전 시작';
+const rollbackButton=document.createElement('button');
+rollbackButton.type='button';rollbackButton.textContent='↶ 훈련 전으로 되돌리기';
+const keepButton=document.createElement('button');
+keepButton.type='button';keepButton.textContent='✓ 전투 결과 유지';
+battleTools.append(assaultButton,battleToggle,rollbackButton,keepButton);
+toolbox.querySelector('.toolbox-actions').appendChild(battleTools);
+function updateBattleTools(){
+  battleToggle.textContent=continuousBattle?'Ⅱ 연속 전선전 중지':'⚑ 연속 전선전 시작';
+  const available=hasExerciseCheckpoint(draftStorage);
+  rollbackButton.hidden=!available;keepButton.hidden=!available;
+}
+function beginBattleSafely(){
+  if(beginExercise(world,draftStorage)){updateBattleTools();return true;}
+  ui.message.textContent='기존 세계를 백업할 수 없어 훈련을 시작하지 않았습니다. 저장 공간을 확인하세요.';
+  return false;
+}
+function summonBattleRaid(){
   const result=unitCommand.launchAssault(activeOwner);
-  ui.message.textContent=result.ok
-    ? '적 돌격대 '+result.count+'기 접근 · '+(result.targetType==='outpost'?'아군 전초기지 점령 시도':'중앙 타워 공격')
-    : {target:'방어 목표가 없습니다.',limit:'전장 유닛 최대치입니다.',
-      space:'적 부대 배치 공간이 없습니다.',path:'적 부대의 접근 경로가 없습니다.'}[result.reason]??'교전을 시작할 수 없습니다.';
-  if(result.ok){combatVisual.wake();invalidate();}
+  if(result.ok){
+    raidWaves++;
+    ui.message.textContent=raidWaves+'차 전선 교전 · 적 '+result.count+'기 접근 · '+
+      (result.targetType==='outpost'?'전초기지 방어':'중앙 타워 방어');
+    combatVisual.wake();invalidate();
+  }else{
+    ui.message.textContent={target:'방어 가능한 아군 목표가 없습니다.',
+      limit:'전장 유닛이 가득 차 추가 증원이 대기합니다.',
+      space:'적 부대 배치 공간이 없습니다.',path:'적의 접근 경로가 차단되어 있습니다.'}
+      [result.reason]??'돌격대를 투입할 수 없습니다.';
+  }
+  return result.ok;
+}
+assaultButton.addEventListener('click',()=>{
+  if(beginBattleSafely())summonBattleRaid();
 });
-byId('simulate-raid').addEventListener('click', () => {
-  const ok = combat.spawnRaid(activeOwner);
-  ui.message.textContent = ok ? '적 정찰 드론 3기 접근 중 · 포탑으로 방어하세요.'
-    : '정찰 시험을 시작할 수 없습니다. 해당 국가의 중앙 타워를 확인하세요.';
-  if (ok) { combatVisual.wake(); invalidate(); }
+battleToggle.addEventListener('click',()=>{
+  if(continuousBattle){
+    continuousBattle=false;updateBattleTools();
+    ui.message.textContent='연속 교전 중지 · 남은 부대는 유지됩니다. 훈련 되돌리기 가능';
+    return;
+  }
+  if(!beginBattleSafely())return;
+  continuousBattle=true;raidClock=0;
+  summonBattleRaid();updateBattleTools();
+});
+rollbackButton.addEventListener('click',()=>{
+  if(!requestExerciseRollback(draftStorage)){
+    ui.message.textContent='훈련 복원 데이터를 저장할 수 없습니다.';return;
+  }
+  continuousBattle=false;
+  window.location.reload();
+});
+keepButton.addEventListener('click',()=>{
+  if(!keepExerciseResults(world,draftStorage)){
+    ui.message.textContent='전투 결과를 저장하지 못했습니다.';return;
+  }
+  continuousBattle=false;updateBattleTools();
+  ui.message.textContent='훈련 결과를 현재 세계에 확정했습니다.';
+});
+updateBattleTools();
+byId('simulate-raid').addEventListener('click',()=>{
+  if(!beginBattleSafely())return;
+  const ok=combat.spawnRaid(activeOwner);
+  ui.message.textContent=ok?'적 정찰 드론 3기 접근 중 · 포탑 방어 훈련'
+    :'정찰 훈련을 시작할 수 없습니다. 아군 중앙 타워를 확인하세요.';
+  if(ok){combatVisual.wake();invalidate();}
 });
 byId('example').addEventListener('click', () => {
   // This no-cost tutorial shortcut must not silently construct in rival territory.
@@ -1239,6 +1298,16 @@ setInterval(() => {
   const combatChanged = combat.step(dt);
   const unitsChanged = unitCommand.step(dt);
   const captureChanged=capture.step(dt);
+  if(continuousBattle){
+    raidClock+=dt;
+    if(raidClock>=26){
+      raidClock=0;
+      if(!summonBattleRaid() &&
+        ![...world.structures.values()].some(e=>e.type==='tower'&&e.ownerId===activeOwner&&e.health>0)){
+        continuousBattle=false;updateBattleTools();
+      }
+    }
+  }
   for(const event of capture.events.splice(0)){
     combat.visualEvents.push({type:'capture',x:event.x,y:event.y,ownerId:event.ownerId});
     ui.message.textContent=nationLabel(event.ownerId)+' 전초기지 점령 완료 · 영토 확장!';

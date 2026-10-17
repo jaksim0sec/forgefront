@@ -1003,3 +1003,9 @@ button:focus-visible { outline:2px solid #efaa54; outline-offset:2px; }
 .unit-training-tools[hidden]{display:none!important}
 .unit-training-tools button{width:100%;min-height:30px;padding:6px 9px;text-align:left;
 background:#243b46;color:#e1ecec;border:1px solid #55717a;border-radius:8px;font-size:11px}
+
+/* Compact and opt-in combat practice with persistent rollback controls. */
+.battle-exercise-tools{display:grid;grid-template-columns:1fr;gap:5px;width:100%;margin-block:6px}
+.battle-exercise-tools button{min-height:30px;padding:6px 8px;border-radius:7px;text-align:left;
+  border:1px solid #4c6c77;background:#263d48;color:#e2ecee;font-size:11px}
+.battle-exercise-tools button[hidden]{display:none!important}
